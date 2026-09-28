@@ -1,0 +1,54 @@
+{
+  "schema_version": 2,
+  "pipeline": {
+    "runner_labels": ["self-hosted", "Linux", "X64", "production"],
+    "project_roots": ["apps"]
+  },
+  "projects": [
+    {
+      "name": "his-frontend",
+      "type": "node",
+      "framework": "angular",
+      "version": "22",
+      "path": "apps/his_frontend",
+      "package_manager": "pnpm",
+      "build_tool": null,
+      "check_script": "test",
+      "dockerfile": ".github/docker/angular.Dockerfile",
+      "image": "hospital-information-system/his-frontend",
+      "package_name": "his-frontend",
+      "Trivy_exceptions": [],
+      "build_output": "apps/his_frontend/dist/his_frontend/browser",
+      "server_config": "apps/his_frontend/nginx.conf",
+      "start_command": null,
+      "ports": { "host": 10400, "container": 10400 }
+    },
+    {
+      "name": "his-backend",
+      "type": "springboot",
+      "framework": "springboot",
+      "version": "25",
+      "path": "apps/his_backend",
+      "package_manager": null,
+      "build_tool": "maven",
+      "check_script": null,
+      "dockerfile": ".github/docker/spring.Dockerfile",
+      "image": "hospital-information-system/his-backend",
+      "package_name": null,
+      "Trivy_exceptions": [],
+      "build_output": "target/*.jar",
+      "server_config": null,
+      "start_command": "java -jar /app/app.jar",
+      "ports": { "host": 10420, "container": 10420 }
+    }
+  ],
+  "deploy": {
+    "environment": "production",
+    "host": "192.168.1.160",
+    "user": "docker_deploy",
+    "registry": "192.168.1.162:5000",
+    "compose_file": "deploy/compose.yml",
+    "config_file": ".env.example",
+    "remote_dir": "/home/docker_deploy/hospital-information-system"
+  }
+}

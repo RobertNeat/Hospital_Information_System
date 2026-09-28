@@ -1,0 +1,16 @@
+name: hospital-information-system
+
+services:
+  his-frontend:
+    image: ${REGISTRY}/${HIS_FRONTEND_IMAGE}:${IMAGE_TAG}
+    restart: unless-stopped
+    ports:
+      - "${HIS_FRONTEND_HOST_PORT}:${HIS_FRONTEND_CONTAINER_PORT}"
+
+  his-backend:
+    image: ${REGISTRY}/${HIS_BACKEND_IMAGE}:${IMAGE_TAG}
+    restart: unless-stopped
+    env_file:
+      - config.env
+    ports:
+      - "${HIS_BACKEND_HOST_PORT}:${HIS_BACKEND_CONTAINER_PORT}"
