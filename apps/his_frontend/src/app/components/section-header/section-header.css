@@ -1,0 +1,45 @@
+:host {
+  display: block;
+}
+
+.his-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 1rem;
+  color: #fff;
+  font-weight: 600;
+  gap: 0.5rem;
+}
+
+.his-section-header__title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.his-section-header__count {
+  background: rgb(255 255 255 / 20%);
+  border-radius: 999px;
+  padding: 0.05rem 0.5rem;
+  font-size: 0.75rem;
+}
+
+.his-section-header--navy {
+  background: var(--his-navy);
+}
+.his-section-header--primary {
+  background: var(--p-primary-color);
+}
+.his-section-header--success {
+  background: var(--p-green-600, #16a34a);
+}
+.his-section-header--warn {
+  background: var(--p-orange-600, #d97706);
+}
+.his-section-header--danger {
+  background: var(--p-red-600, #dc2626);
+}
+.his-section-header--info {
+  background: var(--p-sky-600, #0284c7);
+}

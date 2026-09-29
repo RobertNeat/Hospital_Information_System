@@ -1,0 +1,42 @@
+:host {
+  display: block;
+  height: 100dvh;
+}
+
+.his-shell {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: var(--his-header-h) 1fr;
+  grid-template-areas: 'header header' 'sidebar main';
+  height: 100%;
+}
+
+.his-shell__header {
+  grid-area: header;
+  min-width: 0;
+}
+
+.his-shell__sidebar {
+  grid-area: sidebar;
+}
+
+.his-shell__main {
+  grid-area: main;
+  overflow: auto;
+  min-height: 0;
+  min-width: 0;
+  background: var(--his-content-bg);
+}
+
+/* Below 1024px, AppSidebar hides its own desktop column internally
+   (see app-sidebar.css) and renders through a <p-drawer> overlay instead, so
+   the shell's grid column collapses to 0 on its own -- no override needed here.
+   (Previously this block also set `.his-shell__sidebar { display: none }`,
+   which hid the drawer's host element too and made the mobile drawer
+   permanently unreachable -- removed.) */
+@media (max-width: 1023px) {
+  .his-shell {
+    grid-template-columns: 0 minmax(0, 1fr);
+    grid-template-areas: 'header header' 'main main';
+  }
+}

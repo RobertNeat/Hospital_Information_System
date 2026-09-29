@@ -1,0 +1,14 @@
+<p-timeline [value]="entries()" styleClass="his-order-status-timeline">
+  <ng-template #content let-entry>
+    <div class="his-order-status-timeline__entry">
+      <app-status-tag kind="orderStatus" [value]="entry.status" />
+      <span class="his-muted">{{ entry.at | date: 'dd.MM.yyyy HH:mm' }}</span>
+      @if (entry.byId) {
+        <span class="his-muted">{{ entry.byId | staffName }}</span>
+      }
+      @if (entry.note) {
+        <p class="his-order-status-timeline__note">{{ entry.note }}</p>
+      }
+    </div>
+  </ng-template>
+</p-timeline>

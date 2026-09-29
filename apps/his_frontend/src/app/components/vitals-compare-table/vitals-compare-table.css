@@ -1,0 +1,11 @@
+.vitals-compare-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.vitals-compare-table th,
+.vitals-compare-table td {
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--his-card-border);
+}

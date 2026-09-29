@@ -1,0 +1,54 @@
+<p-dialog
+  [visible]="visible()"
+  [modal]="true"
+  [closable]="false"
+  header="e-Recepta wystawiona"
+  [style]="{ width: '480px' }"
+>
+  <div class="his-erx-dialog__body">
+    <p class="his-muted">
+      Recepta została wystawiona. Przekaż pacjentowi poniższy kod dostępu i informację o e-recepcie.
+    </p>
+
+    <div class="his-erx-dialog__code">
+      <span class="his-erx-dialog__code-label">Kod dostępu</span>
+      <span class="his-erx-dialog__code-value">{{ prescription().accessCode }}</span>
+    </div>
+
+    <div class="his-erx-dialog__key">
+      <span class="his-erx-dialog__key-label">Klucz e-recepty</span>
+      <code class="his-erx-dialog__key-value">{{ prescription().eRxKey }}</code>
+    </div>
+
+    <div class="his-erx-print">
+      <h2>Informacja o e-recepcie</h2>
+      <p>
+        Pacjent: {{ patient().lastName }} {{ patient().firstName }}
+        @if (patient().pesel) {
+          (PESEL: {{ patient().pesel }})
+        }
+      </p>
+      <p>
+        Wystawił: {{ prescriber().title }} {{ prescriber().firstName }} {{ prescriber().lastName }}
+      </p>
+      <p>Data wystawienia: {{ prescription().issuedAt | date: 'dd.MM.yyyy HH:mm' }}</p>
+      <p class="his-erx-print__code">Kod dostępu: {{ prescription().accessCode }}</p>
+      <p class="his-erx-print__key">Klucz e-recepty: {{ prescription().eRxKey }}</p>
+      <p>
+        Ważna od {{ prescription().validFrom | date: 'dd.MM.yyyy' }} do
+        {{ prescription().validUntil | date: 'dd.MM.yyyy' }}.
+      </p>
+    </div>
+  </div>
+
+  <ng-template #footer>
+    <p-button
+      label="Drukuj informację dla pacjenta"
+      icon="pi pi-print"
+      severity="secondary"
+      [outlined]="true"
+      (onClick)="print()"
+    />
+    <p-button label="Zamknij" (onClick)="close()" />
+  </ng-template>
+</p-dialog>

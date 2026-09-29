@@ -1,0 +1,13 @@
+<div class="his-wizard-step-footer">
+  <p-button label="Anuluj" severity="secondary" [text]="true" (onClick)="cancelled.emit()" />
+  <div class="his-wizard-step-footer__right">
+    @if (!first()) {
+      <p-button label="Wstecz" severity="secondary" [outlined]="true" (onClick)="back.emit()" />
+    }
+    @if (!last()) {
+      <p-button [label]="nextLabel()" (onClick)="next.emit()" [loading]="busy()" />
+    } @else {
+      <p-button [label]="submitLabel()" (onClick)="submitted.emit()" [loading]="busy()" />
+    }
+  </div>
+</div>

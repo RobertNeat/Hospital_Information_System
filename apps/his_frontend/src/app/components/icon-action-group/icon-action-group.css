@@ -1,0 +1,10 @@
+:host {
+  display: block;
+}
+
+.his-icon-action-group {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}

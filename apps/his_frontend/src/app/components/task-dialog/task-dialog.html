@@ -1,0 +1,73 @@
+<p-dialog
+  header="Deleguj zadanie"
+  [visible]="visible()"
+  [modal]="true"
+  [style]="{ width: '32rem' }"
+  (onHide)="onHide()"
+  (visibleChange)="visibleChange.emit($event)"
+>
+  <form [formGroup]="form" class="his-task-dialog__form">
+    <app-form-field label="Tytuł" [control]="form.controls.title" [required]="true">
+      <input pInputText type="text" formControlName="title" />
+    </app-form-field>
+
+    <app-form-field label="Opis" [control]="form.controls.description">
+      <textarea pTextarea rows="3" formControlName="description"></textarea>
+    </app-form-field>
+
+    <app-form-field label="Przypisz do" [control]="form.controls.assignedToId" [required]="true">
+      <p-select
+        formControlName="assignedToId"
+        [options]="staffGroups()"
+        optionLabel="label"
+        optionValue="value"
+        optionGroupLabel="label"
+        optionGroupChildren="items"
+        placeholder="Wybierz pracownika"
+        [showClear]="true"
+      />
+    </app-form-field>
+
+    <app-form-field label="Pacjent (opcjonalnie)">
+      @if (selectedPatient(); as patient) {
+        <div class="his-task-dialog__patient">
+          <span>{{ patient.lastName }} {{ patient.firstName }}</span>
+          <button
+            type="button"
+            class="his-task-dialog__patient-clear"
+            aria-label="Usuń wybranego pacjenta"
+            pTooltip="Usuń wybranego pacjenta"
+            (click)="clearPatient()"
+          >
+            <i class="pi pi-times"></i>
+          </button>
+        </div>
+      } @else {
+        <app-patient-search (patientSelected)="onPatientSelected($event)" />
+      }
+    </app-form-field>
+
+    <app-form-field label="Priorytet" [control]="form.controls.priority" [required]="true">
+      <p-select
+        formControlName="priority"
+        [options]="priorityOptions"
+        optionLabel="label"
+        optionValue="value"
+      />
+    </app-form-field>
+
+    <app-form-field label="Termin wykonania">
+      <p-datepicker
+        formControlName="dueAt"
+        [showTime]="true"
+        dateFormat="dd.mm.yy"
+        [showIcon]="true"
+      />
+    </app-form-field>
+  </form>
+
+  <ng-template #footer>
+    <p-button label="Anuluj" severity="secondary" text (onClick)="onHide()" />
+    <p-button label="Deleguj" icon="pi pi-check" (onClick)="submit()" />
+  </ng-template>
+</p-dialog>

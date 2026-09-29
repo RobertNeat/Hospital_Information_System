@@ -1,0 +1,40 @@
+<div class="his-thread-list">
+  <p-iconfield class="his-thread-list__search">
+    <p-inputicon class="pi pi-search" />
+    <input
+      pInputText
+      type="text"
+      placeholder="Szukaj wątku..."
+      [ngModel]="searchTerm()"
+      (ngModelChange)="searchTerm.set($event)"
+    />
+  </p-iconfield>
+
+  <ul class="his-thread-list__items">
+    @for (thread of filteredThreads(); track thread.id) {
+      <li>
+        <button
+          type="button"
+          class="his-thread-list__item"
+          [class.his-thread-list__item--active]="thread.id === selectedThreadId()"
+          (click)="select(thread)"
+        >
+          <div class="his-thread-list__row">
+            <span class="his-thread-list__subject">{{ thread.subject }}</span>
+            @if (thread.unreadCount > 0) {
+              <p-badge [value]="thread.unreadCount.toString()" severity="danger" />
+            }
+          </div>
+          <div class="his-thread-list__row">
+            @if (thread.patientId) {
+              <p-tag [value]="patientLabel()(thread.patientId)" severity="info" />
+            }
+            <span class="his-muted">{{ thread.lastMessageAt | date: 'dd.MM.yyyy HH:mm' }}</span>
+          </div>
+        </button>
+      </li>
+    } @empty {
+      <li class="his-muted his-thread-list__empty">Brak wątków.</li>
+    }
+  </ul>
+</div>

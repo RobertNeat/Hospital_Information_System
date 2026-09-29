@@ -1,0 +1,100 @@
+<div class="his-dosage-editor" [formGroup]="form()">
+  <div class="his-form-grid">
+    <app-form-field label="Dawka" for="dose" [required]="true" [control]="form().get('dose')">
+      <p-inputNumber
+        inputId="dose"
+        formControlName="dose"
+        [min]="0"
+        [maxFractionDigits]="2"
+        [suffix]="' ' + doseUnit()"
+        [fluid]="true"
+      />
+    </app-form-field>
+
+    <app-form-field
+      label="Droga podania"
+      for="route"
+      [required]="true"
+      [control]="form().get('route')"
+    >
+      <p-select
+        inputId="route"
+        formControlName="route"
+        [options]="routeOptions()"
+        optionLabel="label"
+        optionValue="value"
+        placeholder="Wybierz drogę podania"
+        [fluid]="true"
+      />
+    </app-form-field>
+
+    <app-form-field
+      label="Częstość"
+      for="frequency"
+      [required]="true"
+      [control]="form().get('frequency')"
+    >
+      <p-select
+        inputId="frequency"
+        formControlName="frequency"
+        [options]="frequencyOptions"
+        optionLabel="label"
+        optionValue="value"
+        placeholder="Wybierz częstość"
+        [fluid]="true"
+      />
+    </app-form-field>
+  </div>
+
+  <div class="his-dosage-editor__times">
+    <span class="his-dosage-editor__times-label">Pora dnia</span>
+    <div class="his-dosage-editor__times-options">
+      @for (opt of timeOfDayOptions; track opt.value) {
+        <label class="his-dosage-editor__time-option">
+          <p-checkbox [value]="opt.value" formControlName="timesOfDay" [name]="'timesOfDay'" />
+          {{ opt.label }}
+        </label>
+      }
+    </div>
+  </div>
+
+  <div class="his-dosage-editor__prn">
+    <label class="his-dosage-editor__prn-toggle">
+      <p-toggleswitch formControlName="asNeeded" ariaLabel="Doraźnie (PRN)" />
+      Doraźnie (PRN)
+    </label>
+    @if (form().get('asNeeded')?.value) {
+      <app-form-field
+        label="Maks. razy na dobę"
+        for="maxPerDay"
+        [control]="form().get('maxPerDay')"
+      >
+        <p-inputNumber inputId="maxPerDay" formControlName="maxPerDay" [min]="1" [max]="24" />
+      </app-form-field>
+    }
+  </div>
+
+  <app-form-field label="Instrukcje dla pacjenta" for="instructions">
+    <textarea
+      pTextarea
+      id="instructions"
+      formControlName="instructions"
+      rows="2"
+      [fluid]="true"
+    ></textarea>
+  </app-form-field>
+
+  <div class="his-dosage-editor__summary">
+    @if (dailyDose(); as daily) {
+      <p class="his-dosage-editor__daily">
+        Dawka dobowa: <strong>{{ daily | number: '1.0-2' }} {{ doseUnit() }}</strong>
+      </p>
+      @if (exceedsMax()) {
+        <p-message severity="warn">
+          Obliczona dawka dobowa przekracza maksymalną zalecaną dawkę
+          {{ drug().maxDailyDose?.value }} {{ drug().maxDailyDose?.unit }}.
+        </p-message>
+      }
+    }
+  </div>
+</div>

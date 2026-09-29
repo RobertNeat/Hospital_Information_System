@@ -1,0 +1,58 @@
+<p-dialog
+  header="Dodaj notatkę kliniczną"
+  [visible]="visible()"
+  [modal]="true"
+  [style]="{ width: '32rem' }"
+  (visibleChange)="visibleChange.emit($event)"
+  (onHide)="onHide()"
+>
+  <form [formGroup]="form" class="his-form-grid">
+    <app-form-field label="Kategoria" [required]="true" [control]="form.controls.category">
+      <p-select
+        [options]="categoryOptions"
+        formControlName="category"
+        optionLabel="label"
+        optionValue="value"
+        placeholder="Wybierz kategorię"
+        class="his-full-width"
+      />
+    </app-form-field>
+
+    <app-form-field label="Tytuł" [required]="true" [control]="form.controls.title">
+      <input pInputText formControlName="title" class="his-full-width" />
+    </app-form-field>
+
+    <div class="his-form-grid__full">
+      <app-form-field label="Treść" [required]="true" [control]="form.controls.content">
+        <textarea
+          pTextarea
+          formControlName="content"
+          rows="5"
+          class="his-full-width"
+          placeholder="Minimum 10 znaków"
+        ></textarea>
+      </app-form-field>
+    </div>
+
+    <div class="his-form-grid__full">
+      <app-form-field label="Objawy" [control]="form.controls.symptoms">
+        <p-multiselect
+          [options]="symptomOptions"
+          formControlName="symptoms"
+          optionLabel="label"
+          optionValue="value"
+          display="chip"
+          placeholder="Wybierz objawy"
+          class="his-full-width"
+        />
+      </app-form-field>
+    </div>
+  </form>
+
+  <ng-template #footer>
+    <div class="his-dialog-footer">
+      <p-button label="Anuluj" severity="secondary" [text]="true" (onClick)="onCancel()" />
+      <p-button label="Zapisz notatkę" icon="pi pi-check" (onClick)="onSave()" />
+    </div>
+  </ng-template>
+</p-dialog>

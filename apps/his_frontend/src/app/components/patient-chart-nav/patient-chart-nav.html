@@ -1,0 +1,17 @@
+<nav class="his-chart-nav">
+  @for (item of items; track item.segment) {
+    <a
+      class="his-chart-nav__item"
+      [routerLink]="linkFor(item)"
+      routerLinkActive="active"
+      [routerLinkActiveOptions]="{
+        paths: 'exact',
+        matrixParams: 'ignored',
+        queryParams: 'ignored',
+        fragment: 'ignored',
+      }"
+    >
+      {{ item.label }}
+    </a>
+  }
+</nav>

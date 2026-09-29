@@ -1,0 +1,277 @@
+<div class="his-page">
+  <app-page-header title="Historia choroby" icon="pi pi-book" />
+
+  <p-tabs [value]="activeTab()" (valueChange)="onTabChange($event)">
+    <p-tablist>
+      <p-tab value="overview">Przegląd</p-tab>
+      <p-tab value="encounters">Wizyty i epizody leczenia</p-tab>
+      <p-tab value="notes">Notatki kliniczne</p-tab>
+      <p-tab value="diagnoses">Rozpoznania</p-tab>
+      <p-tab value="treatments">Leczenie / Terapia</p-tab>
+      <p-tab value="allergies">Alergie i przeciwwskazania</p-tab>
+    </p-tablist>
+
+    <p-tabpanels>
+      <!-- Przegląd -->
+      <p-tabpanel value="overview">
+        @if (summary(); as s) {
+          <app-ehr-summary-cards [summary]="s" [encounters]="encounters()" />
+        } @else {
+          <app-empty-state title="Brak danych" message="Ładowanie danych pacjenta..." />
+        }
+      </p-tabpanel>
+
+      <!-- Wizyty i epizody leczenia -->
+      <p-tabpanel value="encounters">
+        @if (episodeGroups().length) {
+          <div class="his-episode-groups">
+            @for (group of episodeGroups(); track trackEpisode($index, group)) {
+              <div class="his-section his-episode-group">
+                <app-section-header
+                  [title]="group.episode?.title ?? 'Wizyty bez przypisanego epizodu'"
+                  icon="pi pi-calendar-clock"
+                  [variant]="group.episode?.status === 'active' ? 'warn' : 'navy'"
+                />
+                <div class="his-episode-group__body">
+                  <p-timeline [value]="group.encounters" align="left">
+                    <ng-template pTemplate="content" let-encounter>
+                      <div class="his-timeline-entry">
+                        <div class="his-timeline-entry__header">
+                          <strong>{{ encounter.type | label: 'encounterType' }}</strong>
+                          <span class="his-chip">{{
+                            encounter.status | label: 'encounterStatus'
+                          }}</span>
+                        </div>
+                        <div class="his-muted">
+                          {{ encounter.startAt | date: 'dd.MM.yyyy HH:mm' }}
+                          @if (departmentName(encounter.wardId); as dept) {
+                            · {{ dept }}
+                          }
+                        </div>
+                        <div>{{ encounter.practitionerId | staffName }}</div>
+                        @if (encounter.summary) {
+                          <p>{{ encounter.summary }}</p>
+                        } @else {
+                          <p class="his-muted">{{ encounter.reason }}</p>
+                        }
+                      </div>
+                    </ng-template>
+                  </p-timeline>
+                </div>
+              </div>
+            }
+          </div>
+        } @else {
+          <app-empty-state
+            icon="pi pi-calendar-clock"
+            title="Brak wizyt"
+            message="Nie odnotowano wizyt ani epizodów leczenia."
+          />
+        }
+      </p-tabpanel>
+
+      <!-- Notatki kliniczne -->
+      <p-tabpanel value="notes">
+        <div class="his-toolbar">
+          <p-select
+            [options]="noteCategoryOptions"
+            [(ngModel)]="noteCategoryFilterValue"
+            optionLabel="label"
+            optionValue="value"
+            placeholder="Wszystkie kategorie"
+            [showClear]="true"
+            class="his-notes-filter"
+          />
+          <p-button
+            label="Dodaj notatkę"
+            icon="pi pi-plus"
+            ariaLabel="Dodaj notatkę kliniczną"
+            (onClick)="openNoteDialog()"
+          />
+        </div>
+
+        @if (filteredNotes().length) {
+          <div class="his-notes-list">
+            @for (note of filteredNotes(); track note.id) {
+              <div class="his-card his-note-card">
+                <div class="his-note-card__header">
+                  <span class="his-chip">{{ note.category | label: 'noteCategory' }}</span>
+                  <span class="his-muted">{{ note.createdAt | date: 'dd.MM.yyyy HH:mm' }}</span>
+                </div>
+                <h4>{{ note.title }}</h4>
+                <p>{{ note.content }}</p>
+                @if (note.symptoms?.length) {
+                  <div class="his-note-card__symptoms">
+                    @for (s of note.symptoms; track s) {
+                      <span class="his-chip">{{ s }}</span>
+                    }
+                  </div>
+                }
+                <div class="his-muted">{{ note.authorId | staffName }}</div>
+              </div>
+            }
+          </div>
+        } @else {
+          <app-empty-state
+            icon="pi pi-comments"
+            title="Brak notatek"
+            message="Brak notatek w tej kategorii."
+          />
+        }
+      </p-tabpanel>
+
+      <!-- Rozpoznania -->
+      <p-tabpanel value="diagnoses">
+        @if (diagnoses().length) {
+          <app-data-table
+            [rows]="diagnoses()"
+            [columns]="diagnosisColumns"
+            [dataKey]="'id'"
+            [loading]="loading()"
+          >
+            <ng-template #cell let-row let-col="col">
+              @switch (col.field) {
+                @case ('icdCode') {
+                  {{ row.code.code }}
+                }
+                @case ('icdName') {
+                  {{ row.code.display }}
+                }
+                @case ('type') {
+                  {{ row.type | label: 'diagnosisType' }}
+                }
+                @case ('status') {
+                  {{ row.status | label: 'diagnosisStatus' }}
+                }
+                @case ('diagnosedById') {
+                  {{ row.diagnosedById | staffName }}
+                }
+              }
+            </ng-template>
+          </app-data-table>
+        } @else {
+          <app-empty-state icon="pi pi-book" title="Brak rozpoznań" />
+        }
+      </p-tabpanel>
+
+      <!-- Leczenie / Terapia -->
+      <p-tabpanel value="treatments">
+        @if (treatments().length) {
+          <app-data-table
+            [rows]="treatments()"
+            [columns]="treatmentColumns"
+            [dataKey]="'id'"
+            [loading]="loading()"
+          >
+            <ng-template #cell let-row let-col="col">
+              @switch (col.field) {
+                @case ('type') {
+                  {{ row.type | label: 'treatmentType' }}
+                }
+                @case ('status') {
+                  {{ row.status | label: 'treatmentStatus' }}
+                }
+                @case ('practitionerId') {
+                  {{ row.practitionerId | staffName }}
+                }
+              }
+            </ng-template>
+          </app-data-table>
+        } @else {
+          <app-empty-state
+            icon="pi pi-file-edit"
+            title="Brak leczenia"
+            message="Brak odnotowanych terapii."
+          />
+        }
+      </p-tabpanel>
+
+      <!-- Alergie i przeciwwskazania -->
+      <p-tabpanel value="allergies">
+        @if (lifeThreateningAllergies().length) {
+          <p-message severity="error" [closable]="false">
+            Pacjent posiada alergie zagrażające życiu:
+            {{ lifeThreateningAllergies().length }}
+            @for (a of lifeThreateningAllergies(); track a.id) {
+              — {{ a.substance }} ({{ a.reaction }})
+            }
+          </p-message>
+        }
+
+        <div class="his-grid-2">
+          <div class="his-section">
+            <app-section-header
+              title="Alergie"
+              icon="pi pi-exclamation-triangle"
+              variant="danger"
+            />
+            @if (allergies().length) {
+              <table class="his-summary-table">
+                <thead>
+                  <tr>
+                    <th>Substancja</th>
+                    <th>Kategoria</th>
+                    <th>Reakcja</th>
+                    <th>Nasilenie</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (a of allergies(); track a.id) {
+                    <tr>
+                      <td>{{ a.substance }}</td>
+                      <td>{{ a.category | label: 'allergyCategory' }}</td>
+                      <td>{{ a.reaction }}</td>
+                      <td><app-status-tag kind="allergySeverity" [value]="a.severity" /></td>
+                      <td>{{ a.status === 'active' ? 'Aktywna' : 'Nieaktywna' }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            } @else {
+              <app-empty-state icon="pi pi-exclamation-triangle" title="Brak alergii" />
+            }
+          </div>
+
+          <div class="his-section">
+            <app-section-header
+              title="Przeciwwskazania"
+              icon="pi pi-exclamation-triangle"
+              variant="warn"
+            />
+            @if (contraindications().length) {
+              <table class="his-summary-table">
+                <thead>
+                  <tr>
+                    <th>Opis</th>
+                    <th>Powód</th>
+                    <th>Data</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (c of contraindications(); track c.id) {
+                    <tr>
+                      <td>{{ c.description }}</td>
+                      <td>{{ c.reason }}</td>
+                      <td>{{ c.recordedAt | date: 'dd.MM.yyyy' }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            } @else {
+              <app-empty-state icon="pi pi-exclamation-triangle" title="Brak przeciwwskazań" />
+            }
+          </div>
+        </div>
+      </p-tabpanel>
+    </p-tabpanels>
+  </p-tabs>
+</div>
+
+<app-clinical-note-dialog
+  [visible]="noteDialogVisible()"
+  [patientId]="patientId()"
+  [authorId]="currentUserId()"
+  (visibleChange)="noteDialogVisible.set($event)"
+  (save)="onNoteSave($event)"
+/>

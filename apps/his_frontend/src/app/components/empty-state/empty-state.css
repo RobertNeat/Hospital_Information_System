@@ -1,0 +1,28 @@
+:host {
+  display: block;
+}
+
+.his-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 2.5rem 1rem;
+  text-align: center;
+  color: var(--his-text-muted);
+}
+
+.his-empty-state i {
+  font-size: 2.2rem;
+  opacity: 0.6;
+}
+
+.his-empty-state h3 {
+  margin: 0;
+  color: var(--his-text);
+}
+
+.his-empty-state p {
+  margin: 0;
+}

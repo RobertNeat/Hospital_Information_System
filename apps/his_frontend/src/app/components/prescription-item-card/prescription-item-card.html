@@ -1,0 +1,41 @@
+<div class="his-card his-prescription-item-card">
+  <div class="his-prescription-item-card__header">
+    <div>
+      <span class="his-prescription-item-card__name">{{ item().drugName }}</span>
+      <span class="his-muted">
+        · {{ item().strength }} · {{ item().form | label: 'drugForm' }}</span
+      >
+    </div>
+    @if (removable()) {
+      <p-button
+        icon="pi pi-trash"
+        severity="danger"
+        [text]="true"
+        ariaLabel="Usuń lek z recepty"
+        pTooltip="Usuń lek z recepty"
+        (onClick)="remove.emit()"
+      />
+    }
+  </div>
+  <div class="his-prescription-item-card__details">
+    <span
+      >{{ item().dosage.dose }} {{ item().dosage.doseUnit }} ·
+      {{ item().dosage.route | label: 'route' }} ·
+      {{ item().dosage.frequency | label: 'frequency' }}</span
+    >
+    @if (item().dosage.asNeeded) {
+      <p-tag value="Doraźnie (PRN)" severity="info" />
+    }
+    <span>Czas terapii: {{ item().dosage.durationDays }} dni</span>
+    <span>Ilość: {{ item().quantityPackages }} op.</span>
+    <span>Refundacja: {{ item().reimbursement | label: 'reimbursement' }}</span>
+    @if (!item().substitutionAllowed) {
+      <p-tag value="Nie zamieniać" severity="warn" />
+    }
+  </div>
+  @if (item().dosage.instructions) {
+    <p class="his-muted his-prescription-item-card__instructions">
+      {{ item().dosage.instructions }}
+    </p>
+  }
+</div>

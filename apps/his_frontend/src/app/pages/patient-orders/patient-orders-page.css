@@ -1,0 +1,12 @@
+.his-icon-btn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0.35rem;
+  border-radius: var(--his-radius);
+  color: var(--his-navy-700);
+}
+
+.his-icon-btn:hover {
+  background: var(--p-surface-100);
+}

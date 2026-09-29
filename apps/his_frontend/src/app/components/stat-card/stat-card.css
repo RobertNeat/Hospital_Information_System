@@ -1,0 +1,52 @@
+:host {
+  display: block;
+}
+
+.his-stat-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: var(--his-card-bg);
+  border: 1px solid var(--his-card-border);
+  border-radius: var(--his-radius);
+  padding: 1rem;
+  text-decoration: none;
+  color: inherit;
+}
+
+.his-stat-card__icon {
+  font-size: 1.5rem;
+  color: var(--p-primary-color);
+}
+
+.his-stat-card--success .his-stat-card__icon {
+  color: var(--p-green-600, #16a34a);
+}
+.his-stat-card--warn .his-stat-card__icon {
+  color: var(--p-orange-600, #d97706);
+}
+.his-stat-card--danger .his-stat-card__icon {
+  color: var(--p-red-600, #dc2626);
+}
+.his-stat-card--info .his-stat-card__icon {
+  color: var(--p-sky-600, #0284c7);
+}
+
+.his-stat-card__body {
+  display: flex;
+  flex-direction: column;
+}
+
+.his-stat-card__value {
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.his-stat-card__label {
+  font-size: 0.85rem;
+  color: var(--his-text-muted);
+}
+
+.his-stat-card__hint {
+  font-size: 0.75rem;
+}

@@ -1,0 +1,79 @@
+<div class="his-page">
+  <app-page-header [title]="pageTitle()" icon="pi pi-chart-bar">
+    <a actions routerLink="../.." class="his-muted">
+      <i class="pi pi-arrow-left" aria-hidden="true"></i>
+      Wróć do wyników
+    </a>
+  </app-page-header>
+
+  @if (loaded(); as loadedResult) {
+    @switch (loadedResult.kind) {
+      @case ('lab') {
+        <div class="his-section">
+          <div class="his-toolbar">
+            <div>
+              <div>
+                <strong>{{ loadedResult.result.testName }}</strong>
+              </div>
+              <div class="his-muted">
+                Pobranie: {{ loadedResult.result.collectedAt | date: 'dd.MM.yyyy HH:mm' }} · Wynik:
+                {{ loadedResult.result.resultedAt | date: 'dd.MM.yyyy HH:mm' }}
+              </div>
+              <div class="his-muted">Wykonawca: {{ loadedResult.result.performerName }}</div>
+            </div>
+            <div>
+              <app-status-tag kind="resultStatus" [value]="loadedResult.result.status" />
+            </div>
+          </div>
+
+          @if (loadedResult.result.comment) {
+            <p>{{ loadedResult.result.comment }}</p>
+          }
+
+          <app-lab-result-observations [observations]="loadedResult.result.observations" />
+
+          <p-button
+            label="Pobierz raport"
+            icon="pi pi-download"
+            (onClick)="downloadLab(loadedResult.result)"
+            ariaLabel="Pobierz raport"
+            pTooltip="Pobierz raport"
+          />
+        </div>
+      }
+      @case ('imaging') {
+        <div class="his-section">
+          <div class="his-toolbar">
+            <div>
+              <strong>{{ loadedResult.result.examName }}</strong>
+              <div class="his-muted">
+                {{ loadedResult.result.bodyRegion }} ·
+                {{ loadedResult.result.modality | label: 'imagingModality' }}
+              </div>
+            </div>
+            <app-status-tag kind="resultStatus" [value]="loadedResult.result.status" />
+          </div>
+
+          <app-imaging-report-view [result]="loadedResult.result" />
+
+          <p-button
+            label="Pobierz raport"
+            icon="pi pi-download"
+            (onClick)="downloadImaging(loadedResult.result)"
+            ariaLabel="Pobierz raport"
+            pTooltip="Pobierz raport"
+          />
+        </div>
+      }
+      @case ('not-found') {
+        <app-empty-state
+          icon="pi pi-exclamation-triangle"
+          title="Nie znaleziono wyniku"
+          message="Sprawdź, czy odnośnik do wyniku jest prawidłowy."
+        />
+      }
+    }
+  } @else {
+    <app-loading-block />
+  }
+</div>

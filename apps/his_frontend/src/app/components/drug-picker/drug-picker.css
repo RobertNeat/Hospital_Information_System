@@ -1,0 +1,25 @@
+:host {
+  display: block;
+}
+
+.his-drug-picker__item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.15rem 0;
+}
+
+.his-drug-picker__item-main {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.his-drug-picker__name {
+  font-weight: 600;
+}
+
+.his-drug-picker__item-details {
+  font-size: 0.8rem;
+  color: var(--p-text-muted-color);
+}

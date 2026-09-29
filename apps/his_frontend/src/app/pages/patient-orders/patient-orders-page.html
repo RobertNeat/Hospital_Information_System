@@ -1,0 +1,181 @@
+<div class="his-page">
+  <app-page-header title="Zlecenia pacjenta">
+    <ng-container actions>
+      <a
+        pButton
+        class="p-button-sm"
+        [routerLink]="['orders', 'lab', 'new']"
+        label="Nowe zlecenie laboratoryjne"
+        icon="pi pi-plus"
+      ></a>
+      <a
+        pButton
+        class="p-button-sm p-button-outlined"
+        [routerLink]="['orders', 'imaging', 'new']"
+        label="Nowe zlecenie obrazowe"
+        icon="pi pi-plus"
+      ></a>
+    </ng-container>
+  </app-page-header>
+
+  <p-tabs [value]="activeTab()" (valueChange)="onTabChange($event)">
+    <p-tablist>
+      <p-tab value="lab">Laboratoryjne</p-tab>
+      <p-tab value="imaging">Obrazowe</p-tab>
+    </p-tablist>
+    <p-tabpanels>
+      <p-tabpanel value="lab">
+        @if (!labLoading() && !labOrders().length) {
+          <app-empty-state title="Brak zleceń laboratoryjnych" icon="pi pi-eye-dropper" />
+        } @else {
+          <p-table
+            [value]="labOrders()"
+            dataKey="id"
+            [loading]="labLoading()"
+            size="small"
+            [stripedRows]="true"
+            [rowHover]="true"
+          >
+            <ng-template #header>
+              <tr>
+                <th style="width: 2.5rem"></th>
+                <th>Data zlecenia</th>
+                <th>Badania</th>
+                <th>Pilność</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </ng-template>
+            <ng-template #body let-order let-expanded="expanded">
+              <tr>
+                <td>
+                  <button
+                    type="button"
+                    class="his-icon-btn"
+                    [pRowToggler]="order"
+                    [attr.aria-label]="expanded ? 'Zwiń szczegóły' : 'Pokaż szczegóły'"
+                    pTooltip="Historia statusów"
+                  >
+                    <i
+                      class="pi"
+                      [class.pi-chevron-down]="!expanded"
+                      [class.pi-chevron-up]="expanded"
+                    ></i>
+                  </button>
+                </td>
+                <td>{{ order.orderedAt | date: 'dd.MM.yyyy HH:mm' }}</td>
+                <td>{{ order.items.length }} badań</td>
+                <td><app-status-tag kind="urgency" [value]="order.urgency" /></td>
+                <td><app-status-tag kind="orderStatus" [value]="order.status" /></td>
+                <td class="his-data-table__actions">
+                  @if (canCancel(order.status)) {
+                    <button
+                      type="button"
+                      class="his-icon-btn"
+                      aria-label="Anuluj zlecenie"
+                      pTooltip="Anuluj zlecenie"
+                      (click)="requestCancel('lab', order.id)"
+                    >
+                      <i class="pi pi-times"></i>
+                    </button>
+                  }
+                </td>
+              </tr>
+            </ng-template>
+            <ng-template #expandedrow let-order>
+              <tr>
+                <td colspan="6">
+                  <app-order-status-timeline [history]="order.statusHistory" />
+                </td>
+              </tr>
+            </ng-template>
+          </p-table>
+        }
+      </p-tabpanel>
+
+      <p-tabpanel value="imaging">
+        @if (!imagingLoading() && !imagingOrders().length) {
+          <app-empty-state title="Brak zleceń obrazowych" icon="pi pi-image" />
+        } @else {
+          <p-table
+            [value]="imagingOrders()"
+            dataKey="id"
+            [loading]="imagingLoading()"
+            size="small"
+            [stripedRows]="true"
+            [rowHover]="true"
+          >
+            <ng-template #header>
+              <tr>
+                <th style="width: 2.5rem"></th>
+                <th>Data zlecenia</th>
+                <th>Badanie</th>
+                <th>Pilność</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </ng-template>
+            <ng-template #body let-order let-expanded="expanded">
+              <tr>
+                <td>
+                  <button
+                    type="button"
+                    class="his-icon-btn"
+                    [pRowToggler]="order"
+                    [attr.aria-label]="expanded ? 'Zwiń szczegóły' : 'Pokaż szczegóły'"
+                    pTooltip="Historia statusów"
+                  >
+                    <i
+                      class="pi"
+                      [class.pi-chevron-down]="!expanded"
+                      [class.pi-chevron-up]="expanded"
+                    ></i>
+                  </button>
+                </td>
+                <td>{{ order.orderedAt | date: 'dd.MM.yyyy HH:mm' }}</td>
+                <td>{{ order.examName }} ({{ order.modality | label: 'imagingModality' }})</td>
+                <td><app-status-tag kind="urgency" [value]="order.urgency" /></td>
+                <td><app-status-tag kind="orderStatus" [value]="order.status" /></td>
+                <td class="his-data-table__actions">
+                  @if (canCancel(order.status)) {
+                    <button
+                      type="button"
+                      class="his-icon-btn"
+                      aria-label="Anuluj zlecenie"
+                      pTooltip="Anuluj zlecenie"
+                      (click)="requestCancel('imaging', order.id)"
+                    >
+                      <i class="pi pi-times"></i>
+                    </button>
+                  }
+                </td>
+              </tr>
+            </ng-template>
+            <ng-template #expandedrow let-order>
+              <tr>
+                <td colspan="6">
+                  <app-order-status-timeline [history]="order.statusHistory" />
+                </td>
+              </tr>
+            </ng-template>
+          </p-table>
+        }
+      </p-tabpanel>
+    </p-tabpanels>
+  </p-tabs>
+
+  <p-confirmdialog key="cancel-order" [style]="{ width: '28rem' }">
+    <ng-template #message>
+      <div class="his-form-grid">
+        <p>Podaj powód anulowania zlecenia.</p>
+        <textarea
+          pTextarea
+          rows="3"
+          [ngModel]="cancelReason()"
+          (ngModelChange)="cancelReason.set($event)"
+          placeholder="Powód anulowania"
+        ></textarea>
+      </div>
+    </ng-template>
+  </p-confirmdialog>
+</div>

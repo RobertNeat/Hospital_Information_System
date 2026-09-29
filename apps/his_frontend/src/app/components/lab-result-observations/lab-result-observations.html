@@ -1,0 +1,27 @@
+<table class="his-lro">
+  <thead>
+    <tr>
+      <th>Parametr</th>
+      <th>Wynik</th>
+      <th>Jednostka</th>
+      <th>Zakres referencyjny</th>
+      <th>Flaga</th>
+    </tr>
+  </thead>
+  <tbody>
+    @for (obs of observations(); track obs.analyteCode) {
+      <tr>
+        <td>{{ obs.analyteName }}</td>
+        <td class="his-lro__value" [class]="flagClass(obs.flag)">
+          @if (flagIcon(obs.flag)) {
+            <i [class]="flagIcon(obs.flag)" aria-hidden="true"></i>
+          }
+          {{ obs.value }}
+        </td>
+        <td>{{ obs.unit }}</td>
+        <td>{{ referenceRangeText(obs) }}</td>
+        <td><app-status-tag kind="resultFlag" [value]="obs.flag" /></td>
+      </tr>
+    }
+  </tbody>
+</table>

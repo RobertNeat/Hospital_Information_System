@@ -1,0 +1,148 @@
+<div class="his-page">
+  <app-page-header title="Nowe zlecenie laboratoryjne" />
+
+  <p-stepper [value]="1" [linear]="true">
+    <p-step-list>
+      <p-step [value]="1">Wybór badań</p-step>
+      <p-step [value]="2">Materiał i pilność</p-step>
+      <p-step [value]="3">Informacje kliniczne</p-step>
+      <p-step [value]="4">Podsumowanie</p-step>
+    </p-step-list>
+    <p-step-panels>
+      <p-step-panel [value]="1">
+        <ng-template #content let-activateCallback="activateCallback">
+          <form [formGroup]="step1Form" class="his-card">
+            <app-catalog-picker
+              [items]="catalog()"
+              [panels]="panels()"
+              [selectedCodes]="selectedCodes()"
+              (selectedCodesChange)="onSelectedCodesChange($event)"
+            />
+            @if (
+              step1Form.controls.selectedCodes.touched && step1Form.controls.selectedCodes.invalid
+            ) {
+              <p-message severity="warn" text="Wybierz co najmniej jedno badanie." />
+            }
+          </form>
+          <app-wizard-step-footer
+            [first]="true"
+            (next)="advanceFromStep1(activateCallback)"
+            (cancelled)="cancel()"
+          />
+        </ng-template>
+      </p-step-panel>
+
+      <p-step-panel [value]="2">
+        <ng-template #content let-activateCallback="activateCallback">
+          <form [formGroup]="step2Form" class="his-card his-form-grid">
+            <div class="his-lab-wizard__specimens">
+              @for (test of selectedTests(); track test.code) {
+                <app-form-field [label]="test.name">
+                  <p-select
+                    [options]="test.specimenTypes"
+                    [formControl]="specimenForm.controls[test.code]"
+                  >
+                    <ng-template #selectedItem let-value>{{ specimenLabel(value) }}</ng-template>
+                    <ng-template #item let-value>{{ specimenLabel(value) }}</ng-template>
+                  </p-select>
+                </app-form-field>
+              }
+            </div>
+
+            <app-form-field label="Pilność" [required]="true">
+              <p-selectbutton
+                [options]="urgencyOptions"
+                formControlName="urgency"
+                optionLabel="label"
+                optionValue="value"
+              />
+            </app-form-field>
+            @if (step2Form.controls.urgency.value === 'stat') {
+              <p-message
+                severity="warn"
+                text="Zlecenie CITO — wynik będzie realizowany w trybie natychmiastowym."
+              />
+            }
+
+            <app-form-field label="Na czczo">
+              <p-toggleswitch
+                formControlName="fasting"
+                [disabled]="anyFastingRequired()"
+                (onChange)="onFastingLockCheck()"
+              />
+              @if (anyFastingRequired()) {
+                <span class="his-muted">Wymagane przez co najmniej jedno z wybranych badań.</span>
+              }
+            </app-form-field>
+
+            <app-form-field label="Planowany termin pobrania" [required]="true">
+              <p-datepicker
+                formControlName="plannedCollectionAt"
+                [showTime]="true"
+                [minDate]="minCollectionDate"
+                dateFormat="dd.mm.yy"
+              />
+            </app-form-field>
+          </form>
+          <app-wizard-step-footer
+            (back)="activateCallback(1)"
+            (next)="advanceFromStep2(activateCallback)"
+            (cancelled)="cancel()"
+          />
+        </ng-template>
+      </p-step-panel>
+
+      <p-step-panel [value]="3">
+        <ng-template #content let-activateCallback="activateCallback">
+          <form [formGroup]="step3Form" class="his-card his-form-grid">
+            <app-form-field label="Rozpoznanie">
+              <p-select
+                [options]="diagnosisOptions()"
+                formControlName="diagnosisCode"
+                optionLabel="label"
+                optionValue="value"
+                [filter]="true"
+                [showClear]="true"
+                placeholder="Wybierz rozpoznanie"
+              />
+            </app-form-field>
+
+            <app-form-field
+              label="Informacje kliniczne"
+              [required]="true"
+              [control]="step3Form.controls.clinicalInfo"
+            >
+              <textarea pTextarea rows="3" formControlName="clinicalInfo"></textarea>
+            </app-form-field>
+
+            <app-form-field label="Uwagi dla laboratorium">
+              <textarea pTextarea rows="2" formControlName="notes"></textarea>
+            </app-form-field>
+          </form>
+          <app-wizard-step-footer
+            (back)="activateCallback(2)"
+            (next)="advanceFromStep3(activateCallback)"
+            (cancelled)="cancel()"
+          />
+        </ng-template>
+      </p-step-panel>
+
+      <p-step-panel [value]="4">
+        <ng-template #content let-activateCallback="activateCallback">
+          <div class="his-card">
+            <app-summary-list [items]="summaryItems()" />
+            <app-fhir-integration-note resource="ServiceRequest" />
+          </div>
+          <app-wizard-step-footer
+            [last]="true"
+            [busy]="submitting()"
+            submitLabel="Wyślij zlecenie"
+            (back)="activateCallback(3)"
+            (submitted)="submit()"
+            (cancelled)="cancel()"
+          />
+        </ng-template>
+      </p-step-panel>
+    </p-step-panels>
+  </p-stepper>
+</div>

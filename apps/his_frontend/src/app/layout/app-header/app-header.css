@@ -1,0 +1,109 @@
+:host {
+  display: block;
+}
+
+.his-header {
+  height: var(--his-header-h);
+  background: var(--his-navy);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 0.75rem;
+  gap: 0.75rem;
+}
+
+.his-header__left,
+.his-header__right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.his-header__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  color: #fff;
+}
+
+.his-brand {
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+}
+
+.his-header__icon-btn {
+  background: transparent;
+  border: none;
+  color: #fff;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.his-header__icon-btn:hover {
+  background: rgb(255 255 255 / 12%);
+}
+
+.his-header__patient-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgb(255 255 255 / 10%);
+  border-radius: 999px;
+  padding: 0.3rem 0.75rem;
+  color: #fff;
+  text-decoration: none;
+  font-size: 0.85rem;
+}
+
+.his-header__patient-chip-pesel {
+  opacity: 0.75;
+}
+
+.his-header__alerts {
+  min-width: 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.his-header__alerts ul {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.his-header__user {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: transparent;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 999px;
+}
+
+.his-header__user:hover {
+  background: rgb(255 255 255 / 12%);
+}
+
+.his-header__user-name {
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+@media (max-width: 767px) {
+  .his-header__user-name,
+  .his-header__patient-chip-pesel {
+    display: none;
+  }
+}

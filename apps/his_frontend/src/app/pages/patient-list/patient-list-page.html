@@ -1,0 +1,109 @@
+<div class="his-page">
+  <app-page-header title="Pacjenci" icon="pi pi-users">
+    <div actions>
+      <p-button label="Zarejestruj pacjenta" icon="pi pi-user-plus" (onClick)="goToRegister()" />
+    </div>
+  </app-page-header>
+
+  <div class="his-card">
+    <app-data-table
+      [rows]="rows()"
+      [columns]="columns"
+      [loading]="loading()"
+      dataKey="id"
+      selectionMode="single"
+      emptyMessage="Brak pacjentów spełniających kryteria."
+      (rowSelect)="openChart($event)"
+    >
+      <ng-template #toolbar>
+        <div class="his-patient-list__filters">
+          <input
+            type="text"
+            class="his-patient-list__search"
+            placeholder="Szukaj: nazwisko, PESEL, nr historii"
+            [value]="searchTerm()"
+            (input)="onSearchInput($any($event.target).value)"
+          />
+          <p-select
+            [options]="statusOptions"
+            optionLabel="label"
+            optionValue="value"
+            [ngModel]="selectedStatus()"
+            (ngModelChange)="onStatusChange($event)"
+            placeholder="Status"
+          />
+          <p-select
+            [options]="wardOptions()"
+            optionLabel="label"
+            optionValue="value"
+            [ngModel]="selectedWard()"
+            (ngModelChange)="onWardChange($event)"
+            placeholder="Oddział"
+          />
+        </div>
+      </ng-template>
+
+      <ng-template #cell let-row let-col="col">
+        @switch (col.field) {
+          @case ('lastName') {
+            {{ row | fullName }}
+          }
+          @case ('birthDate') {
+            {{ row.birthDate | age }}
+          }
+          @case ('gender') {
+            {{ row.gender === 'male' ? 'M' : row.gender === 'female' ? 'K' : 'Inna' }}
+          }
+          @case ('pesel') {
+            {{ row.pesel ?? 'brak PESEL' }}
+          }
+          @case ('wardName') {
+            {{ row.wardName ?? '—' }}{{ row.bed ? ' / ' + row.bed : '' }}
+          }
+          @case ('status') {
+            <app-status-tag kind="admissionStatus" [value]="row.status" />
+          }
+          @case ('flags') {
+            {{ flagLabels(row) || '—' }}
+          }
+          @default {
+            {{ row[col.field] }}
+          }
+        }
+      </ng-template>
+
+      <ng-template #rowActions let-row>
+        <div class="his-patient-list__actions">
+          <p-button
+            icon="pi pi-eye"
+            [text]="true"
+            ariaLabel="Otwórz kartę pacjenta"
+            pTooltip="Otwórz kartę pacjenta"
+            (onClick)="openChart(row)"
+          />
+          <p-button
+            icon="pi pi-file-edit"
+            [text]="true"
+            ariaLabel="Edytuj dane pacjenta"
+            pTooltip="Edytuj dane pacjenta"
+            (onClick)="editPatient(row, $event)"
+          />
+          <p-button
+            icon="pi pi-eye-dropper"
+            [text]="true"
+            ariaLabel="Nowe zlecenie laboratoryjne"
+            pTooltip="Nowe zlecenie laboratoryjne"
+            (onClick)="newLabOrder(row, $event)"
+          />
+          <p-button
+            icon="pi pi-inbox"
+            [text]="true"
+            ariaLabel="Nowa recepta"
+            pTooltip="Nowa recepta"
+            (onClick)="newPrescription(row, $event)"
+          />
+        </div>
+      </ng-template>
+    </app-data-table>
+  </div>
+</div>

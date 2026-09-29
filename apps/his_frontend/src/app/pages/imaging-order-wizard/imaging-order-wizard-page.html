@@ -1,0 +1,251 @@
+<div class="his-page">
+  <app-page-header title="Nowe zlecenie badania obrazowego" />
+
+  <p-stepper [value]="1" [linear]="true">
+    <p-step-list>
+      <p-step [value]="1">Rodzaj badania</p-step>
+      <p-step [value]="2">Wskazania kliniczne</p-step>
+      <p-step [value]="3">Bezpieczeństwo pacjenta</p-step>
+      <p-step [value]="4">Termin badania</p-step>
+      <p-step [value]="5">Podsumowanie</p-step>
+    </p-step-list>
+    <p-step-panels>
+      <p-step-panel [value]="1">
+        <ng-template #content let-activateCallback="activateCallback">
+          <form [formGroup]="step1Form" class="his-card his-form-grid">
+            <app-form-field label="Modalność" [required]="true">
+              <p-selectbutton
+                [options]="modalityOptions"
+                formControlName="modality"
+                optionLabel="label"
+                optionValue="value"
+              />
+            </app-form-field>
+
+            <app-form-field label="Badanie" [required]="true">
+              <p-select
+                [options]="examsForModality()"
+                formControlName="examCode"
+                optionLabel="name"
+                optionValue="code"
+                placeholder="Wybierz badanie"
+                [disabled]="!step1Form.controls.modality.value"
+              />
+            </app-form-field>
+
+            @if (selectedExam()?.requiresLaterality) {
+              <app-form-field label="Strona" [required]="true">
+                <p-selectbutton
+                  [options]="lateralityOptions"
+                  formControlName="laterality"
+                  optionLabel="label"
+                  optionValue="value"
+                />
+              </app-form-field>
+            }
+
+            <app-form-field label="Z kontrastem">
+              <p-toggleswitch
+                formControlName="contrast"
+                [disabled]="!selectedExam()?.contrastPossible"
+              />
+            </app-form-field>
+          </form>
+          <app-wizard-step-footer
+            [first]="true"
+            (next)="advanceFromStep1(activateCallback)"
+            (cancelled)="cancel()"
+          />
+        </ng-template>
+      </p-step-panel>
+
+      <p-step-panel [value]="2">
+        <ng-template #content let-activateCallback="activateCallback">
+          <form [formGroup]="step2Form" class="his-card his-form-grid">
+            <app-form-field
+              label="Wskazania kliniczne"
+              [required]="true"
+              [control]="step2Form.controls.clinicalIndication"
+            >
+              <textarea pTextarea rows="3" formControlName="clinicalIndication"></textarea>
+            </app-form-field>
+
+            <app-form-field label="Pytanie kliniczne">
+              <textarea pTextarea rows="2" formControlName="clinicalQuestion"></textarea>
+            </app-form-field>
+
+            <app-form-field label="Rozpoznanie">
+              <p-select
+                [options]="diagnosisOptions()"
+                formControlName="diagnosisCode"
+                optionLabel="label"
+                optionValue="value"
+                [filter]="true"
+                [showClear]="true"
+                placeholder="Wybierz rozpoznanie"
+              />
+            </app-form-field>
+
+            <app-form-field label="Pilność" [required]="true">
+              <p-selectbutton
+                [options]="urgencyOptions"
+                formControlName="urgency"
+                optionLabel="label"
+                optionValue="value"
+              />
+            </app-form-field>
+          </form>
+          <app-wizard-step-footer
+            (back)="activateCallback(1)"
+            (next)="advanceFromStep2(activateCallback)"
+            (cancelled)="cancel()"
+          />
+        </ng-template>
+      </p-step-panel>
+
+      <p-step-panel [value]="3">
+        <ng-template #content let-activateCallback="activateCallback">
+          <form [formGroup]="step3Form" class="his-card his-form-grid">
+            @if (needsPregnancyCheck()) {
+              <app-form-field label="Ciąża">
+                <p-selectbutton
+                  [options]="[
+                    { label: 'Nie', value: 'no' },
+                    { label: 'Tak', value: 'yes' },
+                    { label: 'Nie wiadomo', value: 'unknown' },
+                  ]"
+                  formControlName="pregnancy"
+                  optionLabel="label"
+                  optionValue="value"
+                />
+              </app-form-field>
+            }
+
+            @if (isMri()) {
+              <app-form-field label="Rozrusznik serca / implanty metalowe">
+                <p-checkbox [binary]="true" formControlName="pacemakerOrImplant" />
+              </app-form-field>
+              <app-form-field label="Metalowe odłamki w ciele">
+                <p-checkbox [binary]="true" formControlName="metalFragments" />
+              </app-form-field>
+              @if (
+                step3Form.controls.pacemakerOrImplant.value ||
+                step3Form.controls.metalFragments.value
+              ) {
+                <p-message
+                  severity="error"
+                  text="Obecność rozrusznika/implantu lub odłamków metalowych może uniemożliwić wykonanie badania RM. Skonsultuj się z radiologiem przed kontynuacją."
+                />
+              }
+              <app-form-field label="Klaustrofobia">
+                <p-checkbox [binary]="true" formControlName="claustrophobia" />
+              </app-form-field>
+            }
+
+            <app-form-field label="Uczulenie na środek kontrastowy">
+              <p-checkbox [binary]="true" formControlName="contrastAllergy" />
+            </app-form-field>
+
+            @if (latestCreatinineEgfr(); as lab) {
+              <p class="his-muted">
+                Ostatnia kreatynina/eGFR:
+                {{ lab.creatinine ?? '—' }} mg/dL / {{ lab.egfr ?? '—' }} mL/min/1.73m2 ({{
+                  lab.collectedAt | date: 'dd.MM.yyyy'
+                }})
+              </p>
+            } @else {
+              <p class="his-muted">Brak wyniku kreatyniny/eGFR.</p>
+            }
+
+            @if (egfrBlocksContrast()) {
+              <p-message
+                severity="warn"
+                text="eGFR poniżej 30 mL/min/1.73m2 przy badaniu z kontrastem — wymagane świadome potwierdzenie."
+              />
+              <app-form-field label="Potwierdzam ryzyko związane z podaniem kontrastu">
+                <p-checkbox [binary]="true" formControlName="egfrConfirmed" />
+              </app-form-field>
+            }
+
+            <app-form-field
+              label="Potwierdzam weryfikację bezpieczeństwa pacjenta"
+              [required]="true"
+            >
+              <p-checkbox [binary]="true" formControlName="confirmed" />
+            </app-form-field>
+          </form>
+          <app-wizard-step-footer
+            (back)="activateCallback(2)"
+            (next)="advanceFromStep3(activateCallback)"
+            (cancelled)="cancel()"
+          />
+        </ng-template>
+      </p-step-panel>
+
+      <p-step-panel [value]="4">
+        <ng-template #content let-activateCallback="activateCallback">
+          <form [formGroup]="step4Form" class="his-card his-form-grid">
+            @if (isCito()) {
+              <div class="his-toolbar">
+                <button
+                  type="button"
+                  pButton
+                  label="Najbliższy wolny termin"
+                  icon="pi pi-bolt"
+                  (click)="findNearestSlot()"
+                ></button>
+                <button
+                  type="button"
+                  pButton
+                  class="p-button-outlined"
+                  label="Wykonaj natychmiast (bez terminu)"
+                  icon="pi pi-clock"
+                  (click)="toggleImmediate()"
+                ></button>
+              </div>
+            }
+
+            <app-form-field label="Data badania">
+              <p-datepicker
+                formControlName="date"
+                dateFormat="dd.mm.yy"
+                [minDate]="step4Form.controls.date.value"
+              />
+            </app-form-field>
+
+            @if (!step4Form.controls.immediate.value && step1Form.controls.modality.value) {
+              <app-slot-picker
+                [modality]="step1Form.controls.modality.value!"
+                [date]="slotDateIso()"
+                [selectedSlotId]="step4Form.controls.slotId.value"
+                (slotSelected)="onSlotSelected($event)"
+              />
+            }
+          </form>
+          <app-wizard-step-footer
+            (back)="activateCallback(3)"
+            (next)="advanceFromStep4(activateCallback)"
+            (cancelled)="cancel()"
+          />
+        </ng-template>
+      </p-step-panel>
+
+      <p-step-panel [value]="5">
+        <ng-template #content let-activateCallback="activateCallback">
+          <div class="his-card">
+            <app-summary-list [items]="summaryItems()" />
+            <app-fhir-integration-note resource="ServiceRequest" />
+          </div>
+          <app-wizard-step-footer
+            [last]="true"
+            [busy]="submitting()"
+            submitLabel="Wyślij zlecenie"
+            (back)="activateCallback(4)"
+            (submitted)="submit()"
+            (cancelled)="cancel()"
+          />
+        </ng-template>
+      </p-step-panel>
+    </p-step-panels>
+  </p-stepper>
+</div>

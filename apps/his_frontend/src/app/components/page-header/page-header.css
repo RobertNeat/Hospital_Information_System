@@ -1,0 +1,26 @@
+:host {
+  display: block;
+}
+
+.his-page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.his-page-header__title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.his-page-header__title-row h1 {
+  font-size: 1.4rem;
+  margin: 0;
+}
+
+.his-page-header__actions:empty {
+  display: none;
+}

@@ -1,0 +1,23 @@
+.his-registration__full-row {
+  grid-column: 1 / -1;
+}
+
+.his-registration__subheading {
+  font-weight: 600;
+  margin-top: 0.5rem;
+  display: flex;
+  gap: 0.5rem;
+  align-items: baseline;
+}
+
+.his-registration__toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.his-registration__ewus {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}

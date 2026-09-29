@@ -1,0 +1,145 @@
+<div class="his-page">
+  <app-page-header title="Leki i recepty">
+    <div actions>
+      <p-button label="Nowa recepta" icon="pi pi-plus-circle" (onClick)="goToNewPrescription()" />
+    </div>
+  </app-page-header>
+
+  <div class="his-section">
+    <app-section-header title="Schemat leczenia (leki aktywne)" icon="pi pi-heart" />
+    @if (activeMedications().length === 0) {
+      <app-empty-state
+        icon="pi pi-inbox"
+        title="Brak aktywnych leków"
+        message="Pacjent nie ma obecnie aktywnych recept."
+      />
+    } @else {
+      <p-table [value]="activeMedications()" size="small" [stripedRows]="true" dataKey="drugId">
+        <ng-template #header>
+          <tr>
+            <th>Lek</th>
+            <th>Dawka</th>
+            <th>Częstość</th>
+            <th>Droga podania</th>
+            <th>Pora dnia</th>
+            <th>Data zakończenia</th>
+          </tr>
+        </ng-template>
+        <ng-template #body let-row>
+          <tr>
+            <td>{{ row.drugName }} ({{ row.strength }})</td>
+            <td>{{ row.dose }}</td>
+            <td>{{ row.frequency | label: 'frequency' }}</td>
+            <td>{{ row.route | label: 'route' }}</td>
+            <td>{{ row.timesOfDay }}</td>
+            <td>{{ row.endDate | date: 'dd.MM.yyyy' }}</td>
+          </tr>
+        </ng-template>
+        <ng-template #emptymessage>
+          <tr>
+            <td colspan="6">Brak danych</td>
+          </tr>
+        </ng-template>
+      </p-table>
+    }
+  </div>
+
+  <div class="his-section">
+    <app-section-header title="Wystawione recepty" icon="pi pi-file-edit" />
+    @if (!loading() && prescriptions().length === 0) {
+      <app-empty-state
+        icon="pi pi-inbox"
+        title="Brak recept"
+        message="Dla tego pacjenta nie wystawiono jeszcze żadnej recepty."
+      />
+    } @else {
+      <p-table
+        [value]="prescriptions()"
+        [loading]="loading()"
+        size="small"
+        [stripedRows]="true"
+        dataKey="id"
+        [expandedRowKeys]="expandedRows()"
+        (onRowExpand)="onRowExpand($event)"
+        (onRowCollapse)="onRowCollapse($event)"
+      >
+        <ng-template #header>
+          <tr>
+            <th style="width: 3rem"></th>
+            <th>Nr recepty</th>
+            <th>Data wystawienia</th>
+            <th>Ważna do</th>
+            <th>Status</th>
+            <th style="width: 6rem"></th>
+          </tr>
+        </ng-template>
+        <ng-template #body let-prescription>
+          <tr>
+            <td>
+              <p-button
+                [icon]="
+                  expandedRows()[prescription.id] ? 'pi pi-chevron-down' : 'pi pi-chevron-right'
+                "
+                [text]="true"
+                ariaLabel="Rozwiń pozycje recepty"
+                pTooltip="Rozwiń pozycje recepty"
+                [pRowToggler]="prescription"
+              />
+            </td>
+            <td>{{ prescription.id }}</td>
+            <td>{{ prescription.issuedAt | date: 'dd.MM.yyyy HH:mm' }}</td>
+            <td>{{ prescription.validUntil | date: 'dd.MM.yyyy' }}</td>
+            <td><app-status-tag kind="prescriptionStatus" [value]="prescription.status" /></td>
+            <td>
+              @if (canCancel(prescription)) {
+                <p-button
+                  icon="pi pi-times-circle"
+                  severity="danger"
+                  [text]="true"
+                  ariaLabel="Anuluj receptę"
+                  pTooltip="Anuluj receptę"
+                  (onClick)="cancel(prescription)"
+                />
+              }
+            </td>
+          </tr>
+        </ng-template>
+        <ng-template #expandedrow let-prescription>
+          <tr>
+            <td colspan="6">
+              <table class="his-prescription-items-table">
+                <thead>
+                  <tr>
+                    <th>Lek</th>
+                    <th>Dawka</th>
+                    <th>Częstość</th>
+                    <th>Czas terapii</th>
+                    <th>Ilość</th>
+                    <th>Refundacja</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (item of itemsOf(prescription); track item.drugId) {
+                    <tr>
+                      <td>{{ item.drugName }} ({{ item.strength }})</td>
+                      <td>{{ item.dosage.dose }} {{ item.dosage.doseUnit }}</td>
+                      <td>{{ item.dosage.frequency | label: 'frequency' }}</td>
+                      <td>{{ item.dosage.durationDays }} dni</td>
+                      <td>{{ item.quantityPackages }} op.</td>
+                      <td>{{ item.reimbursement | label: 'reimbursement' }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </td>
+          </tr>
+        </ng-template>
+        <ng-template #emptymessage>
+          <tr>
+            <td colspan="6">Brak danych</td>
+          </tr>
+        </ng-template>
+      </p-table>
+    }
+  </div>
+</div>

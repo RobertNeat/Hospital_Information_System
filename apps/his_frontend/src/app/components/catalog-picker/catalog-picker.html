@@ -1,0 +1,49 @@
+<div class="his-catalog-picker">
+  <p-iconfield>
+    <p-inputicon class="pi pi-search" />
+    <input
+      pInputText
+      type="text"
+      placeholder="Szukaj badania..."
+      [ngModel]="search()"
+      (ngModelChange)="search.set($event)"
+    />
+  </p-iconfield>
+
+  @if (panels().length) {
+    <div class="his-catalog-picker__panels">
+      @for (panel of panels(); track panel.id) {
+        <p-button
+          [label]="panel.name"
+          severity="secondary"
+          size="small"
+          [outlined]="true"
+          icon="pi pi-plus"
+          (onClick)="applyPanel(panel)"
+        />
+      }
+    </div>
+  }
+
+  @for (group of groups(); track group.category) {
+    <div class="his-catalog-picker__group">
+      <h4 class="his-catalog-picker__group-title">{{ group.label }}</h4>
+      @for (test of group.tests; track test.code) {
+        <label class="his-catalog-picker__item">
+          <p-checkbox
+            [binary]="true"
+            [ngModel]="isSelected(test.code)"
+            (ngModelChange)="toggle(test.code, $event)"
+            [inputId]="'test-' + test.code"
+          />
+          <span>{{ test.name }}</span>
+          @if (test.fastingRequired) {
+            <span class="his-muted">(na czczo)</span>
+          }
+        </label>
+      }
+    </div>
+  } @empty {
+    <p class="his-muted">Brak badań spełniających kryteria wyszukiwania.</p>
+  }
+</div>

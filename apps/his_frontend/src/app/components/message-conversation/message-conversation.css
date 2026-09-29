@@ -1,0 +1,78 @@
+.his-conversation {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 0.75rem;
+}
+
+.his-conversation__subject {
+  font-weight: 600;
+  border-bottom: 1px solid var(--p-surface-200);
+  padding-bottom: 0.5rem;
+}
+
+.his-conversation__bubbles {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.25rem;
+}
+
+.his-conversation__bubble {
+  max-width: 75%;
+  border-radius: var(--his-radius);
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--p-surface-200);
+}
+
+.his-conversation__bubble--in {
+  align-self: flex-start;
+  background: var(--p-surface-0);
+}
+
+.his-conversation__bubble--out {
+  align-self: flex-end;
+  background: var(--p-primary-50);
+  border-color: var(--p-primary-200);
+}
+
+.his-conversation__bubble-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.his-conversation__body {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.his-conversation__time {
+  font-size: 0.7rem;
+  margin-top: 0.25rem;
+}
+
+.his-conversation__composer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  border-top: 1px solid var(--p-surface-200);
+  padding-top: 0.5rem;
+}
+
+.his-conversation__composer textarea {
+  width: 100%;
+  resize: vertical;
+}
+
+.his-conversation__composer-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}

@@ -1,0 +1,30 @@
+<p-autocomplete
+  [ngModel]="selected()"
+  (ngModelChange)="onSelect($event)"
+  [suggestions]="suggestions()"
+  (completeMethod)="search($event)"
+  optionLabel="name"
+  placeholder="Szukaj leku: nazwa, substancja czynna lub kod ATC"
+  [minQueryLength]="1"
+  [forceSelection]="true"
+  styleClass="his-drug-picker__input"
+  ariaLabel="Wyszukaj lek"
+>
+  <ng-template #item let-drug>
+    <div class="his-drug-picker__item">
+      <div class="his-drug-picker__item-main">
+        <span class="his-drug-picker__name">{{ drug.name }}</span>
+        @if (drug.rxOnly) {
+          <p-tag value="Rp" severity="warn" />
+        }
+      </div>
+      <div class="his-drug-picker__item-details">
+        {{ drug.activeSubstance }} · {{ drug.strength }} · {{ drug.form | label: 'drugForm' }} · ATC
+        {{ drug.atcCode }}
+      </div>
+    </div>
+  </ng-template>
+  <ng-template #empty>
+    <div class="his-muted">{{ searching() ? 'Szukiwanie...' : 'Brak wyników.' }}</div>
+  </ng-template>
+</p-autocomplete>

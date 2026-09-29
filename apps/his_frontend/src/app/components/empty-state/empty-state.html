@@ -1,0 +1,8 @@
+<div class="his-empty-state">
+  <i [class]="icon()"></i>
+  <h3>{{ title() }}</h3>
+  @if (message()) {
+    <p class="his-muted">{{ message() }}</p>
+  }
+  <ng-content />
+</div>

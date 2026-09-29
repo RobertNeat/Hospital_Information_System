@@ -1,0 +1,12 @@
+.his-order-status-timeline__entry {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.3rem;
+  padding-bottom: 0.5rem;
+}
+
+.his-order-status-timeline__note {
+  margin: 0.2rem 0 0;
+  font-size: 0.85rem;
+}

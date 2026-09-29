@@ -1,0 +1,22 @@
+<p-autocomplete
+  [(ngModel)]="selectedValue"
+  [suggestions]="suggestions()"
+  (completeMethod)="search($event)"
+  (onSelect)="onSelect($event)"
+  [placeholder]="placeholder()"
+  optionLabel="lastName"
+  [minLength]="1"
+  [showEmptyMessage]="true"
+>
+  <ng-template let-patient #item>
+    <div class="his-patient-search__item">
+      <span class="his-patient-search__name">{{ patient | fullName }}</span>
+      <span class="his-muted">
+        {{ patient.pesel ?? 'brak PESEL' }} · {{ patient.birthDate | age }}
+        @if (patient.wardName) {
+          · {{ patient.wardName }}
+        }
+      </span>
+    </div>
+  </ng-template>
+</p-autocomplete>

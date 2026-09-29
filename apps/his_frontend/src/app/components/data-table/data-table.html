@@ -1,0 +1,95 @@
+<p-table
+  #table
+  [value]="rows()"
+  [columns]="columns()"
+  [loading]="loading()"
+  [paginator]="paginator()"
+  [rows]="pageSize()"
+  [globalFilterFields]="globalFilterFields() ?? []"
+  [dataKey]="dataKey()"
+  [selectionMode]="selectionMode()"
+  [rowHover]="true"
+  size="small"
+  [stripedRows]="true"
+  (onRowSelect)="onRowSelect($event)"
+>
+  <ng-template #caption>
+    <div class="his-toolbar">
+      <ng-container [ngTemplateOutlet]="toolbarTemplate() ?? null" />
+      @if (globalFilterFields()) {
+        <p-iconfield>
+          <input
+            pInputText
+            type="text"
+            placeholder="Szukaj..."
+            (input)="applyGlobalFilter(table, $any($event.target).value)"
+          />
+        </p-iconfield>
+      }
+    </div>
+  </ng-template>
+
+  <ng-template #header let-columns>
+    <tr>
+      @for (col of columns; track col.field) {
+        <th [pSortableColumn]="col.sortable ? col.field : undefined">
+          {{ col.header }}
+          @if (col.sortable) {
+            <p-sortIcon [field]="col.field" />
+          }
+        </th>
+      }
+      @if (rowActionsTemplate()) {
+        <th></th>
+      }
+    </tr>
+  </ng-template>
+
+  <ng-template #body let-row let-columns="columns">
+    <tr [pSelectableRow]="row">
+      @for (col of columns; track col.field) {
+        <td>
+          @if (cellTemplate(); as customCell) {
+            <ng-container
+              [ngTemplateOutlet]="customCell"
+              [ngTemplateOutletContext]="{ $implicit: row, col: col }"
+            />
+          } @else {
+            @switch (col.type) {
+              @case ('tag') {
+                @if (col.tagKind) {
+                  <app-status-tag [kind]="col.tagKind" [value]="cellValueAsString(row, col)" />
+                }
+              }
+              @case ('date') {
+                {{ $any(cellValue(row, col)) | date: 'dd.MM.yyyy' }}
+              }
+              @case ('datetime') {
+                {{ $any(cellValue(row, col)) | date: 'dd.MM.yyyy HH:mm' }}
+              }
+              @default {
+                {{ cellValue(row, col) }}
+              }
+            }
+          }
+        </td>
+      }
+      @if (rowActionsTemplate(); as actions) {
+        <td class="his-data-table__actions">
+          <ng-container
+            [ngTemplateOutlet]="actions"
+            [ngTemplateOutletContext]="{ $implicit: row }"
+          />
+        </td>
+      }
+    </tr>
+  </ng-template>
+
+  <ng-template #emptymessage>
+    <tr>
+      <td [attr.colspan]="columns().length + (rowActionsTemplate() ? 1 : 0)">
+        {{ emptyMessage() }}
+      </td>
+    </tr>
+  </ng-template>
+</p-table>

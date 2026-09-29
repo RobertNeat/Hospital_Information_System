@@ -1,0 +1,21 @@
+.his-irv {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.his-irv__meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: var(--his-card-bg, #f8fafc);
+  border: 1px solid var(--his-card-border, #e2e8f0);
+  border-radius: var(--his-radius, 6px);
+}
+
+.his-irv__text {
+  white-space: pre-line;
+  margin: 0;
+  padding: 0.75rem 1rem;
+}

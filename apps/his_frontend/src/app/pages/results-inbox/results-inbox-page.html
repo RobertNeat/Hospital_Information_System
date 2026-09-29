@@ -1,0 +1,104 @@
+<div class="his-page">
+  <app-page-header title="Wyniki badań" icon="pi pi-chart-bar" />
+
+  <div class="his-toolbar">
+    <p-selectbutton
+      [options]="filterOptions"
+      [ngModel]="effectiveFilter()"
+      (ngModelChange)="onFilterChange($event)"
+      optionLabel="label"
+      optionValue="value"
+    />
+  </div>
+
+  <app-section-header
+    title="Wyniki laboratoryjne"
+    icon="pi pi-eye-dropper"
+    [count]="rows().length"
+  />
+  @if (rows().length === 0) {
+    <app-empty-state title="Brak wyników" message="Nie znaleziono wyników spełniających filtr." />
+  } @else {
+    <app-data-table
+      [rows]="rows()"
+      [columns]="columns"
+      dataKey="id"
+      [globalFilterFields]="['patientName', 'testName']"
+      (rowSelect)="openPatientResults($event)"
+    >
+      <ng-template #cell let-row let-col="col">
+        @switch (col.field) {
+          @case ('patientName') {
+            <a
+              [routerLink]="['/patients', row.patient.id, 'results']"
+              [queryParams]="{ tab: 'lab' }"
+              (click)="$event.stopPropagation()"
+            >
+              {{ row.patientName }}
+            </a>
+          }
+          @case ('category') {
+            {{ row.category | label: 'labCategory' }}
+          }
+        }
+      </ng-template>
+      <ng-template #rowActions let-row>
+        <button
+          type="button"
+          class="p-button p-button-text p-button-sm"
+          [routerLink]="['/patients', row.patient.id, 'results']"
+          [queryParams]="{ tab: 'lab' }"
+          aria-label="Otwórz wyniki pacjenta"
+          pTooltip="Otwórz wyniki pacjenta"
+        >
+          <i class="pi pi-eye" aria-hidden="true"></i>
+        </button>
+      </ng-template>
+    </app-data-table>
+  }
+
+  <app-section-header title="Wyniki obrazowe" icon="pi pi-image" [count]="imagingRows().length" />
+  @if (imagingRows().length === 0) {
+    <app-empty-state
+      title="Brak wyników obrazowych"
+      message="Nie znaleziono wyników spełniających filtr."
+    />
+  } @else {
+    <app-data-table
+      [rows]="imagingRows()"
+      [columns]="imagingColumns"
+      dataKey="id"
+      [globalFilterFields]="['patientName', 'examName']"
+      (rowSelect)="openPatientImagingResults($event)"
+    >
+      <ng-template #cell let-row let-col="col">
+        @switch (col.field) {
+          @case ('patientName') {
+            <a
+              [routerLink]="['/patients', row.patient.id, 'results']"
+              [queryParams]="{ tab: 'imaging' }"
+              (click)="$event.stopPropagation()"
+            >
+              {{ row.patientName }}
+            </a>
+          }
+          @case ('modality') {
+            {{ row.modality | label: 'imagingModality' }}
+          }
+        }
+      </ng-template>
+      <ng-template #rowActions let-row>
+        <button
+          type="button"
+          class="p-button p-button-text p-button-sm"
+          [routerLink]="['/patients', row.patient.id, 'results']"
+          [queryParams]="{ tab: 'imaging' }"
+          aria-label="Otwórz wyniki pacjenta"
+          pTooltip="Otwórz wyniki pacjenta"
+        >
+          <i class="pi pi-eye" aria-hidden="true"></i>
+        </button>
+      </ng-template>
+    </app-data-table>
+  }
+</div>

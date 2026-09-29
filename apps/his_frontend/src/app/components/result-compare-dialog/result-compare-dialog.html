@@ -1,0 +1,80 @@
+<p-dialog
+  header="Porównaj wyniki w czasie"
+  [visible]="visible()"
+  [modal]="true"
+  [maximizable]="true"
+  [style]="{ width: '48rem' }"
+  (visibleChange)="visibleChange.emit($event)"
+  (onHide)="onHide()"
+>
+  <div class="his-rcd">
+    <div class="his-rcd__filters">
+      <p-select
+        [options]="analyteOptions()"
+        [ngModel]="analyteCode()"
+        (ngModelChange)="onSelectAnalyte($event)"
+        optionLabel="label"
+        optionValue="value"
+        placeholder="Wybierz badanie"
+        [style]="{ minWidth: '14rem' }"
+      />
+      <p-datepicker
+        [ngModel]="dateFrom()"
+        (ngModelChange)="dateFrom.set($event)"
+        placeholder="Data od"
+        dateFormat="dd.mm.yy"
+        showIcon
+      />
+      <p-datepicker
+        [ngModel]="dateTo()"
+        (ngModelChange)="dateTo.set($event)"
+        placeholder="Data do"
+        dateFormat="dd.mm.yy"
+        showIcon
+      />
+    </div>
+
+    @if (trend(); as t) {
+      <app-trend-chart-card
+        [title]="t.analyteName"
+        [unit]="t.unit"
+        [series]="series()"
+        [referenceRange]="referenceRange()"
+      />
+
+      <table class="his-rcd__table">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Wynik</th>
+            <th>Δ</th>
+            <th>%</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of compareRows(); track row.at) {
+            <tr>
+              <td>{{ row.at | date: 'dd.MM.yyyy HH:mm' }}</td>
+              <td>{{ row.value }} {{ t.unit }}</td>
+              <td
+                [class.his-rcd__delta--up]="(row.delta ?? 0) > 0"
+                [class.his-rcd__delta--down]="(row.delta ?? 0) < 0"
+              >
+                {{ row.delta === null ? '-' : (row.delta > 0 ? '+' : '') + row.delta.toFixed(1) }}
+              </td>
+              <td>
+                {{
+                  row.deltaPercent === null
+                    ? '-'
+                    : (row.deltaPercent > 0 ? '+' : '') + row.deltaPercent.toFixed(1) + '%'
+                }}
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    } @else {
+      <p class="his-muted">Wybierz badanie, aby zobaczyć porównanie w czasie.</p>
+    }
+  </div>
+</p-dialog>

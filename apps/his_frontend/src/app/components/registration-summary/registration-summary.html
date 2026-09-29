@@ -1,0 +1,8 @@
+@for (section of sections(); track section.title) {
+  <div class="his-section">
+    <app-section-header [title]="section.title" [icon]="section.icon" variant="navy" />
+    <div class="his-registration-summary__body">
+      <app-summary-list [items]="section.items" />
+    </div>
+  </div>
+}

@@ -1,0 +1,15 @@
+<div class="his-icon-action-group">
+  @for (a of actions(); track a.id) {
+    <p-button
+      [icon]="a.icon"
+      [label]="showLabels() ? a.label : undefined"
+      [severity]="a.severity ?? 'primary'"
+      [disabled]="a.disabled ?? false"
+      [size]="size() === 'small' ? 'small' : undefined"
+      [ariaLabel]="a.label"
+      [pTooltip]="showLabels() ? undefined : a.label"
+      tooltipPosition="bottom"
+      (onClick)="action.emit(a.id)"
+    />
+  }
+</div>

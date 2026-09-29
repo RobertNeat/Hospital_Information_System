@@ -1,0 +1,40 @@
+.his-handoff-dialog__form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-height: 70vh;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+.his-handoff-dialog__form p-select,
+.his-handoff-dialog__form textarea {
+  width: 100%;
+}
+
+.his-handoff-dialog__patients {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.his-handoff-dialog__patients-title {
+  font-weight: 600;
+}
+
+.his-handoff-dialog__patient-card {
+  padding: 0.75rem;
+}
+
+.his-handoff-dialog__patient-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.his-handoff-dialog__remove {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--p-red-500);
+}

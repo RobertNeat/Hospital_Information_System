@@ -1,0 +1,39 @@
+<div class="his-irv">
+  <div class="his-irv__meta">
+    <div>
+      <span class="his-muted">Wykonano</span>
+      <div>{{ result().performedAt | date: 'dd.MM.yyyy HH:mm' }}</div>
+    </div>
+    <div>
+      <span class="his-muted">Opisano</span>
+      <div>{{ result().reportedAt | date: 'dd.MM.yyyy HH:mm' }}</div>
+    </div>
+    <div>
+      <span class="his-muted">Radiolog</span>
+      <div>{{ result().radiologistName }}</div>
+    </div>
+    <div>
+      <span class="his-muted">Liczba obrazów</span>
+      <div>{{ result().imageCount }}</div>
+    </div>
+  </div>
+
+  @if (result().technique) {
+    <section class="his-section">
+      <app-section-header title="Technika" />
+      <p class="his-irv__text">{{ result().technique }}</p>
+    </section>
+  }
+
+  <section class="his-section">
+    <app-section-header title="Opis" />
+    <p class="his-irv__text">{{ result().findings }}</p>
+  </section>
+
+  <section class="his-section">
+    <app-section-header title="Wnioski" [variant]="result().critical ? 'danger' : 'navy'" />
+    <p class="his-irv__text">{{ result().conclusion }}</p>
+  </section>
+
+  <p-message severity="info" text="Podgląd obrazów DICOM — integracja PACS planowana" />
+</div>

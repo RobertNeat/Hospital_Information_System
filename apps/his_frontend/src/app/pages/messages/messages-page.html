@@ -1,0 +1,286 @@
+<div class="his-page">
+  <app-page-header title="Komunikacja zespołowa" icon="pi pi-comments" />
+
+  <p-message severity="info" [closable]="false" class="his-messages__banner">
+    Tryb demonstracyjny: wiadomości nie są dostarczane w czasie rzeczywistym. Komunikacja na żywo
+    (WebSocket) zostanie dodana w kolejnej wersji. Dostęp ograniczony do personelu medycznego
+    (lekarze, pielęgniarki).
+  </p-message>
+
+  <p-tabs [value]="activeTab()" (valueChange)="onTabChange($event)">
+    <p-tablist>
+      <p-tab value="inbox">Wiadomości</p-tab>
+      <p-tab value="tasks">Zadania</p-tab>
+      <p-tab value="handoff">Przekazanie dyżuru</p-tab>
+      <p-tab value="alerts">Alerty</p-tab>
+    </p-tablist>
+
+    <p-tabpanels>
+      <!-- Wiadomości -->
+      <p-tabpanel value="inbox">
+        <div class="his-toolbar">
+          <span></span>
+          <p-button label="Nowa wiadomość" icon="pi pi-plus" (onClick)="openNewMessageDialog()" />
+        </div>
+
+        @if (threadsLoading()) {
+          <app-loading-block [lines]="4" />
+        } @else {
+          <div class="his-messages__split">
+            <div class="his-card his-messages__thread-pane">
+              <app-message-thread-list
+                [threads]="threads()"
+                [selectedThreadId]="selectedThreadId()"
+                [patientLabel]="patientLabel"
+                (threadSelected)="onThreadSelected($event)"
+              />
+            </div>
+            <div class="his-card his-messages__conversation-pane">
+              @if (selectedThread(); as thread) {
+                <app-message-conversation
+                  [messages]="selectedThreadMessages()"
+                  [currentUserId]="currentUser().id"
+                  [subject]="thread.subject"
+                  [sending]="conversationSending()"
+                  [senderLabel]="staffLabel.bind(this)"
+                  (send)="sendMessage($event)"
+                />
+              } @else {
+                <app-empty-state title="Brak wątku" message="Wybierz wątek z listy po lewej." />
+              }
+            </div>
+          </div>
+        }
+      </p-tabpanel>
+
+      <!-- Zadania -->
+      <p-tabpanel value="tasks">
+        <div class="his-toolbar">
+          <p-selectbutton
+            [options]="taskFilterOptions"
+            optionLabel="label"
+            optionValue="value"
+            [ngModel]="taskFilter()"
+            (ngModelChange)="taskFilter.set($event)"
+          />
+          <p-button
+            label="Deleguj zadanie"
+            icon="pi pi-send"
+            (onClick)="taskDialogVisible.set(true)"
+          />
+        </div>
+
+        @if (tasksLoading()) {
+          <app-loading-block [lines]="4" />
+        } @else {
+          <app-data-table
+            [rows]="taskRows()"
+            [columns]="taskColumns"
+            [globalFilterFields]="['title', 'patientLabel']"
+            emptyMessage="Brak zadań."
+          >
+            <ng-template #rowActions let-row>
+              <div class="his-messages__row-actions">
+                @if (row.status === 'open') {
+                  <p-button
+                    icon="pi pi-play"
+                    size="small"
+                    severity="secondary"
+                    ariaLabel="Rozpocznij zadanie"
+                    pTooltip="Rozpocznij zadanie"
+                    (onClick)="startTask(row)"
+                  />
+                }
+                @if (row.status === 'open' || row.status === 'in_progress') {
+                  <p-button
+                    icon="pi pi-check"
+                    size="small"
+                    severity="success"
+                    ariaLabel="Zakończ zadanie"
+                    pTooltip="Zakończ zadanie"
+                    (onClick)="finishTask(row)"
+                  />
+                }
+              </div>
+            </ng-template>
+          </app-data-table>
+        }
+      </p-tabpanel>
+
+      <!-- Przekazanie dyżuru -->
+      <p-tabpanel value="handoff">
+        <div class="his-toolbar">
+          <span></span>
+          <p-button
+            label="Nowe przekazanie"
+            icon="pi pi-plus"
+            (onClick)="handoffDialogVisible.set(true)"
+          />
+        </div>
+
+        @if (handoffLoading()) {
+          <app-loading-block [lines]="4" />
+        } @else if (handoffNotes().length === 0) {
+          <app-empty-state title="Brak przekazań" message="Nie zarejestrowano przekazań dyżuru." />
+        } @else {
+          <div class="his-grid-2">
+            @for (note of handoffNotes(); track note.id) {
+              <div class="his-card">
+                <div class="his-toolbar">
+                  <span class="his-messages__handoff-title">
+                    {{ wardName(note.wardId) }} ·
+                    {{ note.shift === 'day' ? 'Zmiana dzienna' : 'Zmiana nocna' }}
+                  </span>
+                  <span class="his-muted">{{ note.createdAt | date: 'dd.MM.yyyy HH:mm' }}</span>
+                </div>
+                <p class="his-muted">
+                  Od: {{ note.fromId | staffName }} → Do: {{ note.toId | staffName }}
+                </p>
+                @if (note.generalNotes) {
+                  <p>{{ note.generalNotes }}</p>
+                }
+                <table class="his-messages__sbar-table">
+                  <thead>
+                    <tr>
+                      <th>Pacjent</th>
+                      <th>S</th>
+                      <th>B</th>
+                      <th>A</th>
+                      <th>R</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (pn of note.patientNotes; track pn.patientId) {
+                      <tr>
+                        <td>{{ patientLabel(pn.patientId) }}</td>
+                        <td>{{ pn.situation }}</td>
+                        <td>{{ pn.background }}</td>
+                        <td>{{ pn.assessment }}</td>
+                        <td>{{ pn.recommendation }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+          </div>
+        }
+      </p-tabpanel>
+
+      <!-- Alerty -->
+      <p-tabpanel value="alerts">
+        @if (alertsLoading()) {
+          <app-loading-block [lines]="4" />
+        } @else if (sortedAlerts().length === 0) {
+          <app-empty-state title="Brak alertów" message="Brak aktywnych alertów klinicznych." />
+        } @else {
+          <ul class="his-messages__alert-list">
+            @for (alert of sortedAlerts(); track alert.id) {
+              <li class="his-card his-messages__alert-item">
+                <div class="his-messages__alert-main">
+                  <app-status-tag kind="alertSeverity" [value]="alert.severity" />
+                  <span>{{ alert.message }}</span>
+                  @if (alert.patientId) {
+                    <p-tag [value]="patientLabel(alert.patientId)" severity="info" />
+                  }
+                </div>
+                <div class="his-messages__alert-meta">
+                  <span class="his-muted">{{ alertAgo(alert) }}</span>
+                  @if (alert.link) {
+                    <a [routerLink]="alert.link">Przejdź</a>
+                  }
+                  @if (!alert.acknowledged) {
+                    <p-button
+                      label="Potwierdź"
+                      icon="pi pi-check"
+                      size="small"
+                      (onClick)="acknowledgeAlert(alert)"
+                    />
+                  } @else {
+                    <p-tag value="Potwierdzone" severity="success" />
+                  }
+                </div>
+              </li>
+            }
+          </ul>
+        }
+      </p-tabpanel>
+    </p-tabpanels>
+  </p-tabs>
+</div>
+
+<p-dialog
+  header="Nowa wiadomość"
+  [visible]="newMessageDialogVisible()"
+  [modal]="true"
+  [style]="{ width: '32rem' }"
+  (visibleChange)="newMessageDialogVisible.set($event)"
+>
+  <form [formGroup]="newMessageForm" class="his-messages__new-message-form">
+    <app-form-field
+      label="Odbiorcy"
+      [control]="newMessageForm.controls.recipientIds"
+      [required]="true"
+    >
+      <p-multiselect
+        formControlName="recipientIds"
+        [options]="messagingStaff()"
+        optionLabel="lastName"
+        optionValue="id"
+        placeholder="Wybierz odbiorców"
+        display="chip"
+      >
+        <ng-template let-staff #item>
+          <span>{{ staff.title }} {{ staff.firstName }} {{ staff.lastName }}</span>
+          <p-tag
+            [value]="staff.role === 'doctor' ? 'Lekarz' : 'Pielęgniarka/Pielęgniarz'"
+            severity="secondary"
+            class="his-messages__role-tag"
+          />
+        </ng-template>
+      </p-multiselect>
+    </app-form-field>
+
+    <app-form-field label="Temat" [control]="newMessageForm.controls.subject" [required]="true">
+      <input pInputText type="text" formControlName="subject" />
+    </app-form-field>
+
+    <app-form-field label="Pacjent (opcjonalnie)">
+      @if (newMessagePatient(); as patient) {
+        <span>{{ patient.lastName }} {{ patient.firstName }}</span>
+      } @else {
+        <app-patient-search (patientSelected)="onNewMessagePatientSelected($event)" />
+      }
+    </app-form-field>
+
+    <app-form-field label="Treść" [control]="newMessageForm.controls.body" [required]="true">
+      <textarea pTextarea rows="4" formControlName="body"></textarea>
+    </app-form-field>
+  </form>
+
+  <ng-template #footer>
+    <p-button
+      label="Anuluj"
+      severity="secondary"
+      text
+      (onClick)="newMessageDialogVisible.set(false)"
+    />
+    <p-button label="Wyślij" icon="pi pi-send" (onClick)="submitNewMessage()" />
+  </ng-template>
+</p-dialog>
+
+<app-task-dialog
+  [visible]="taskDialogVisible()"
+  [staff]="messagingStaff()"
+  [initialPatient]="taskDialogInitialPatient()"
+  (visibleChange)="taskDialogVisible.set($event)"
+  (create)="onCreateTask($event)"
+/>
+
+<app-handoff-note-dialog
+  [visible]="handoffDialogVisible()"
+  [wards]="wards()"
+  [recipients]="messagingStaff()"
+  (visibleChange)="handoffDialogVisible.set($event)"
+  (create)="onCreateHandoffNote($event)"
+/>

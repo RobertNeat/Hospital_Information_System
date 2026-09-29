@@ -1,0 +1,71 @@
+import type { TreatmentEpisode } from '../models';
+import { daysAgo } from './mock-utils';
+
+export const EPISODES: TreatmentEpisode[] = [
+  {
+    id: 'epi-001',
+    patientId: 'pat-001',
+    title: 'Zaostrzenie niewydolności serca',
+    startAt: daysAgo(3),
+    status: 'active',
+    diagnosisIds: ['dx-001'],
+  },
+  {
+    id: 'epi-002',
+    patientId: 'pat-002',
+    title: 'Ostry zespół wieńcowy',
+    startAt: daysAgo(1),
+    status: 'active',
+    diagnosisIds: ['dx-004', 'dx-005'],
+  },
+  {
+    id: 'epi-003',
+    patientId: 'pat-004',
+    title: 'Udar niedokrwienny mózgu',
+    startAt: daysAgo(5),
+    status: 'active',
+    diagnosisIds: ['dx-008'],
+  },
+  {
+    id: 'epi-004',
+    patientId: 'pat-005',
+    title: 'Zapalenie płuc',
+    startAt: daysAgo(20),
+    endAt: daysAgo(10),
+    status: 'closed',
+    diagnosisIds: ['dx-010'],
+  },
+  {
+    id: 'epi-005',
+    patientId: 'pat-007',
+    title: 'Uraz wielonarządowy - SOR',
+    startAt: daysAgo(0),
+    status: 'active',
+    diagnosisIds: ['dx-011'],
+  },
+  {
+    id: 'epi-006',
+    patientId: 'pat-009',
+    title: 'Przygotowanie do cholecystektomii',
+    startAt: daysAgo(2),
+    status: 'active',
+    diagnosisIds: ['dx-013'],
+  },
+  {
+    id: 'epi-007',
+    patientId: 'pat-011',
+    title: 'Kontrola rytmu - migotanie przedsionków',
+    startAt: daysAgo(45),
+    endAt: daysAgo(38),
+    status: 'closed',
+    diagnosisIds: ['dx-014'],
+  },
+  {
+    id: 'epi-008',
+    patientId: 'pat-012',
+    title: 'Zaburzenia elektrolitowe w PChN',
+    startAt: daysAgo(7),
+    status: 'active',
+    diagnosisIds: ['dx-015'],
+  },
+];

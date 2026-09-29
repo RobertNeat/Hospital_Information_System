@@ -1,0 +1,13 @@
+:host {
+  display: block;
+}
+
+.his-trend-chart-card__title {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.his-trend-chart-card__canvas {
+  position: relative;
+  width: 100%;
+}

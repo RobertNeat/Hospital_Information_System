@@ -1,1 +1,136 @@
-/* You can add global styles to this file, and also import other style files */
+/* Global styles: primeicons, brand CSS custom properties, and `his-*` utility classes. */
+@import 'primeicons/primeicons.css';
+
+:root {
+  --his-navy: #1e293b;
+  --his-navy-700: #334155;
+  --his-navy-900: #0f172a;
+  --his-accent: var(--p-primary-color);
+  --his-header-h: 56px;
+  --his-sidebar-w: 256px;
+  --his-sidebar-w-collapsed: 72px;
+  --his-content-bg: #f1f5f9;
+  --his-card-bg: #ffffff;
+  --his-card-border: #e2e8f0;
+  --his-text: #0f172a;
+  --his-text-muted: #64748b;
+  --his-radius: 6px;
+}
+
+/* Dark-mode overrides. ThemeService toggles `.app-dark` on <html> (services/theme.service.ts).
+   PrimeNG's own components already invert through the Aura preset's dark colorScheme tokens;
+   these `his-*` variables cover our own utility classes (cards, page background, muted text). */
+:root.app-dark {
+  --his-content-bg: #0b1220;
+  --his-card-bg: #131c2e;
+  --his-card-border: #253449;
+  --his-text: #e2e8f0;
+  --his-text-muted: #94a3b8;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background: var(--his-content-bg);
+  color: var(--his-text);
+}
+
+/* ---- Layout / page utilities ---- */
+
+.his-page {
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.his-card {
+  background: var(--his-card-bg);
+  border: 1px solid var(--his-card-border);
+  border-radius: var(--his-radius);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 6%);
+  padding: 1rem;
+}
+
+.his-section {
+  background: var(--his-card-bg);
+  border: 1px solid var(--his-card-border);
+  border-radius: var(--his-radius);
+  overflow: hidden;
+}
+
+.his-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: 1rem;
+}
+.his-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: 1rem;
+}
+.his-grid-4 {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: 1rem;
+}
+@media (min-width: 768px) {
+  .his-grid-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .his-grid-3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .his-grid-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1200px) {
+  .his-grid-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .his-grid-4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.his-form-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem 1.5rem;
+}
+@media (min-width: 768px) {
+  .his-form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.his-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.his-muted {
+  color: var(--his-text-muted);
+}
+
+.his-patient-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--his-content-bg);
+  display: flex;
+  flex-direction: column;
+}

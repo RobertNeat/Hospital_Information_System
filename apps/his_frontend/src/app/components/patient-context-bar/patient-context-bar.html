@@ -1,0 +1,105 @@
+<div class="his-patient-bar his-card">
+  <div class="his-patient-bar__identity">
+    <div class="his-patient-bar__name">
+      {{ patient().lastName }} {{ patient().firstName }}
+      @if (patient().secondName) {
+        {{ patient().secondName }}
+      }
+    </div>
+    <div class="his-patient-bar__meta his-muted">
+      <span>{{ patient().pesel ?? 'brak PESEL' }}</span>
+      <span>{{ patient().birthDate | age }}, {{ genderLabel() }}</span>
+      <span>{{ patient().mrn }}</span>
+      @if (wardName(); as w) {
+        <span
+          >{{ w }}
+          @if (patient().currentAdmission?.room) {
+            , sala {{ patient().currentAdmission?.room }}
+          }
+          @if (patient().currentAdmission?.bed) {
+            , łóżko {{ patient().currentAdmission?.bed }}
+          }
+        </span>
+      }
+      @if (patient().currentAdmission?.attendingPhysicianId; as physicianId) {
+        <span>Lekarz prowadzący: {{ physicianId | staffName }}</span>
+      }
+    </div>
+  </div>
+
+  <div class="his-patient-bar__badges">
+    @if (activeAllergies().length > 0) {
+      <p-tag
+        [value]="'Alergie: ' + activeAllergies().length"
+        [severity]="worstAllergySeverity()"
+        (click)="allergiesPopover.toggle($event)"
+        style="cursor: pointer"
+      />
+      <p-popover #allergiesPopover>
+        <ul class="his-patient-bar__allergy-list">
+          @for (a of activeAllergies(); track a.id) {
+            <li>{{ a.substance }} — {{ a.reaction }}</li>
+          }
+        </ul>
+      </p-popover>
+    }
+    @if (patient().bloodType) {
+      <p-tag [value]="patient().bloodType!" severity="secondary" />
+    }
+    @if (patient().currentAdmission?.triageLevel; as triage) {
+      <p-tag [value]="'Triage: ' + triage" [severity]="triageSeverity()" />
+    }
+    @for (flag of flagLabels(); track flag) {
+      <p-tag [value]="flag" severity="warn" />
+    }
+    @if (activeAlerts() > 0) {
+      <p-tag [value]="'Alerty: ' + activeAlerts()" severity="danger" />
+    }
+  </div>
+
+  <div class="his-patient-bar__actions">
+    <p-button
+      icon="pi pi-eye-dropper"
+      size="small"
+      ariaLabel="Zlecenie laboratoryjne"
+      pTooltip="Zlecenie laboratoryjne"
+      (onClick)="emit('lab-order')"
+    />
+    <p-button
+      icon="pi pi-image"
+      size="small"
+      ariaLabel="Zlecenie obrazowe"
+      pTooltip="Zlecenie obrazowe"
+      (onClick)="emit('imaging-order')"
+    />
+    <p-button
+      icon="pi pi-file-edit"
+      size="small"
+      ariaLabel="Nowa recepta"
+      pTooltip="Nowa recepta"
+      (onClick)="emit('prescription')"
+    />
+    <p-button
+      icon="pi pi-heart"
+      size="small"
+      ariaLabel="Parametry życiowe"
+      pTooltip="Parametry życiowe"
+      (onClick)="emit('vitals')"
+    />
+    <p-button
+      icon="pi pi-comments"
+      size="small"
+      ariaLabel="Wiadomość o pacjencie"
+      pTooltip="Wiadomość o pacjencie"
+      (onClick)="emit('message')"
+    />
+    <p-button
+      icon="pi pi-pencil"
+      size="small"
+      severity="secondary"
+      ariaLabel="Edytuj dane"
+      pTooltip="Edytuj dane"
+      (onClick)="emit('edit')"
+    />
+  </div>
+</div>

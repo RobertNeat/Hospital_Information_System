@@ -1,0 +1,108 @@
+<p-dialog
+  header="Nowe przekazanie dyżuru"
+  [visible]="visible()"
+  [modal]="true"
+  [style]="{ width: '42rem' }"
+  (onHide)="onHide()"
+  (visibleChange)="visibleChange.emit($event)"
+>
+  <form [formGroup]="form" class="his-handoff-dialog__form">
+    <div class="his-form-grid">
+      <app-form-field label="Oddział" [control]="form.controls.wardId" [required]="true">
+        <p-select
+          formControlName="wardId"
+          [options]="wards()"
+          optionLabel="name"
+          optionValue="id"
+          placeholder="Wybierz oddział"
+        />
+      </app-form-field>
+
+      <app-form-field label="Zmiana" [control]="form.controls.shift" [required]="true">
+        <p-selectbutton
+          formControlName="shift"
+          [options]="shiftOptions"
+          optionLabel="label"
+          optionValue="value"
+        />
+      </app-form-field>
+    </div>
+
+    <app-form-field label="Odbiorca" [control]="form.controls.toId" [required]="true">
+      <p-select
+        formControlName="toId"
+        [options]="recipients()"
+        optionLabel="lastName"
+        optionValue="id"
+        placeholder="Wybierz pracownika"
+      >
+        <ng-template let-staff #item
+          >{{ staff.title }} {{ staff.firstName }} {{ staff.lastName }}</ng-template
+        >
+        <ng-template let-staff #selectedItem
+          >{{ staff.title }} {{ staff.firstName }} {{ staff.lastName }}</ng-template
+        >
+      </p-select>
+    </app-form-field>
+
+    <app-form-field label="Uwagi ogólne">
+      <textarea pTextarea rows="2" formControlName="generalNotes"></textarea>
+    </app-form-field>
+
+    <div class="his-handoff-dialog__patients">
+      <div class="his-toolbar">
+        <span class="his-handoff-dialog__patients-title">Pacjenci (SBAR)</span>
+        <p-button
+          label="Dodaj pacjenta"
+          icon="pi pi-plus"
+          size="small"
+          severity="secondary"
+          (onClick)="addPatientEntry()"
+        />
+      </div>
+
+      @for (group of patientNotesArray.controls; track group; let i = $index) {
+        <div class="his-card his-handoff-dialog__patient-card" [formArrayName]="'patientNotes'">
+          <div [formGroupName]="i" class="his-handoff-dialog__patient-inner">
+            <div class="his-toolbar">
+              @if (patientEntries()[i]; as patient) {
+                <span>{{ patient.lastName }} {{ patient.firstName }}</span>
+              } @else {
+                <app-patient-search (patientSelected)="onPatientSelected(i, $event)" />
+              }
+              <button
+                type="button"
+                class="his-handoff-dialog__remove"
+                aria-label="Usuń pacjenta z przekazania"
+                pTooltip="Usuń pacjenta z przekazania"
+                (click)="removePatientEntry(i)"
+              >
+                <i class="pi pi-trash"></i>
+              </button>
+            </div>
+
+            <app-form-field label="Sytuacja (S)" [required]="true">
+              <textarea pTextarea rows="2" formControlName="situation"></textarea>
+            </app-form-field>
+            <app-form-field label="Tło (B)" [required]="true">
+              <textarea pTextarea rows="2" formControlName="background"></textarea>
+            </app-form-field>
+            <app-form-field label="Ocena (A)" [required]="true">
+              <textarea pTextarea rows="2" formControlName="assessment"></textarea>
+            </app-form-field>
+            <app-form-field label="Zalecenia (R)" [required]="true">
+              <textarea pTextarea rows="2" formControlName="recommendation"></textarea>
+            </app-form-field>
+          </div>
+        </div>
+      } @empty {
+        <p class="his-muted">Dodaj co najmniej jednego pacjenta do przekazania.</p>
+      }
+    </div>
+  </form>
+
+  <ng-template #footer>
+    <p-button label="Anuluj" severity="secondary" text (onClick)="onHide()" />
+    <p-button label="Zapisz przekazanie" icon="pi pi-check" (onClick)="submit()" />
+  </ng-template>
+</p-dialog>

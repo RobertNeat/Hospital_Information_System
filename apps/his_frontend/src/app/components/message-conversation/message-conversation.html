@@ -1,0 +1,55 @@
+<div class="his-conversation">
+  @if (subject()) {
+    <div class="his-conversation__subject">{{ subject() }}</div>
+  }
+
+  <div class="his-conversation__bubbles">
+    @for (message of orderedMessages(); track message.id) {
+      <div
+        class="his-conversation__bubble"
+        [class.his-conversation__bubble--out]="isOwn(message)"
+        [class.his-conversation__bubble--in]="!isOwn(message)"
+      >
+        <div class="his-conversation__bubble-meta">
+          <span class="his-conversation__sender">{{ senderLabel()(message.senderId) }}</span>
+          @if (message.priority !== 'normal') {
+            <app-status-tag kind="priority" [value]="message.priority" />
+          }
+        </div>
+        <div class="his-conversation__body">{{ message.body }}</div>
+        <div class="his-conversation__time his-muted">
+          {{ message.sentAt | date: 'dd.MM.yyyy HH:mm' }}
+        </div>
+      </div>
+    } @empty {
+      <p class="his-muted">Brak wiadomości w tym wątku.</p>
+    }
+  </div>
+
+  <div class="his-conversation__composer">
+    <textarea
+      pTextarea
+      rows="2"
+      placeholder="Napisz wiadomość... (Ctrl+Enter, aby wysłać)"
+      [ngModel]="draftBody()"
+      (ngModelChange)="draftBody.set($event)"
+      (keydown)="onComposerKeydown($event)"
+    ></textarea>
+    <div class="his-conversation__composer-row">
+      <p-select
+        [options]="priorityOptions"
+        optionLabel="label"
+        optionValue="value"
+        [ngModel]="draftPriority()"
+        (ngModelChange)="draftPriority.set($event)"
+        placeholder="Priorytet"
+      />
+      <p-button
+        label="Wyślij"
+        icon="pi pi-send"
+        [disabled]="sending() || !draftBody().trim()"
+        (onClick)="submit()"
+      />
+    </div>
+  </div>
+</div>

@@ -1,0 +1,445 @@
+<div class="his-page">
+  <app-page-header
+    [title]="mode() === 'edit' ? 'Edycja danych pacjenta' : 'Rejestracja pacjenta'"
+  />
+
+  @if (mode() === 'edit' && loadingPatient()) {
+    <div class="his-card">Ładowanie danych pacjenta...</div>
+  } @else {
+    <p-stepper [(value)]="activeStep" [linear]="true">
+      <p-step-list>
+        <p-step [value]="1">Identyfikacja</p-step>
+        <p-step [value]="2">Dane osobowe</p-step>
+        <p-step [value]="3">Ubezpieczenie</p-step>
+        @if (mode() === 'create') {
+          <p-step [value]="4">Przyjęcie</p-step>
+        } @else {
+          <p-step [value]="4">Zmiany</p-step>
+        }
+        <p-step [value]="5">Podsumowanie</p-step>
+      </p-step-list>
+
+      <p-step-panels>
+        <!-- Step 1: Identyfikacja -->
+        <p-step-panel [value]="1">
+          <ng-template #content let-activateCallback="activateCallback">
+            <form [formGroup]="step1" class="his-card his-form-grid">
+              <div class="his-registration__full-row">
+                <label class="his-registration__toggle">
+                  <p-toggleswitch formControlName="noPesel" />
+                  Pacjent bez numeru PESEL
+                </label>
+              </div>
+
+              @if (!step1.controls.noPesel.value) {
+                <app-form-field
+                  label="PESEL"
+                  for="pesel"
+                  [required]="true"
+                  [control]="step1.controls.pesel"
+                >
+                  <p-inputmask
+                    inputId="pesel"
+                    formControlName="pesel"
+                    mask="99999999999"
+                    [unmask]="true"
+                    placeholder="np. 90010112345"
+                  />
+                </app-form-field>
+
+                @if (duplicatePatient(); as dup) {
+                  <div class="his-registration__full-row">
+                    <p-message severity="warn">
+                      Pacjent o tym numerze PESEL już istnieje: {{ dup.label }}.
+                      <a [routerLink]="['/patients', dup.id]">Otwórz kartę pacjenta</a>
+                    </p-message>
+                  </div>
+                }
+
+                <app-form-field label="Data urodzenia" for="birthDate1">
+                  <p-datepicker
+                    inputId="birthDate1"
+                    formControlName="birthDate"
+                    dateFormat="dd.mm.yy"
+                    [readonlyInput]="true"
+                  />
+                </app-form-field>
+                <app-form-field label="Płeć" for="gender1">
+                  <p-select
+                    inputId="gender1"
+                    formControlName="gender"
+                    [options]="genderOptions"
+                    optionLabel="label"
+                    optionValue="value"
+                  />
+                </app-form-field>
+              } @else {
+                <app-form-field
+                  label="Powód braku numeru PESEL"
+                  for="noPeselReason"
+                  [required]="true"
+                  [control]="step1.controls.noPeselReason"
+                >
+                  <p-select
+                    inputId="noPeselReason"
+                    formControlName="noPeselReason"
+                    [options]="noPeselReasonOptions"
+                    optionLabel="label"
+                    optionValue="value"
+                  />
+                </app-form-field>
+                <app-form-field label="Typ dokumentu" for="documentType">
+                  <p-select
+                    inputId="documentType"
+                    formControlName="documentType"
+                    [options]="identityDocumentTypeOptions"
+                    optionLabel="label"
+                    optionValue="value"
+                  />
+                </app-form-field>
+                <app-form-field label="Numer dokumentu" for="documentNumber">
+                  <input pInputText id="documentNumber" formControlName="documentNumber" />
+                </app-form-field>
+                <app-form-field
+                  label="Data urodzenia"
+                  for="birthDate2"
+                  [required]="true"
+                  [control]="step1.controls.birthDate"
+                >
+                  <p-datepicker
+                    inputId="birthDate2"
+                    formControlName="birthDate"
+                    dateFormat="dd.mm.yy"
+                  />
+                </app-form-field>
+                <app-form-field label="Płeć" for="gender2">
+                  <p-select
+                    inputId="gender2"
+                    formControlName="gender"
+                    [options]="genderOptions"
+                    optionLabel="label"
+                    optionValue="value"
+                  />
+                </app-form-field>
+              }
+            </form>
+            <app-wizard-step-footer
+              [first]="true"
+              (next)="tryAdvanceStep1(activateCallback)"
+              (cancelled)="cancel()"
+            />
+          </ng-template>
+        </p-step-panel>
+
+        <!-- Step 2: Dane osobowe i kontaktowe -->
+        <p-step-panel [value]="2">
+          <ng-template #content let-activateCallback="activateCallback">
+            <form [formGroup]="step2" class="his-card his-form-grid">
+              <app-form-field
+                label="Imię"
+                for="firstName"
+                [required]="true"
+                [control]="step2.controls.firstName"
+              >
+                <input pInputText id="firstName" formControlName="firstName" />
+              </app-form-field>
+              <app-form-field label="Drugie imię" for="secondName">
+                <input pInputText id="secondName" formControlName="secondName" />
+              </app-form-field>
+              <app-form-field
+                label="Nazwisko"
+                for="lastName"
+                [required]="true"
+                [control]="step2.controls.lastName"
+              >
+                <input pInputText id="lastName" formControlName="lastName" />
+              </app-form-field>
+              <app-form-field label="Telefon" for="phone" [control]="step2.controls.phone">
+                <input
+                  pInputText
+                  id="phone"
+                  formControlName="phone"
+                  placeholder="+48 512 000 001"
+                />
+              </app-form-field>
+              <app-form-field label="E-mail" for="email" [control]="step2.controls.email">
+                <input pInputText id="email" formControlName="email" type="email" />
+              </app-form-field>
+
+              <div class="his-registration__full-row his-registration__subheading">
+                Adres zamieszkania
+              </div>
+
+              <app-form-field
+                label="Ulica"
+                for="street"
+                [required]="true"
+                [control]="step2.controls.street"
+              >
+                <input pInputText id="street" formControlName="street" />
+              </app-form-field>
+              <app-form-field
+                label="Nr domu"
+                for="buildingNumber"
+                [required]="true"
+                [control]="step2.controls.buildingNumber"
+              >
+                <input pInputText id="buildingNumber" formControlName="buildingNumber" />
+              </app-form-field>
+              <app-form-field label="Nr lokalu" for="apartmentNumber">
+                <input pInputText id="apartmentNumber" formControlName="apartmentNumber" />
+              </app-form-field>
+              <app-form-field
+                label="Kod pocztowy"
+                for="postalCode"
+                [required]="true"
+                [control]="step2.controls.postalCode"
+              >
+                <input
+                  pInputText
+                  id="postalCode"
+                  formControlName="postalCode"
+                  placeholder="00-001"
+                />
+              </app-form-field>
+              <app-form-field
+                label="Miejscowość"
+                for="city"
+                [required]="true"
+                [control]="step2.controls.city"
+              >
+                <input pInputText id="city" formControlName="city" />
+              </app-form-field>
+              <app-form-field
+                label="Kraj"
+                for="country"
+                [required]="true"
+                [control]="step2.controls.country"
+              >
+                <input pInputText id="country" formControlName="country" />
+              </app-form-field>
+            </form>
+            <app-wizard-step-footer
+              (back)="activateCallback(1)"
+              (next)="tryAdvanceStep2(activateCallback)"
+              (cancelled)="cancel()"
+            />
+          </ng-template>
+        </p-step-panel>
+
+        <!-- Step 3: Ubezpieczenie i osoba kontaktowa -->
+        <p-step-panel [value]="3">
+          <ng-template #content let-activateCallback="activateCallback">
+            <form [formGroup]="step3" class="his-card his-form-grid">
+              <app-form-field label="Status ubezpieczenia" for="insuranceStatus">
+                <p-select
+                  inputId="insuranceStatus"
+                  formControlName="insuranceStatus"
+                  [options]="[
+                    { label: 'Aktywne', value: 'active' },
+                    { label: 'Nieaktywne', value: 'inactive' },
+                    { label: 'Nieznane', value: 'unknown' },
+                  ]"
+                  optionLabel="label"
+                  optionValue="value"
+                />
+              </app-form-field>
+              <app-form-field label="Płatnik" for="insurancePayer">
+                <p-select
+                  inputId="insurancePayer"
+                  formControlName="insurancePayer"
+                  [options]="insurancePayerOptions"
+                  optionLabel="label"
+                  optionValue="value"
+                />
+              </app-form-field>
+              <app-form-field label="Oddział NFZ" for="nfzBranch">
+                <p-select
+                  inputId="nfzBranch"
+                  formControlName="nfzBranch"
+                  [options]="nfzBranchOptions"
+                  optionLabel="label"
+                  optionValue="value"
+                  [filter]="true"
+                />
+              </app-form-field>
+              <div class="his-registration__ewus">
+                <p-button
+                  label="Weryfikuj eWUŚ (demo)"
+                  icon="pi pi-clipboard"
+                  severity="secondary"
+                  [outlined]="true"
+                  type="button"
+                  (onClick)="verifyEwus()"
+                />
+                @if (step3.controls.ewusVerifiedAt.value; as verifiedAt) {
+                  <span class="his-muted"
+                    >Zweryfikowano: {{ verifiedAt | date: 'dd.MM.yyyy HH:mm' }}</span
+                  >
+                }
+              </div>
+
+              <div class="his-registration__full-row his-registration__subheading">
+                Osoba kontaktowa / opiekun prawny
+                @if (guardianRequired()) {
+                  <span class="his-muted">(wymagane — pacjent niepełnoletni)</span>
+                }
+              </div>
+
+              <app-form-field
+                label="Imię i nazwisko"
+                for="contactFullName"
+                [required]="guardianRequired()"
+                [control]="step3.controls.contactFullName"
+              >
+                <input pInputText id="contactFullName" formControlName="contactFullName" />
+              </app-form-field>
+              <app-form-field label="Relacja" for="contactRelation">
+                <input pInputText id="contactRelation" formControlName="contactRelation" />
+              </app-form-field>
+              <app-form-field label="Telefon" for="contactPhone">
+                <input pInputText id="contactPhone" formControlName="contactPhone" />
+              </app-form-field>
+              <label class="his-registration__toggle">
+                <p-toggleswitch formControlName="isLegalGuardian" />
+                Opiekun prawny
+              </label>
+
+              <app-form-field label="Grupa krwi" for="bloodType">
+                <p-select
+                  inputId="bloodType"
+                  formControlName="bloodType"
+                  [options]="bloodTypeOptions"
+                  optionLabel="label"
+                  optionValue="value"
+                  [showClear]="true"
+                />
+              </app-form-field>
+            </form>
+            <app-wizard-step-footer
+              (back)="activateCallback(2)"
+              (next)="tryAdvanceStep3(activateCallback)"
+              (cancelled)="cancel()"
+            />
+          </ng-template>
+        </p-step-panel>
+
+        <!-- Step 4: Przyjęcie / Zmiany -->
+        <p-step-panel [value]="4">
+          <ng-template #content let-activateCallback="activateCallback">
+            @if (mode() === 'create') {
+              <form [formGroup]="step4" class="his-card his-form-grid">
+                <div class="his-registration__full-row">
+                  <p-selectbutton
+                    formControlName="admissionType"
+                    [options]="admissionTypeOptions"
+                    optionLabel="label"
+                    optionValue="value"
+                    [allowEmpty]="false"
+                  />
+                </div>
+
+                @if (!isAmbulatoryOnly()) {
+                  <app-form-field
+                    label="Oddział"
+                    for="wardId"
+                    [required]="true"
+                    [control]="step4.controls.wardId"
+                  >
+                    <p-select
+                      inputId="wardId"
+                      formControlName="wardId"
+                      [options]="wards()"
+                      optionLabel="name"
+                      optionValue="id"
+                    />
+                  </app-form-field>
+                  <app-form-field label="Sala" for="room">
+                    <input pInputText id="room" formControlName="room" />
+                  </app-form-field>
+                  <app-form-field label="Łóżko" for="bed">
+                    <input pInputText id="bed" formControlName="bed" />
+                  </app-form-field>
+                  <app-form-field
+                    label="Lekarz prowadzący"
+                    for="attendingPhysicianId"
+                    [required]="true"
+                    [control]="step4.controls.attendingPhysicianId"
+                  >
+                    <p-select
+                      inputId="attendingPhysicianId"
+                      formControlName="attendingPhysicianId"
+                      [options]="doctors()"
+                      optionLabel="lastName"
+                      optionValue="id"
+                    />
+                  </app-form-field>
+                  <app-form-field
+                    label="Poziom triage"
+                    for="triageLevel"
+                    [required]="step4.controls.admissionType.value === 'emergency'"
+                    [control]="step4.controls.triageLevel"
+                  >
+                    <p-select
+                      inputId="triageLevel"
+                      formControlName="triageLevel"
+                      [options]="triageOptions"
+                      optionLabel="label"
+                      optionValue="value"
+                      [showClear]="true"
+                    />
+                  </app-form-field>
+                  <div class="his-registration__full-row">
+                    <app-form-field
+                      label="Powód przyjęcia"
+                      for="reason"
+                      [required]="true"
+                      [control]="step4.controls.reason"
+                    >
+                      <textarea pTextarea id="reason" formControlName="reason" rows="3"></textarea>
+                    </app-form-field>
+                  </div>
+                  <app-form-field label="Nr skierowania" for="referralNumber">
+                    <input pInputText id="referralNumber" formControlName="referralNumber" />
+                  </app-form-field>
+                  <app-form-field label="Data i godzina przyjęcia" for="admittedAt">
+                    <p-datepicker
+                      inputId="admittedAt"
+                      formControlName="admittedAt"
+                      [showTime]="true"
+                      dateFormat="dd.mm.yy"
+                    />
+                  </app-form-field>
+                }
+              </form>
+            } @else {
+              <div class="his-card">
+                <app-registration-summary [sections]="summarySections()" />
+              </div>
+            }
+            <app-wizard-step-footer
+              (back)="activateCallback(3)"
+              (next)="tryAdvanceStep4(activateCallback)"
+              (cancelled)="cancel()"
+            />
+          </ng-template>
+        </p-step-panel>
+
+        <!-- Step 5: Podsumowanie -->
+        <p-step-panel [value]="5">
+          <ng-template #content let-activateCallback="activateCallback">
+            <app-registration-summary [sections]="summarySections()" />
+            <app-wizard-step-footer
+              [last]="true"
+              [submitLabel]="mode() === 'edit' ? 'Zapisz zmiany' : 'Zarejestruj pacjenta'"
+              [busy]="submitting()"
+              (back)="activateCallback(4)"
+              (submitted)="submit()"
+              (cancelled)="cancel()"
+            />
+          </ng-template>
+        </p-step-panel>
+      </p-step-panels>
+    </p-stepper>
+  }
+</div>

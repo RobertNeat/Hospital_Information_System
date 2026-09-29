@@ -1,0 +1,117 @@
+@if (inProgressEncounter(); as active) {
+  <div class="his-section his-summary-cards__active">
+    <app-section-header title="Wizyta w trakcie" icon="pi pi-clock" variant="warn" />
+    <div class="his-summary-cards__active-body">
+      <span>{{ active.type | label: 'encounterType' }}</span>
+      <span class="his-muted">{{ active.startAt | date: 'dd.MM.yyyy HH:mm' }}</span>
+      <span>{{ active.practitionerId | staffName }}</span>
+      <span>{{ active.reason }}</span>
+    </div>
+  </div>
+}
+
+<div class="his-grid-2">
+  <div class="his-section">
+    <app-section-header title="Ostatnie rozpoznania" icon="pi pi-book" />
+    @if (summary().recentDiagnoses.length) {
+      <table class="his-summary-table">
+        <thead>
+          <tr>
+            <th>Kod</th>
+            <th>Jednostka chorobowa</th>
+            <th>Data</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (d of summary().recentDiagnoses; track trackDiagnosis($index, d)) {
+            <tr>
+              <td>{{ d.code.code }}</td>
+              <td>{{ d.code.display }}</td>
+              <td>{{ d.diagnosedAt | date: 'dd.MM.yyyy' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    } @else {
+      <app-empty-state title="Brak rozpoznań" icon="pi pi-book" />
+    }
+  </div>
+
+  <div class="his-section">
+    <app-section-header title="Leki stałe" icon="pi pi-file-edit" />
+    @if (summary().activeMedications.length) {
+      <table class="his-summary-table">
+        <thead>
+          <tr>
+            <th>Lek</th>
+            <th>Dawka</th>
+            <th>Częstość</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (m of summary().activeMedications; track m.drugId) {
+            <tr>
+              <td>{{ m.drugName }} {{ m.strength }}</td>
+              <td>{{ m.dosage.dose }} {{ m.dosage.doseUnit }}</td>
+              <td>{{ m.dosage.frequency | label: 'frequency' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    } @else {
+      <app-empty-state title="Brak leków stałych" icon="pi pi-file-edit" />
+    }
+  </div>
+
+  <div class="his-section">
+    <app-section-header title="Choroby przewlekłe" icon="pi pi-heart" />
+    @if (summary().chronicConditions.length) {
+      <table class="his-summary-table">
+        <thead>
+          <tr>
+            <th>Kod</th>
+            <th>Jednostka chorobowa</th>
+            <th>Data</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (d of summary().chronicConditions; track trackDiagnosis($index, d)) {
+            <tr>
+              <td>{{ d.code.code }}</td>
+              <td>{{ d.code.display }}</td>
+              <td>{{ d.diagnosedAt | date: 'dd.MM.yyyy' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    } @else {
+      <app-empty-state title="Brak chorób przewlekłych" icon="pi pi-heart" />
+    }
+  </div>
+
+  <div class="his-section">
+    <app-section-header title="Ostatnie wizyty" icon="pi pi-calendar-clock" />
+    @if (summary().recentEncounters.length) {
+      <table class="his-summary-table">
+        <thead>
+          <tr>
+            <th>Typ</th>
+            <th>Data</th>
+            <th>Lekarz prowadzący</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (e of summary().recentEncounters; track trackEncounter($index, e)) {
+            <tr>
+              <td>{{ e.type | label: 'encounterType' }}</td>
+              <td>{{ e.startAt | date: 'dd.MM.yyyy HH:mm' }}</td>
+              <td>{{ e.practitionerId | staffName }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    } @else {
+      <app-empty-state title="Brak wizyt" icon="pi pi-calendar-clock" />
+    }
+  </div>
+</div>

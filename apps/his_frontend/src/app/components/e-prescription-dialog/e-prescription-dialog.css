@@ -1,0 +1,76 @@
+.his-erx-dialog__body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.his-erx-dialog__code {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 1rem;
+  background: var(--p-surface-100, #f1f5f9);
+  border-radius: 6px;
+}
+
+.his-erx-dialog__code-label {
+  font-size: 0.85rem;
+  color: var(--p-text-muted-color);
+}
+
+.his-erx-dialog__code-value {
+  font-size: 2.5rem;
+  font-weight: 700;
+  letter-spacing: 0.3rem;
+}
+
+.his-erx-dialog__key {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.his-erx-dialog__key-label {
+  font-size: 0.85rem;
+  color: var(--p-text-muted-color);
+}
+
+.his-erx-dialog__key-value {
+  font-family: monospace;
+  font-size: 0.85rem;
+  word-break: break-all;
+}
+
+/*
+ * Print block: hidden on screen (the dialog above shows the summary instead), and the
+ * only thing visible when window.print() runs -- everything else in the document is
+ * hidden via the print media rule below. See the ViewEncapsulation.None note in
+ * e-prescription-dialog.ts for why this lives outside normal component CSS scoping.
+ */
+.his-erx-print {
+  display: none;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .his-erx-print,
+  .his-erx-print * {
+    visibility: visible;
+  }
+
+  .his-erx-print {
+    display: block;
+    position: fixed;
+    inset: 0;
+    padding: 2rem;
+  }
+
+  .his-erx-print__code,
+  .his-erx-print__key {
+    font-weight: 700;
+  }
+}

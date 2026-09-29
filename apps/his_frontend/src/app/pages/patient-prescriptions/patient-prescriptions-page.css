@@ -1,0 +1,12 @@
+.his-prescription-items-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.his-prescription-items-table th,
+.his-prescription-items-table td {
+  text-align: left;
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid var(--his-card-border, #e2e8f0);
+}

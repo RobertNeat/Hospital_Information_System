@@ -1,0 +1,14 @@
+<div class="his-form-field">
+  <label [attr.for]="for()">
+    {{ label() }}
+    @if (required()) {
+      <span class="his-form-field__required">*</span>
+    }
+  </label>
+  <ng-content />
+  @if (errorMessage(); as msg) {
+    <small class="his-form-field__error">{{ msg }}</small>
+  } @else if (hint()) {
+    <small class="his-muted">{{ hint() }}</small>
+  }
+</div>

@@ -1,0 +1,33 @@
+:host {
+  display: block;
+}
+
+.his-prescription-item-card {
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.his-prescription-item-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.his-prescription-item-card__name {
+  font-weight: 600;
+}
+
+.his-prescription-item-card__details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
+.his-prescription-item-card__instructions {
+  margin: 0;
+  font-size: 0.85rem;
+}

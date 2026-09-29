@@ -1,0 +1,271 @@
+<div class="his-page">
+  <app-page-header title="Nowa recepta" subtitle="Wystawienie e-recepty" />
+
+  <p-stepper [value]="1" [linear]="true">
+    <p-step-list>
+      <p-step [value]="1">Wybór leku</p-step>
+      <p-step [value]="2">Dawkowanie</p-step>
+      <p-step [value]="3">Ilość i czas terapii</p-step>
+      <p-step [value]="4">Podsumowanie</p-step>
+    </p-step-list>
+
+    <p-step-panels>
+      <!-- Step 1: Wybór leku -->
+      <p-step-panel [value]="1">
+        <ng-template #content let-activateCallback="activateCallback">
+          <div class="his-card his-wizard-step">
+            @if (items().length > 0) {
+              <p class="his-muted">
+                Dodane leki: {{ items().length }} / 5.
+                <button
+                  type="button"
+                  class="his-link-button"
+                  (click)="goToSummary(activateCallback)"
+                >
+                  Przejdź do podsumowania
+                </button>
+              </p>
+            }
+
+            <app-drug-picker (drugSelected)="onDrugSelected($event)" />
+
+            @if (selectedDrug(); as drug) {
+              <div class="his-card his-wizard-step__drug-details">
+                <h3>{{ drug.name }}</h3>
+                <p class="his-muted">
+                  {{ drug.activeSubstance }} · {{ drug.strength }} · ATC {{ drug.atcCode }}
+                </p>
+              </div>
+
+              @if (safetyLoading()) {
+                <p class="his-muted">Sprawdzanie bezpieczeństwa...</p>
+              } @else {
+                @for (warning of safetyWarnings(); track warning.message) {
+                  <p-message [severity]="warning.severity === 'danger' ? 'error' : 'warn'">
+                    {{ warning.message }}
+                  </p-message>
+                }
+
+                @if (hasAllergyDanger()) {
+                  <div class="his-card his-wizard-step__override" [formGroup]="safetyStep1Form">
+                    <label class="his-wizard-step__override-toggle">
+                      <p-toggleswitch
+                        formControlName="overrideConfirmed"
+                        ariaLabel="Świadomie przepisuję mimo ostrzeżenia"
+                      />
+                      Świadomie przepisuję mimo ostrzeżenia
+                    </label>
+                    @if (safetyStep1Form.controls.overrideConfirmed.value) {
+                      <app-form-field
+                        label="Uzasadnienie"
+                        for="overrideJustification"
+                        [required]="true"
+                        [control]="safetyStep1Form.get('overrideJustification')"
+                      >
+                        <textarea
+                          pTextarea
+                          id="overrideJustification"
+                          formControlName="overrideJustification"
+                          rows="2"
+                          [fluid]="true"
+                        ></textarea>
+                      </app-form-field>
+                    }
+                  </div>
+                }
+              }
+            }
+          </div>
+          <app-wizard-step-footer
+            [first]="true"
+            (next)="tryAdvanceStep1(activateCallback)"
+            (cancelled)="closeDialogCancel()"
+          />
+        </ng-template>
+      </p-step-panel>
+
+      <!-- Step 2: Dawkowanie -->
+      <p-step-panel [value]="2">
+        <ng-template #content let-activateCallback="activateCallback">
+          <div class="his-card his-wizard-step">
+            @if (selectedDrug(); as drug) {
+              <app-dosage-editor [form]="dosageForm" [drug]="drug" />
+            }
+          </div>
+          <app-wizard-step-footer
+            (back)="activateCallback(1)"
+            (next)="tryAdvanceStep2(activateCallback)"
+            (cancelled)="closeDialogCancel()"
+          />
+        </ng-template>
+      </p-step-panel>
+
+      <!-- Step 3: Ilość i czas terapii -->
+      <p-step-panel [value]="3">
+        <ng-template #content let-activateCallback="activateCallback">
+          <div class="his-card his-wizard-step" [formGroup]="quantityForm">
+            <div class="his-form-grid">
+              <app-form-field
+                label="Czas terapii (dni)"
+                for="durationDays"
+                [required]="true"
+                [control]="quantityForm.get('durationDays')"
+              >
+                <p-inputNumber
+                  inputId="durationDays"
+                  formControlName="durationDays"
+                  [min]="1"
+                  [max]="365"
+                  [fluid]="true"
+                  (onInput)="recomputeSuggestedQuantity()"
+                />
+              </app-form-field>
+
+              <app-form-field
+                label="Ilość opakowań"
+                for="quantityPackages"
+                [required]="true"
+                [control]="quantityForm.get('quantityPackages')"
+                hint="Sugerowana ilość jest wyliczana automatycznie; można ją zmienić ręcznie."
+              >
+                <p-inputNumber
+                  inputId="quantityPackages"
+                  formControlName="quantityPackages"
+                  [min]="1"
+                  [fluid]="true"
+                  (onInput)="onQuantityFieldTouched()"
+                />
+              </app-form-field>
+
+              <app-form-field
+                label="Poziom refundacji"
+                for="reimbursement"
+                [required]="true"
+                [control]="quantityForm.get('reimbursement')"
+              >
+                <p-select
+                  inputId="reimbursement"
+                  formControlName="reimbursement"
+                  [options]="reimbursementOptionsForDrug()"
+                  optionLabel="label"
+                  optionValue="value"
+                  placeholder="Wybierz poziom refundacji"
+                  [fluid]="true"
+                />
+              </app-form-field>
+
+              <app-form-field
+                label="Ważna od"
+                for="validFrom"
+                [control]="prescriptionDatesForm.get('validFrom')"
+              >
+                <p-datepicker
+                  inputId="validFrom"
+                  [formControl]="prescriptionDatesForm.controls.validFrom"
+                  dateFormat="dd.mm.yy"
+                  [showIcon]="true"
+                  [fluid]="true"
+                />
+              </app-form-field>
+            </div>
+
+            <label class="his-wizard-step__toggle-row">
+              <p-toggleswitch
+                formControlName="substitutionAllowed"
+                ariaLabel="Zamiennik dozwolony"
+              />
+              @if (quantityForm.controls.substitutionAllowed.value) {
+                Zamiennik dozwolony
+              } @else {
+                Nie zamieniać
+              }
+            </label>
+
+            <label class="his-wizard-step__toggle-row">
+              <p-toggleswitch formControlName="longTermOverride" ariaLabel="Leczenie przewlekłe" />
+              Leczenie przewlekłe (recepta ważna 365 dni)
+            </label>
+
+            <p class="his-muted">
+              Recepta będzie ważna do <strong>{{ validUntil() | date: 'dd.MM.yyyy' }}</strong
+              >{{ isLongTerm() ? ' (leczenie przewlekłe)' : '' }}.
+            </p>
+
+            <div class="his-wizard-step__actions">
+              <p-button
+                label="Dodaj lek do recepty"
+                icon="pi pi-plus-circle"
+                [disabled]="!canAddMore()"
+                (onClick)="addItemToList()"
+              />
+              <p-button
+                label="Dodaj i wybierz kolejny lek"
+                severity="secondary"
+                [outlined]="true"
+                icon="pi pi-plus"
+                [disabled]="!canAddMore()"
+                (onClick)="addAnotherDrug(activateCallback)"
+              />
+            </div>
+
+            @if (!canAddMore()) {
+              <p-message severity="info"
+                >Osiągnięto maksymalną liczbę 5 leków na recepcie.</p-message
+              >
+            }
+
+            @if (items().length > 0) {
+              <div class="his-wizard-step__items">
+                <h3>Leki na recepcie</h3>
+                @for (item of items(); track item.drugId + $index) {
+                  <app-prescription-item-card [item]="item" (remove)="removeItem($index)" />
+                }
+              </div>
+            }
+          </div>
+          <app-wizard-step-footer
+            (back)="activateCallback(2)"
+            (next)="goToSummary(activateCallback)"
+            (cancelled)="closeDialogCancel()"
+          />
+        </ng-template>
+      </p-step-panel>
+
+      <!-- Step 4: Podsumowanie i wystawienie e-recepty -->
+      <p-step-panel [value]="4">
+        <ng-template #content let-activateCallback="activateCallback">
+          <div class="his-card his-wizard-step">
+            <app-summary-list [items]="summaryItems()" />
+
+            <div class="his-wizard-step__items">
+              <h3>Pozycje recepty</h3>
+              @for (item of items(); track item.drugId + $index) {
+                <app-prescription-item-card [item]="item" [removable]="false" />
+              }
+            </div>
+
+            <app-fhir-integration-note resource="MedicationRequest" />
+          </div>
+          <app-wizard-step-footer
+            [last]="true"
+            [busy]="issuing()"
+            submitLabel="Wystaw e-receptę"
+            (back)="activateCallback(3)"
+            (submitted)="issue()"
+            (cancelled)="closeDialogCancel()"
+          />
+        </ng-template>
+      </p-step-panel>
+    </p-step-panels>
+  </p-stepper>
+
+  @if (issuedPrescription(); as prescription) {
+    <app-e-prescription-dialog
+      [visible]="dialogVisible()"
+      [prescription]="prescription"
+      [patient]="patient()!"
+      [prescriber]="prescriber()"
+      (closed)="closeDialog()"
+    />
+  }
+</div>

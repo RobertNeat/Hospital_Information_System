@@ -1,0 +1,78 @@
+:host {
+  display: block;
+}
+
+.his-sidebar__desktop {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  transition: width 0.15s ease;
+}
+
+@media (max-width: 1023px) {
+  .his-sidebar__desktop {
+    display: none;
+  }
+}
+
+.his-sidebar {
+  background: var(--his-navy);
+  height: 100%;
+  min-height: 100%;
+  padding: 0.75rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.his-sidebar__patient-group {
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid rgb(255 255 255 / 12%);
+  margin-bottom: 0.25rem;
+}
+
+.his-sidebar__group {
+  display: flex;
+  flex-direction: column;
+}
+
+.his-sidebar__group-label {
+  color: #94a3b8;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.5rem 1rem 0.25rem;
+}
+
+.his-sidebar__item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 1rem;
+  color: #e2e8f0;
+  text-decoration: none;
+  font-size: 0.9rem;
+  position: relative;
+}
+
+.his-sidebar__item:hover {
+  background: rgb(255 255 255 / 8%);
+}
+
+.his-sidebar__item.active {
+  background: var(--p-primary-color);
+  color: #fff;
+  font-weight: 600;
+}
+
+.his-sidebar__item-label {
+  flex: 1;
+}
+
+.his-sidebar__badge {
+  margin-left: auto;
+}

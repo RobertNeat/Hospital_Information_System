@@ -1,0 +1,14 @@
+<div class="his-page-header">
+  <div class="his-page-header__title-row">
+    @if (icon()) {
+      <i [class]="icon()"></i>
+    }
+    <h1>{{ title() }}</h1>
+  </div>
+  @if (subtitle()) {
+    <p class="his-muted">{{ subtitle() }}</p>
+  }
+  <div class="his-page-header__actions">
+    <ng-content select="[actions]" />
+  </div>
+</div>

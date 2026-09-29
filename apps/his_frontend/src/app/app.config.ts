@@ -1,10 +1,59 @@
-import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
-import { provideRouter } from '@angular/router';
+import { registerLocaleData } from '@angular/common';
+import localePl from '@angular/common/locales/pl';
+import {
+  ApplicationConfig,
+  LOCALE_ID,
+  provideAppInitializer,
+  provideBrowserGlobalErrorListeners,
+  provideZonelessChangeDetection,
+  inject,
+} from '@angular/core';
+import {
+  TitleStrategy,
+  provideRouter,
+  withComponentInputBinding,
+  withInMemoryScrolling,
+  withRouterConfig,
+} from '@angular/router';
+import { ConfirmationService, MessageService } from 'primeng/api';
+import { providePrimeNG } from 'primeng/config';
+import { HisTitleStrategy } from './config/his-title-strategy';
+import { MOCK_LATENCY_MS } from './config/mock-api.config';
+import { PRIMENG_PL } from './config/primeng-pl';
+import { HisPreset } from './config/theme-preset';
 import { routes } from './app.routes';
+import { ThemeService } from './services/theme.service';
+
+registerLocaleData(localePl);
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
-    provideRouter(routes)
-  ]
+    provideZonelessChangeDetection(),
+    provideRouter(
+      routes,
+      withComponentInputBinding(),
+      withRouterConfig({ paramsInheritanceStrategy: 'always' }),
+      withInMemoryScrolling({ scrollPositionRestoration: 'top' }),
+    ),
+    providePrimeNG({
+      theme: {
+        preset: HisPreset,
+        options: { darkModeSelector: '.app-dark', cssLayer: false },
+      },
+      translation: PRIMENG_PL,
+      ripple: true,
+    }),
+    MessageService,
+    ConfirmationService,
+    { provide: LOCALE_ID, useValue: 'pl' },
+    { provide: MOCK_LATENCY_MS, useValue: 300 },
+    { provide: TitleStrategy, useClass: HisTitleStrategy },
+    // Applies a persisted dark-mode preference to <html> before first paint --
+    // ThemeService applies `.app-dark` as a constructor side effect, so it must be
+    // eagerly instantiated here rather than lazily on first use in AppHeader.
+    provideAppInitializer(() => {
+      inject(ThemeService);
+    }),
+  ],
 };

@@ -1,0 +1,26 @@
+.his-catalog-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.his-catalog-picker__panels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.his-catalog-picker__group-title {
+  margin: 0.5rem 0 0.25rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--his-navy-700);
+}
+
+.his-catalog-picker__item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+  cursor: pointer;
+}

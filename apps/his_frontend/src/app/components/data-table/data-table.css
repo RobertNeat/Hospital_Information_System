@@ -1,0 +1,8 @@
+:host {
+  display: block;
+}
+
+.his-data-table__actions {
+  text-align: right;
+  white-space: nowrap;
+}

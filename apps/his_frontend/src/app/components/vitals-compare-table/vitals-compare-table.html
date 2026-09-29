@@ -1,0 +1,43 @@
+<table class="vitals-compare-table">
+  <thead>
+    <tr>
+      <th>Parametr</th>
+      <th>Wartość A</th>
+      <th>Wartość B</th>
+      <th>Δ</th>
+      <th>Kierunek</th>
+    </tr>
+  </thead>
+  <tbody>
+    @for (row of rows(); track row.type) {
+      <tr>
+        <td>{{ row.label }}</td>
+        <td>{{ row.valueA ?? '—' }} {{ row.valueA !== undefined ? row.unit : '' }}</td>
+        <td>{{ row.valueB ?? '—' }} {{ row.valueB !== undefined ? row.unit : '' }}</td>
+        <td>
+          @if (row.delta !== undefined) {
+            {{ row.delta > 0 ? '+' : '' }}{{ row.delta }} {{ row.unit }}
+          } @else {
+            —
+          }
+        </td>
+        <td>
+          @switch (row.arrow) {
+            @case ('up') {
+              <p-tag [severity]="row.arrowSeverity" icon="pi pi-arrow-up" value="Wzrost" />
+            }
+            @case ('down') {
+              <p-tag [severity]="row.arrowSeverity" icon="pi pi-arrow-down" value="Spadek" />
+            }
+            @case ('flat') {
+              <p-tag severity="secondary" icon="pi pi-minus" value="Bez zmian" />
+            }
+            @default {
+              <span class="his-muted">—</span>
+            }
+          }
+        </td>
+      </tr>
+    }
+  </tbody>
+</table>

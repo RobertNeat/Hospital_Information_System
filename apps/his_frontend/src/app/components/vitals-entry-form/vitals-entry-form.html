@@ -1,0 +1,170 @@
+<form [formGroup]="form" class="his-form-grid vitals-entry-form" (ngSubmit)="submit()">
+  <app-form-field
+    label="RR skurczowe"
+    for="systolic"
+    [control]="form.controls.systolic"
+    hint="mmHg"
+  >
+    <p-inputnumber
+      inputId="systolic"
+      formControlName="systolic"
+      [min]="thresholds.systolic.min"
+      [max]="thresholds.systolic.max"
+      [fluid]="true"
+      suffix=" mmHg"
+    />
+    @if (fieldAnomaly('systolic'); as a) {
+      <p-tag
+        class="vitals-entry-form__hint"
+        [severity]="a.severity === 'critical' ? 'danger' : 'warn'"
+        [value]="a.severity === 'critical' ? 'Krytyczne' : 'Odchylenie'"
+      />
+    }
+  </app-form-field>
+
+  <app-form-field
+    label="RR rozkurczowe"
+    for="diastolic"
+    [control]="form.controls.diastolic"
+    hint="mmHg"
+  >
+    <p-inputnumber
+      inputId="diastolic"
+      formControlName="diastolic"
+      [min]="thresholds.diastolic.min"
+      [max]="thresholds.diastolic.max"
+      [fluid]="true"
+      suffix=" mmHg"
+    />
+    @if (fieldAnomaly('diastolic'); as a) {
+      <p-tag
+        class="vitals-entry-form__hint"
+        [severity]="a.severity === 'critical' ? 'danger' : 'warn'"
+        [value]="a.severity === 'critical' ? 'Krytyczne' : 'Odchylenie'"
+      />
+    }
+  </app-form-field>
+
+  <app-form-field label="Tętno" for="heartRate" [control]="form.controls.heartRate" hint="/min">
+    <p-inputnumber
+      inputId="heartRate"
+      formControlName="heartRate"
+      [min]="thresholds.heartRate.min"
+      [max]="thresholds.heartRate.max"
+      [fluid]="true"
+      suffix=" /min"
+    />
+    @if (fieldAnomaly('heartRate'); as a) {
+      <p-tag
+        class="vitals-entry-form__hint"
+        [severity]="a.severity === 'critical' ? 'danger' : 'warn'"
+        [value]="a.severity === 'critical' ? 'Krytyczne' : 'Odchylenie'"
+      />
+    }
+  </app-form-field>
+
+  <app-form-field
+    label="Temperatura"
+    for="temperature"
+    [control]="form.controls.temperature"
+    hint="°C"
+  >
+    <p-inputnumber
+      inputId="temperature"
+      formControlName="temperature"
+      [minFractionDigits]="1"
+      [maxFractionDigits]="1"
+      [min]="thresholds.temperature.min"
+      [max]="thresholds.temperature.max"
+      [fluid]="true"
+      suffix=" °C"
+    />
+    @if (fieldAnomaly('temperature'); as a) {
+      <p-tag
+        class="vitals-entry-form__hint"
+        [severity]="a.severity === 'critical' ? 'danger' : 'warn'"
+        [value]="a.severity === 'critical' ? 'Krytyczne' : 'Odchylenie'"
+      />
+    }
+  </app-form-field>
+
+  <app-form-field label="SpO₂" for="spo2" [control]="form.controls.spo2" hint="%">
+    <p-inputnumber
+      inputId="spo2"
+      formControlName="spo2"
+      [min]="thresholds.spo2.min"
+      [max]="thresholds.spo2.max"
+      [fluid]="true"
+      suffix=" %"
+    />
+    @if (fieldAnomaly('spo2'); as a) {
+      <p-tag
+        class="vitals-entry-form__hint"
+        [severity]="a.severity === 'critical' ? 'danger' : 'warn'"
+        [value]="a.severity === 'critical' ? 'Krytyczne' : 'Odchylenie'"
+      />
+    }
+  </app-form-field>
+
+  <app-form-field
+    label="Oddechy"
+    for="respiratoryRate"
+    [control]="form.controls.respiratoryRate"
+    hint="/min"
+  >
+    <p-inputnumber
+      inputId="respiratoryRate"
+      formControlName="respiratoryRate"
+      [min]="thresholds.respiratoryRate.min"
+      [max]="thresholds.respiratoryRate.max"
+      [fluid]="true"
+      suffix=" /min"
+    />
+    @if (fieldAnomaly('respiratoryRate'); as a) {
+      <p-tag
+        class="vitals-entry-form__hint"
+        [severity]="a.severity === 'critical' ? 'danger' : 'warn'"
+        [value]="a.severity === 'critical' ? 'Krytyczne' : 'Odchylenie'"
+      />
+    }
+  </app-form-field>
+
+  <app-form-field label="Ból" for="painScore" [control]="form.controls.painScore" hint="skala 0-10">
+    <p-inputnumber
+      inputId="painScore"
+      formControlName="painScore"
+      [min]="0"
+      [max]="10"
+      [fluid]="true"
+    />
+  </app-form-field>
+
+  <app-form-field
+    label="Kontekst pomiaru"
+    for="context"
+    [control]="form.controls.context"
+    [required]="true"
+  >
+    <p-select
+      inputId="context"
+      formControlName="context"
+      [options]="contextOptions"
+      optionLabel="label"
+      optionValue="value"
+      [fluid]="true"
+    />
+  </app-form-field>
+
+  <app-form-field
+    label="Uwagi"
+    for="notes"
+    [control]="form.controls.notes"
+    class="vitals-entry-form__notes"
+  >
+    <textarea pTextarea id="notes" formControlName="notes" rows="2" [fluid]="true"></textarea>
+  </app-form-field>
+
+  <div class="vitals-entry-form__actions">
+    <p-button type="submit" label="Zapisz pomiar" icon="pi pi-check" [loading]="saving()" />
+  </div>
+</form>

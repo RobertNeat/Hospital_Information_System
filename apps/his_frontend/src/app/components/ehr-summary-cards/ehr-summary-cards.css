@@ -1,0 +1,36 @@
+:host {
+  display: block;
+}
+
+.his-summary-cards__active {
+  border: 1px solid var(--p-orange-300, #fdba74);
+}
+
+.his-summary-cards__active-body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
+  padding: 0.75rem 1rem;
+}
+
+.his-summary-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.his-summary-table th,
+.his-summary-table td {
+  text-align: left;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid var(--his-card-border);
+}
+
+.his-summary-table th {
+  color: var(--his-text-muted);
+  font-weight: 600;
+}
+
+.his-summary-table tbody tr:last-child td {
+  border-bottom: none;
+}

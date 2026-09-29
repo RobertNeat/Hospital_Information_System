@@ -1,0 +1,95 @@
+<header class="his-header">
+  <div class="his-header__left">
+    <button
+      type="button"
+      class="his-header__icon-btn"
+      aria-label="Przełącz panel boczny"
+      pTooltip="Panel boczny"
+      tooltipPosition="bottom"
+      (click)="onHamburger()"
+    >
+      <i class="pi pi-bars"></i>
+    </button>
+    <a routerLink="/dashboard" class="his-header__brand">
+      <img src="logo.png" alt="" height="32" />
+      <span class="his-brand">Hospital Information System</span>
+    </a>
+  </div>
+
+  <div class="his-header__right">
+    @if (ctx.patient(); as patient) {
+      <a class="his-header__patient-chip" [routerLink]="['/patients', patient.id]">
+        <i class="pi pi-id-card"></i>
+        <span>{{ patient | fullName }}</span>
+        <span class="his-header__patient-chip-pesel">{{ patient.pesel ?? 'brak PESEL' }}</span>
+      </a>
+      <button
+        type="button"
+        class="his-header__icon-btn"
+        aria-label="Wyczyść kontekst pacjenta"
+        pTooltip="Wyczyść kontekst pacjenta"
+        tooltipPosition="bottom"
+        (click)="clearPatientContext()"
+      >
+        <i class="pi pi-times"></i>
+      </button>
+    }
+
+    <button
+      type="button"
+      class="his-header__icon-btn"
+      aria-label="Alerty"
+      pTooltip="Alerty"
+      tooltipPosition="bottom"
+      (click)="alertsPopover.toggle($event)"
+    >
+      <i
+        class="pi pi-bell"
+        pBadge
+        [value]="unacknowledgedAlertCount().toString()"
+        severity="danger"
+      ></i>
+    </button>
+    <p-popover #alertsPopover>
+      <div class="his-header__alerts">
+        <h4>Najnowsze alerty</h4>
+        @if (latestAlerts().length === 0) {
+          <p class="his-muted">Brak nowych alertów.</p>
+        } @else {
+          <ul>
+            @for (alert of latestAlerts(); track alert.id) {
+              <li>{{ alert.message }}</li>
+            }
+          </ul>
+        }
+        <a routerLink="/messages" [queryParams]="{ tab: 'alerts' }">Zobacz wszystkie alerty</a>
+      </div>
+    </p-popover>
+
+    <button
+      type="button"
+      class="his-header__icon-btn"
+      [attr.aria-label]="theme.mode() === 'dark' ? 'Włącz tryb jasny' : 'Włącz tryb ciemny'"
+      [pTooltip]="theme.mode() === 'dark' ? 'Tryb jasny' : 'Tryb ciemny'"
+      tooltipPosition="bottom"
+      (click)="theme.toggle()"
+    >
+      <i
+        class="pi"
+        [class.pi-sun]="theme.mode() === 'dark'"
+        [class.pi-moon]="theme.mode() === 'light'"
+      ></i>
+    </button>
+
+    <button
+      type="button"
+      class="his-header__user"
+      aria-label="Menu użytkownika"
+      (click)="userMenu.toggle($event)"
+    >
+      <p-avatar [label]="userInitials()" shape="circle" />
+      <span class="his-header__user-name">{{ currentUser() | fullName }}</span>
+    </button>
+    <p-menu #userMenu [model]="userMenuItems" [popup]="true" />
+  </div>
+</header>

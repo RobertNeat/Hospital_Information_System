@@ -1,0 +1,97 @@
+import type { ImagingResult } from '../models';
+import { daysAgo, hoursAgo } from './mock-utils';
+
+export const IMAGING_RESULTS: ImagingResult[] = [
+  {
+    id: 'ires-001',
+    patientId: 'pat-007',
+    orderId: 'iord-001',
+    modality: 'CT',
+    examName: 'TK głowy bez kontrastu',
+    bodyRegion: 'Głowa',
+    performedAt: hoursAgo(5),
+    reportedAt: hoursAgo(4),
+    radiologistName: 'lek. Grzegorz Nowicki',
+    technique: 'Badanie TK głowy bez podania środka kontrastowego, warstwy 5 mm.',
+    findings:
+      'W obrębie prawego płata skroniowego widoczne niewielkie ognisko stłuczenia mózgu. Bez cech aktywnego krwawienia śródczaszkowego. Struktury linii pośrodkowej bez przemieszczenia.',
+    conclusion:
+      'Stłuczenie mózgu prawego płata skroniowego bez cech krwawienia czynnego. Zalecana kontrola kliniczna i ewentualne badanie kontrolne za 24h.',
+    status: 'final',
+    imageCount: 64,
+    critical: true,
+  },
+  {
+    id: 'ires-002',
+    patientId: 'pat-004',
+    orderId: 'iord-002',
+    modality: 'MRI',
+    examName: 'RM głowy z kontrastem',
+    bodyRegion: 'Głowa',
+    performedAt: daysAgo(4, 12),
+    reportedAt: daysAgo(4, 15),
+    radiologistName: 'lek. Grzegorz Nowicki',
+    technique: 'Badanie RM głowy z podaniem środka kontrastowego, sekwencje DWI, FLAIR, T1, T2.',
+    findings:
+      'W obrębie lewej półkuli mózgu, w zakresie unaczynienia tętnicy środkowej mózgu, widoczne rozległe ognisko niedokrwienne o wymiarach ok. 4x3 cm, z restrykcją dyfuzji.',
+    conclusion:
+      'Świeże ognisko niedokrwienne lewej półkuli mózgu, zgodne z obrazem klinicznym udaru.',
+    status: 'final',
+    imageCount: 120,
+    critical: false,
+  },
+  {
+    id: 'ires-003',
+    patientId: 'pat-002',
+    orderId: 'iord-003',
+    modality: 'ANGIOGRAPHY',
+    examName: 'Koronarografia',
+    bodyRegion: 'Tętnice wieńcowe',
+    performedAt: hoursAgo(20),
+    reportedAt: hoursAgo(19),
+    radiologistName: 'dr n. med. Piotr Wiśniewski',
+    technique: 'Koronarografia z dostępu promieniowego prawego.',
+    findings:
+      'Istotne zwężenie (90%) gałęzi okalającej lewej tętnicy wieńcowej. Pozostałe naczynia wieńcowe bez istotnych zwężeń.',
+    conclusion:
+      'Krytyczne zwężenie gałęzi okalającej - wykonano angioplastykę z implantacją stentu.',
+    status: 'final',
+    imageCount: 30,
+    critical: true,
+  },
+  {
+    id: 'ires-004',
+    patientId: 'pat-009',
+    orderId: 'iord-004',
+    modality: 'USG',
+    examName: 'USG jamy brzusznej',
+    bodyRegion: 'Jama brzuszna',
+    performedAt: daysAgo(2, 11),
+    reportedAt: daysAgo(2, 12),
+    radiologistName: 'lek. Grzegorz Nowicki',
+    technique: 'Badanie USG jamy brzusznej, sonda convex 3.5 MHz.',
+    findings:
+      'Pęcherzyk żółciowy z licznymi złogami, ściana pogrubiała do 4 mm. Wątroba, trzustka, śledziona i nerki bez zmian ogniskowych.',
+    conclusion: 'Kamica pęcherzyka żółciowego z cechami przewlekłego zapalenia.',
+    status: 'final',
+    imageCount: 12,
+    critical: false,
+  },
+  {
+    id: 'ires-005',
+    patientId: 'pat-015',
+    modality: 'USG',
+    examName: 'USG jamy brzusznej',
+    bodyRegion: 'Jama brzuszna',
+    performedAt: daysAgo(1, 9),
+    reportedAt: daysAgo(1, 10),
+    radiologistName: 'lek. Grzegorz Nowicki',
+    technique: 'Badanie USG jamy brzusznej, ocena okolicy prawego dołu biodrowego.',
+    findings:
+      'W prawym dole biodrowym poszerzony wyrostek robaczkowy (12 mm) z cechami nacieku zapalnego okolicznej tkanki tłuszczowej.',
+    conclusion: 'Obraz zgodny z ostrym zapaleniem wyrostka robaczkowego.',
+    status: 'final',
+    imageCount: 8,
+    critical: false,
+  },
+];

@@ -1,0 +1,26 @@
+<div class="his-slot-picker">
+  @if (loading()) {
+    <p class="his-muted">Ładowanie terminów...</p>
+  } @else if (!hasSlots()) {
+    <p class="his-muted">Brak zdefiniowanych terminów dla wybranej daty.</p>
+  } @else {
+    @for (roomGroup of rooms(); track roomGroup.room) {
+      <div class="his-slot-picker__room">
+        <h4 class="his-slot-picker__room-title">{{ roomGroup.room }}</h4>
+        <div class="his-slot-picker__grid">
+          @for (slot of roomGroup.slots; track slot.id) {
+            <p-button
+              [label]="(slot.start | date: 'HH:mm') ?? ''"
+              size="small"
+              [outlined]="selectedSlotId() !== slot.id"
+              [severity]="slot.available ? 'primary' : 'secondary'"
+              [disabled]="!slot.available"
+              [ariaLabel]="'Termin ' + ((slot.start | date: 'HH:mm') ?? '') + ', sala ' + slot.room"
+              (onClick)="select(slot)"
+            />
+          }
+        </div>
+      </div>
+    }
+  }
+</div>

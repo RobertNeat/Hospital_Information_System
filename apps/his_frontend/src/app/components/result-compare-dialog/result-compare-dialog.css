@@ -1,0 +1,36 @@
+.his-rcd {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.his-rcd__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.his-rcd__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.his-rcd__table th {
+  text-align: left;
+  padding: 0.375rem 0.75rem;
+  color: var(--his-text-muted, #64748b);
+}
+
+.his-rcd__table td {
+  padding: 0.375rem 0.75rem;
+  border-top: 1px solid var(--his-card-border, #e2e8f0);
+}
+
+.his-rcd__delta--up {
+  color: var(--p-red-600, #dc2626);
+}
+
+.his-rcd__delta--down {
+  color: var(--p-green-600, #16a34a);
+}

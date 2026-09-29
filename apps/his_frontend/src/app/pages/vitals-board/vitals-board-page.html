@@ -1,0 +1,129 @@
+<div class="his-page">
+  <app-page-header
+    title="Monitoring parametrów"
+    subtitle="Przegląd parametrów życiowych pacjentów oddziału"
+  />
+
+  <div class="his-grid-4">
+    <app-stat-card
+      label="Monitorowani pacjenci"
+      [value]="patientsMonitored()"
+      icon="pi pi-users"
+      severity="primary"
+    />
+    <app-stat-card
+      label="Krytyczne odchylenia"
+      [value]="criticalCount()"
+      icon="pi pi-exclamation-triangle"
+      severity="danger"
+    />
+    <app-stat-card
+      label="Ostrzeżenia"
+      [value]="warningCount()"
+      icon="pi pi-exclamation-circle"
+      severity="warn"
+    />
+    <app-stat-card
+      label="Brak pomiaru > 8 h"
+      [value]="noRecentMeasurementCount()"
+      icon="pi pi-clock"
+      severity="secondary"
+    />
+  </div>
+
+  <div class="his-toolbar">
+    <p-select
+      [options]="wardOptions()"
+      optionLabel="label"
+      optionValue="value"
+      [ngModel]="ward()"
+      (ngModelChange)="onWardChange($event)"
+      placeholder="Wszystkie oddziały"
+    />
+  </div>
+
+  <div class="his-card">
+    <app-data-table
+      [rows]="rows()"
+      [columns]="columns"
+      selectionMode="single"
+      (rowSelect)="onRowSelect($event)"
+    >
+      <ng-template #cell let-row let-col="col">
+        @switch (col.field) {
+          @case ('fullNameSource') {
+            <span>{{ row.fullNameSource | fullName }}</span>
+            <span class="his-muted"> · {{ row.fullNameSource.birthDate | age }}</span>
+          }
+          @case ('systolic') {
+            <span
+              [class.vitals-cell--danger]="row.anomalyLevels.systolic === 'critical'"
+              [class.vitals-cell--warn]="row.anomalyLevels.systolic === 'warning'"
+            >
+              {{ row.systolic ?? '—' }}
+            </span>
+          }
+          @case ('diastolic') {
+            <span
+              [class.vitals-cell--danger]="row.anomalyLevels.diastolic === 'critical'"
+              [class.vitals-cell--warn]="row.anomalyLevels.diastolic === 'warning'"
+            >
+              {{ row.diastolic ?? '—' }}
+            </span>
+          }
+          @case ('heartRate') {
+            <span
+              [class.vitals-cell--danger]="row.anomalyLevels.heartRate === 'critical'"
+              [class.vitals-cell--warn]="row.anomalyLevels.heartRate === 'warning'"
+            >
+              {{ row.heartRate ?? '—' }}
+            </span>
+          }
+          @case ('temperature') {
+            <span
+              [class.vitals-cell--danger]="row.anomalyLevels.temperature === 'critical'"
+              [class.vitals-cell--warn]="row.anomalyLevels.temperature === 'warning'"
+            >
+              {{ row.temperature ?? '—' }}
+            </span>
+          }
+          @case ('spo2') {
+            <span
+              [class.vitals-cell--danger]="row.anomalyLevels.spo2 === 'critical'"
+              [class.vitals-cell--warn]="row.anomalyLevels.spo2 === 'warning'"
+            >
+              {{ row.spo2 ?? '—' }}
+            </span>
+          }
+          @case ('respiratoryRate') {
+            <span
+              [class.vitals-cell--danger]="row.anomalyLevels.respiratoryRate === 'critical'"
+              [class.vitals-cell--warn]="row.anomalyLevels.respiratoryRate === 'warning'"
+            >
+              {{ row.respiratoryRate ?? '—' }}
+            </span>
+          }
+          @case ('lastMeasuredAgoMin') {
+            @if (row.lastMeasuredAgoMin === null) {
+              <span class="his-muted">Brak pomiaru</span>
+            } @else {
+              {{ formatAgo(row.lastMeasuredAgoMin) }}
+            }
+          }
+          @case ('criticalCount') {
+            @if (row.criticalCount > 0) {
+              <p-tag severity="danger" [value]="row.criticalCount + ' krytyczne'" />
+            } @else if (row.warningCount > 0) {
+              <p-tag severity="warn" [value]="row.warningCount + ' ostrzeżenia'" />
+            } @else {
+              <p-tag severity="success" value="W normie" />
+            }
+          }
+          @default {
+            {{ row[col.field] }}
+          }
+        }
+      </ng-template>
+    </app-data-table>
+  </div>
+</div>

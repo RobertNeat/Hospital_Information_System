@@ -1,0 +1,155 @@
+<div class="his-page">
+  <app-page-header
+    title="Parametry życiowe"
+    subtitle="Monitorowanie i pomiar parametrów pacjenta"
+  />
+
+  <div class="his-section">
+    <app-section-header title="Pomiar w trakcie badania" icon="pi pi-heart" variant="navy" />
+    <div class="his-card">
+      <app-vitals-entry-form [patientId]="patientId()" (saved)="onSaved($event)" />
+
+      @if (saveMessageText()) {
+        <p-message [severity]="saveMessageSeverity()" [text]="saveMessageText()" />
+      }
+    </div>
+  </div>
+
+  <div class="his-toolbar">
+    <p-selectbutton
+      [options]="rangeOptions"
+      optionLabel="label"
+      optionValue="value"
+      [ngModel]="effectiveRange()"
+      (ngModelChange)="onRangeChange($event)"
+    />
+  </div>
+
+  <div class="his-grid-2">
+    <app-trend-chart-card title="Ciśnienie tętnicze" unit="mmHg" [series]="bpSeries()" />
+    <app-trend-chart-card
+      title="Tętno"
+      unit="/min"
+      [series]="hrSeries()"
+      [referenceRange]="{ low: thresholds.heartRate.low, high: thresholds.heartRate.high }"
+    />
+    <app-trend-chart-card
+      title="Temperatura"
+      unit="°C"
+      [series]="tempSeries()"
+      [referenceRange]="{ low: thresholds.temperature.low, high: thresholds.temperature.high }"
+    />
+    <app-trend-chart-card
+      title="SpO₂"
+      unit="%"
+      [series]="spo2Series()"
+      [referenceRange]="{ low: thresholds.spo2.low, high: thresholds.spo2.high }"
+    />
+    <app-trend-chart-card
+      title="Częstość oddechów"
+      unit="/min"
+      [series]="rrSeries()"
+      [referenceRange]="{
+        low: thresholds.respiratoryRate.low,
+        high: thresholds.respiratoryRate.high,
+      }"
+    />
+  </div>
+
+  <div class="his-section">
+    <app-section-header title="Porównanie pomiarów" icon="pi pi-sort-alt" variant="navy" />
+    <div class="his-card">
+      <div class="his-form-grid">
+        <label>
+          Pomiar A (wcześniejszy)
+          <p-select
+            [options]="measurementOptions()"
+            optionLabel="label"
+            optionValue="value"
+            [ngModel]="selectedA() ?? measurementA()?.id ?? null"
+            (ngModelChange)="selectedA.set($event)"
+            [fluid]="true"
+          />
+        </label>
+        <label>
+          Pomiar B (późniejszy)
+          <p-select
+            [options]="measurementOptions()"
+            optionLabel="label"
+            optionValue="value"
+            [ngModel]="selectedB() ?? measurementB()?.id ?? null"
+            (ngModelChange)="selectedB.set($event)"
+            [fluid]="true"
+          />
+        </label>
+      </div>
+      <app-vitals-compare-table [measurementA]="measurementA()" [measurementB]="measurementB()" />
+    </div>
+  </div>
+
+  <div class="his-section">
+    <app-section-header title="Historia pomiarów" icon="pi pi-history" variant="navy" />
+    <div class="his-card">
+      <app-data-table [rows]="historyRows()" [columns]="historyColumns">
+        <ng-template #cell let-row let-col="col">
+          @switch (col.field) {
+            @case ('recordedAt') {
+              {{ row.recordedAt | date: 'dd.MM.yyyy HH:mm' }}
+            }
+            @case ('systolic') {
+              <span
+                [class.vitals-cell--danger]="row.anomalyLevels.systolic === 'critical'"
+                [class.vitals-cell--warn]="row.anomalyLevels.systolic === 'warning'"
+              >
+                {{ row.systolic ?? '—' }}
+              </span>
+            }
+            @case ('diastolic') {
+              <span
+                [class.vitals-cell--danger]="row.anomalyLevels.diastolic === 'critical'"
+                [class.vitals-cell--warn]="row.anomalyLevels.diastolic === 'warning'"
+              >
+                {{ row.diastolic ?? '—' }}
+              </span>
+            }
+            @case ('heartRate') {
+              <span
+                [class.vitals-cell--danger]="row.anomalyLevels.heartRate === 'critical'"
+                [class.vitals-cell--warn]="row.anomalyLevels.heartRate === 'warning'"
+              >
+                {{ row.heartRate ?? '—' }}
+              </span>
+            }
+            @case ('temperature') {
+              <span
+                [class.vitals-cell--danger]="row.anomalyLevels.temperature === 'critical'"
+                [class.vitals-cell--warn]="row.anomalyLevels.temperature === 'warning'"
+              >
+                {{ row.temperature ?? '—' }}
+              </span>
+            }
+            @case ('spo2') {
+              <span
+                [class.vitals-cell--danger]="row.anomalyLevels.spo2 === 'critical'"
+                [class.vitals-cell--warn]="row.anomalyLevels.spo2 === 'warning'"
+              >
+                {{ row.spo2 ?? '—' }}
+              </span>
+            }
+            @case ('respiratoryRate') {
+              <span
+                [class.vitals-cell--danger]="row.anomalyLevels.respiratoryRate === 'critical'"
+                [class.vitals-cell--warn]="row.anomalyLevels.respiratoryRate === 'warning'"
+              >
+                {{ row.respiratoryRate ?? '—' }}
+              </span>
+            }
+            @default {
+              {{ row[col.field] }}
+            }
+          }
+        </ng-template>
+      </app-data-table>
+    </div>
+  </div>
+</div>

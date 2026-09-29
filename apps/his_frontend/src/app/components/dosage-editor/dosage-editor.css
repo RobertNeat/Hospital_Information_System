@@ -1,0 +1,57 @@
+:host {
+  display: block;
+}
+
+.his-dosage-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.his-dosage-editor__times {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.his-dosage-editor__times-label {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.his-dosage-editor__times-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.his-dosage-editor__time-option {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+}
+
+.his-dosage-editor__prn {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.his-dosage-editor__prn-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+}
+
+.his-dosage-editor__summary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.his-dosage-editor__daily {
+  margin: 0;
+  font-size: 0.95rem;
+}

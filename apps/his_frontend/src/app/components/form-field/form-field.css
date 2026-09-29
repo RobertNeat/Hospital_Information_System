@@ -1,0 +1,22 @@
+:host {
+  display: block;
+}
+
+.his-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.his-form-field label {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.his-form-field__required {
+  color: var(--p-red-600, #dc2626);
+}
+
+.his-form-field__error {
+  color: var(--p-red-600, #dc2626);
+}

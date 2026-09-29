@@ -1,0 +1,5 @@
+.his-data-table__actions {
+  display: flex;
+  gap: 0.25rem;
+  justify-content: flex-end;
+}

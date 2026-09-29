@@ -1,0 +1,9 @@
+.vitals-cell--warn {
+  color: var(--p-orange-600, #d97706);
+  font-weight: 600;
+}
+
+.vitals-cell--danger {
+  color: var(--p-red-600, #dc2626);
+  font-weight: 700;
+}

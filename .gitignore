@@ -48,6 +48,8 @@ apps/video-service-hub/storage/
 *~
 docs/TMP*
 docs/tmp*
+temp*/
+tmp*/
 
 marketing_mails/*
 node_modules

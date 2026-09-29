@@ -1,0 +1,9 @@
+:host {
+  display: block;
+}
+
+.his-loading-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}

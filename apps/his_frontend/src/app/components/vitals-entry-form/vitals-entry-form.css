@@ -1,0 +1,14 @@
+.vitals-entry-form__hint {
+  margin-top: 0.35rem;
+  display: inline-block;
+}
+
+.vitals-entry-form__notes {
+  grid-column: 1 / -1;
+}
+
+.vitals-entry-form__actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+}

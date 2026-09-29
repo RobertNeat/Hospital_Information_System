@@ -1,12 +1,18 @@
-import { Component, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { ConfirmDialog } from 'primeng/confirmdialog';
+import { Toast } from 'primeng/toast';
 
+/**
+ * Root component. Hosts the global `<p-toast>`/`<p-confirmdialog>` here rather
+ * than in AppShell (see app-shell.ts) so toasts fired by resolvers/guards during
+ * navigation -- before AppShell has mounted -- are never lost.
+ */
 @Component({
-  imports: [RouterOutlet],
   selector: 'app-root',
-  styleUrl: './app.css',
+  imports: [RouterOutlet, Toast, ConfirmDialog],
   templateUrl: './app.html',
+  styleUrl: './app.css',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class App {
-  protected readonly title = signal('his_frontend');
-}
+export class App {}

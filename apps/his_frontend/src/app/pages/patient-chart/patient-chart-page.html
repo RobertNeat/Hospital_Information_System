@@ -1,0 +1,12 @@
+@if (ctx.patient(); as patient) {
+  <div class="his-patient-sticky">
+    <app-patient-context-bar
+      [patient]="patient"
+      [allergies]="allergies()"
+      [activeAlerts]="alertsCount().length"
+      (action)="onBarAction($event)"
+    />
+    <app-patient-chart-nav [patientId]="patientId()" />
+  </div>
+}
+<router-outlet />

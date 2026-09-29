@@ -1,0 +1,81 @@
+<div class="his-page">
+  <app-page-header title="Zlecenia" />
+
+  <div class="his-orders-worklist__stats">
+    <span class="his-orders-worklist__chip">Zlecone: {{ statCounts().ordered }}</span>
+    <span class="his-orders-worklist__chip">Zaplanowane: {{ statCounts().scheduled }}</span>
+    <span class="his-orders-worklist__chip"
+      >Pobrano materiał: {{ statCounts().specimen_collected }}</span
+    >
+    <span class="his-orders-worklist__chip">W trakcie: {{ statCounts().in_progress }}</span>
+    <span class="his-orders-worklist__chip">Zakończone: {{ statCounts().completed }}</span>
+    <span class="his-orders-worklist__chip">Anulowane: {{ statCounts().cancelled }}</span>
+  </div>
+
+  <div class="his-toolbar his-orders-worklist__filters">
+    <p-select
+      [options]="typeOptions"
+      [ngModel]="type() ?? ''"
+      (ngModelChange)="onTypeChange($event)"
+      optionLabel="label"
+      optionValue="value"
+      placeholder="Typ zlecenia"
+    />
+    <p-select
+      [options]="statusOptions"
+      [ngModel]="status() ?? ''"
+      (ngModelChange)="onStatusChange($event)"
+      optionLabel="label"
+      optionValue="value"
+      placeholder="Status"
+    />
+    <p-select
+      [options]="urgencyOptions"
+      [ngModel]="urgencyFilter()"
+      (ngModelChange)="urgencyFilter.set($event)"
+      optionLabel="label"
+      optionValue="value"
+      placeholder="Pilność"
+    />
+  </div>
+
+  <app-data-table
+    [rows]="filteredRows()"
+    [columns]="columns"
+    [loading]="loading()"
+    [globalFilterFields]="['patientName', 'description']"
+    dataKey="id"
+  >
+    <ng-template #cell let-row let-col="col">
+      @switch (col.field) {
+        @case ('type') {
+          {{ row.type === 'lab' ? 'Laboratoryjne' : 'Obrazowe' }}
+        }
+        @case ('urgency') {
+          <app-status-tag kind="urgency" [value]="row.urgency" />
+        }
+        @case ('status') {
+          <app-status-tag kind="orderStatus" [value]="row.status" />
+        }
+        @case ('orderedAt') {
+          {{ row.orderedAt | date: 'dd.MM.yyyy HH:mm' }}
+        }
+        @default {
+          {{ row[col.field] }}
+        }
+      }
+    </ng-template>
+    <ng-template #rowActions let-row>
+      <p-select
+        [options]="nextStatusOptions(row)"
+        [ngModel]="null"
+        (onChange)="changeStatus(row, $event.value)"
+        optionLabel="label"
+        optionValue="value"
+        placeholder="Zmień status (demo)"
+        [disabled]="!nextStatusOptions(row).length"
+        styleClass="his-orders-worklist__status-select"
+      />
+    </ng-template>
+  </app-data-table>
+</div>

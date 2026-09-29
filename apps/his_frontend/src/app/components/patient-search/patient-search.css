@@ -1,0 +1,13 @@
+:host {
+  display: block;
+}
+
+.his-patient-search__item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.his-patient-search__name {
+  font-weight: 600;
+}
