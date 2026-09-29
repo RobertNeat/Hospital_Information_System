@@ -7,6 +7,7 @@
 
   <div class="his-card">
     <app-data-table
+      id="patient-list-table"
       [rows]="rows()"
       [columns]="columns"
       [loading]="loading()"
@@ -18,6 +19,8 @@
       <ng-template #toolbar>
         <div class="his-patient-list__filters">
           <input
+            pInputText
+            id="patient-list-search"
             type="text"
             class="his-patient-list__search"
             placeholder="Szukaj: nazwisko, PESEL, nr historii"

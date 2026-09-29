@@ -103,7 +103,12 @@
     @if (myTasks().length === 0) {
       <app-empty-state icon="pi pi-check-circle" title="Brak przydzielonych zadań" />
     } @else {
-      <app-data-table [rows]="myTasks()" [columns]="taskColumns" [paginator]="false" />
+      <app-data-table
+        id="dashboard-tasks-table"
+        [rows]="myTasks()"
+        [columns]="taskColumns"
+        [paginator]="false"
+      />
     }
   </div>
 

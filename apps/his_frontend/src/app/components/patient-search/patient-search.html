@@ -1,4 +1,6 @@
 <p-autocomplete
+  styleClass="his-patient-search__autocomplete"
+  inputId="patient-search-input"
   [(ngModel)]="selectedValue"
   [suggestions]="suggestions()"
   (completeMethod)="search($event)"

@@ -10,3 +10,9 @@
 .his-icon-btn:hover {
   background: var(--p-surface-100);
 }
+
+.his-patient-orders__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}

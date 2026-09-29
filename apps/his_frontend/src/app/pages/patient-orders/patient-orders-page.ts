@@ -3,7 +3,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, input, signal } f
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { ButtonDirective } from 'primeng/button';
+import { Button } from 'primeng/button';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { ConfirmDialog } from 'primeng/confirmdialog';
 import { Tab, TabList, TabPanel, TabPanels, Tabs } from 'primeng/tabs';
@@ -27,7 +27,7 @@ type OrdersTab = 'lab' | 'imaging';
     PageHeader,
     EmptyState,
     RouterLink,
-    ButtonDirective,
+    Button,
     Tabs,
     TabList,
     Tab,

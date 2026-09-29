@@ -6,10 +6,7 @@
 }
 
 .his-patient-list__search {
-  padding: 0.45rem 0.75rem;
-  border: 1px solid var(--his-card-border);
-  border-radius: var(--his-radius);
-  min-width: 220px;
+  min-width: 320px;
 }
 
 .his-patient-list__actions {

@@ -134,3 +134,17 @@ body {
   display: flex;
   flex-direction: column;
 }
+
+/* Links inside tables (rows already have their own hover) should not look like hyperlinks. */
+.p-datatable a:not(.p-button) {
+  color: inherit;
+  text-decoration: none;
+}
+
+.his-toolbar {
+  margin-bottom: 0.75rem;
+}
+
+.his-page > .his-toolbar {
+  margin-bottom: 0;
+}

@@ -124,6 +124,7 @@
       <p-tabpanel value="diagnoses">
         @if (diagnoses().length) {
           <app-data-table
+            id="patient-history-diagnoses-table"
             [rows]="diagnoses()"
             [columns]="diagnosisColumns"
             [dataKey]="'id'"
@@ -158,6 +159,7 @@
       <p-tabpanel value="treatments">
         @if (treatments().length) {
           <app-data-table
+            id="patient-history-treatments-table"
             [rows]="treatments()"
             [columns]="treatmentColumns"
             [dataKey]="'id'"

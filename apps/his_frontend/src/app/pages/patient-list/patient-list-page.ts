@@ -3,6 +3,7 @@ import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { debounceTime, distinctUntilChanged, switchMap, take } from 'rxjs';
 import { Button } from 'primeng/button';
+import { InputText } from 'primeng/inputtext';
 import { Select } from 'primeng/select';
 import { Tooltip } from 'primeng/tooltip';
 import { FormsModule } from '@angular/forms';
@@ -26,6 +27,7 @@ const STATUS_FILTER_OPTIONS: { label: string; value: AdmissionStatus | '' }[] = 
 @Component({
   selector: 'app-patient-list-page',
   imports: [
+    InputText,
     PageHeader,
     DataTable,
     StatusTag,
@@ -86,13 +88,13 @@ export class PatientListPage {
     // input's observable (fires once inputs are actually bound) rather than reading them here.
     toObservable(this.q)
       .pipe(take(1))
-      .subscribe((q) => this.searchTerm.set(q));
+      .subscribe((q) => this.searchTerm.set(q ?? ''));
     toObservable(this.status)
       .pipe(take(1))
-      .subscribe((status) => this.selectedStatus.set(status));
+      .subscribe((status) => this.selectedStatus.set(status ?? ''));
     toObservable(this.ward)
       .pipe(take(1))
-      .subscribe((ward) => this.selectedWard.set(ward));
+      .subscribe((ward) => this.selectedWard.set(ward ?? ''));
 
     this.wardService.getWards().subscribe((wards: Ward[]) => {
       this.wardOptions.set([

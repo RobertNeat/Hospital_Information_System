@@ -74,6 +74,7 @@
           <app-loading-block [lines]="4" />
         } @else {
           <app-data-table
+            id="messages-tasks-table"
             [rows]="taskRows()"
             [columns]="taskColumns"
             [globalFilterFields]="['title', 'patientLabel']"
@@ -187,7 +188,13 @@
                 <div class="his-messages__alert-meta">
                   <span class="his-muted">{{ alertAgo(alert) }}</span>
                   @if (alert.link) {
-                    <a [routerLink]="alert.link">Przejdź</a>
+                    <p-button
+                      [id]="'alert-goto-' + alert.id"
+                      label="Przejdź"
+                      severity="secondary"
+                      size="small"
+                      [routerLink]="alert.link"
+                    />
                   }
                   @if (!alert.acknowledged) {
                     <p-button

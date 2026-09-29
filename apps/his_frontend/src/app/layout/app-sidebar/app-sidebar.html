@@ -1,7 +1,17 @@
 <ng-template #navContent>
-  <nav class="his-sidebar">
+  <nav class="his-sidebar" [class.his-sidebar--collapsed]="layout.collapsed()">
     @if (ctx.hasPatient()) {
-      <div class="his-sidebar__patient-group">Karta pacjenta: {{ ctx.patient()! | fullName }}</div>
+      <div
+        class="his-sidebar__patient-group"
+        [class.his-sidebar__patient-group--collapsed]="layout.collapsed()"
+        [attr.title]="layout.collapsed() ? 'Karta pacjenta: ' + (ctx.patient()! | fullName) : null"
+      >
+        @if (layout.collapsed()) {
+          <i class="pi pi-user" aria-hidden="true"></i>
+        } @else {
+          Karta pacjenta: {{ ctx.patient()! | fullName }}
+        }
+      </div>
     }
     @for (group of navGroups; track group.label) {
       <div class="his-sidebar__group">
@@ -22,11 +32,15 @@
             }"
             (click)="closeDrawer()"
           >
-            <i [class]="item.icon" [attr.aria-label]="layout.collapsed() ? item.label : null"></i>
+            <i
+              [class]="item.icon"
+              class="his-sidebar__item-icon"
+              [attr.aria-label]="layout.collapsed() ? item.label : null"
+            ></i>
             @if (!layout.collapsed()) {
               <span class="his-sidebar__item-label">{{ item.label }}</span>
             }
-            @if (isMessagesItem(item) && unreadCount() > 0) {
+            @if (!layout.collapsed() && isMessagesItem(item) && unreadCount() > 0) {
               <span
                 class="his-sidebar__badge"
                 pBadge

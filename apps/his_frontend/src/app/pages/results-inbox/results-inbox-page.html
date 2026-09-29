@@ -20,6 +20,7 @@
     <app-empty-state title="Brak wyników" message="Nie znaleziono wyników spełniających filtr." />
   } @else {
     <app-data-table
+      id="results-inbox-lab-table"
       [rows]="rows()"
       [columns]="columns"
       dataKey="id"
@@ -65,6 +66,7 @@
     />
   } @else {
     <app-data-table
+      id="results-inbox-imaging-table"
       [rows]="imagingRows()"
       [columns]="imagingColumns"
       dataKey="id"

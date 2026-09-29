@@ -52,6 +52,7 @@ import type { Allergy, VitalSigns } from '../../models';
     DatePipe,
   ],
   templateUrl: './patient-overview-page.html',
+  styleUrl: './patient-overview-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { 'data-component-id': 'patient-overview-page' },
 })

@@ -4,6 +4,7 @@
 
 .his-summary-cards__active {
   border: 1px solid var(--p-orange-300, #fdba74);
+  margin-bottom: 1rem;
 }
 
 .his-summary-cards__active-body {

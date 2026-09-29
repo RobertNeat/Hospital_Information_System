@@ -11,3 +11,13 @@
 .his-patient-search__name {
   font-weight: 600;
 }
+
+.his-patient-search__autocomplete {
+  display: flex;
+  width: 100%;
+}
+
+.his-patient-search__autocomplete ::ng-deep .p-autocomplete-input {
+  width: 100%;
+  min-width: 22rem;
+}

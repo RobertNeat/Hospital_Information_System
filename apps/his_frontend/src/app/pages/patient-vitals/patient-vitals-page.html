@@ -90,7 +90,11 @@
   <div class="his-section">
     <app-section-header title="Historia pomiarów" icon="pi pi-history" variant="navy" />
     <div class="his-card">
-      <app-data-table [rows]="historyRows()" [columns]="historyColumns">
+      <app-data-table
+        id="patient-vitals-history-table"
+        [rows]="historyRows()"
+        [columns]="historyColumns"
+      >
         <ng-template #cell let-row let-col="col">
           @switch (col.field) {
             @case ('recordedAt') {
