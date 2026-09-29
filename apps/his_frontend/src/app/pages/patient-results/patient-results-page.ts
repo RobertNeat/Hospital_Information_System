@@ -44,6 +44,7 @@ import type { ImagingResult, LabResult, SelectOption } from '../../models';
   templateUrl: './patient-results-page.html',
   styleUrl: './patient-results-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { 'data-component-id': 'patient-results-page' },
 })
 export class PatientResultsPage {
   private readonly labResultService = inject(LabResultService);

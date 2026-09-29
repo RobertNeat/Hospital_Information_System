@@ -23,6 +23,7 @@ const ABNORMAL_FLAGS: ResultFlag[] = ['L', 'H', 'LL', 'HH', 'A'];
   templateUrl: './trend-chart-card.html',
   styleUrl: './trend-chart-card.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { 'data-component-id': 'trend-chart-card' },
 })
 export class TrendChartCard {
   readonly title = input.required<string>();

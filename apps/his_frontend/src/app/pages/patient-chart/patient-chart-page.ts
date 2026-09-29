@@ -16,6 +16,7 @@ import { PatientContextService } from '../../services/patient-context.service';
   imports: [RouterOutlet, PatientContextBar, PatientChartNav],
   templateUrl: './patient-chart-page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { 'data-component-id': 'patient-chart-page' },
 })
 export class PatientChartPage {
   private readonly ehrService = inject(EhrService);

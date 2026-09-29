@@ -30,6 +30,7 @@ interface CatalogGroup {
   templateUrl: './catalog-picker.html',
   styleUrl: './catalog-picker.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { 'data-component-id': 'catalog-picker' },
 })
 export class CatalogPicker {
   readonly items = input.required<LabTest[]>();

@@ -107,6 +107,7 @@ function addDaysLocal(date: Date, days: number): Date {
   templateUrl: './prescription-wizard-page.html',
   styleUrl: './prescription-wizard-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { 'data-component-id': 'prescription-wizard-page' },
 })
 export class PrescriptionWizardPage implements HasUnsavedChanges {
   readonly patientId = input.required<string>();

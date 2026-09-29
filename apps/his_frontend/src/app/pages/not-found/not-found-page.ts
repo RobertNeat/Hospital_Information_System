@@ -7,5 +7,6 @@ import { EmptyState } from '../../components/empty-state/empty-state';
   imports: [RouterLink, EmptyState],
   templateUrl: './not-found-page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { 'data-component-id': 'not-found-page' },
 })
 export class NotFoundPage {}

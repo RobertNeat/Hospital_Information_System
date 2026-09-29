@@ -15,6 +15,7 @@ import type { Message, Priority } from '../../models';
   templateUrl: './message-conversation.html',
   styleUrl: './message-conversation.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { 'data-component-id': 'message-conversation' },
 })
 export class MessageConversation {
   readonly messages = input.required<Message[]>();

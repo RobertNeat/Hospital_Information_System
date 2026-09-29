@@ -36,6 +36,7 @@ export interface HandoffNoteDialogResult {
   templateUrl: './handoff-note-dialog.html',
   styleUrl: './handoff-note-dialog.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { 'data-component-id': 'handoff-note-dialog' },
 })
 export class HandoffNoteDialog {
   private readonly fb = inject(FormBuilder).nonNullable;

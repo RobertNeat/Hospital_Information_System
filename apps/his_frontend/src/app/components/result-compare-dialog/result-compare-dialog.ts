@@ -35,6 +35,7 @@ interface CompareRow {
   templateUrl: './result-compare-dialog.html',
   styleUrl: './result-compare-dialog.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { 'data-component-id': 'result-compare-dialog' },
 })
 export class ResultCompareDialog {
   private readonly labResultService = inject(LabResultService);

@@ -11,6 +11,7 @@ import type { PrescriptionItem } from '../../models';
   templateUrl: './prescription-item-card.html',
   styleUrl: './prescription-item-card.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { 'data-component-id': 'prescription-item-card' },
 })
 export class PrescriptionItemCard {
   readonly item = input.required<PrescriptionItem>();

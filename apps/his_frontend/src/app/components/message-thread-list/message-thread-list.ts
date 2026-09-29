@@ -15,6 +15,7 @@ import type { MessageThread } from '../../models';
   templateUrl: './message-thread-list.html',
   styleUrl: './message-thread-list.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { 'data-component-id': 'message-thread-list' },
 })
 export class MessageThreadList {
   readonly threads = input.required<MessageThread[]>();

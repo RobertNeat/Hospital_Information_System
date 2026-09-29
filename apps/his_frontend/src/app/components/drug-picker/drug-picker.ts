@@ -12,6 +12,7 @@ import type { Drug } from '../../models';
   templateUrl: './drug-picker.html',
   styleUrl: './drug-picker.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { 'data-component-id': 'drug-picker' },
 })
 export class DrugPicker {
   private readonly drugService = inject(DrugService);

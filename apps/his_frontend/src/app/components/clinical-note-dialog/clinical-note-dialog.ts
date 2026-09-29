@@ -46,6 +46,7 @@ export interface ClinicalNoteDialogSave {
   templateUrl: './clinical-note-dialog.html',
   styleUrl: './clinical-note-dialog.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { 'data-component-id': 'clinical-note-dialog' },
 })
 export class ClinicalNoteDialog {
   private readonly fb = inject(FormBuilder).nonNullable;

@@ -57,6 +57,7 @@ const QUICK_ACTIONS: IconAction[] = [
   templateUrl: './dashboard-page.html',
   styleUrl: './dashboard-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { 'data-component-id': 'dashboard-page' },
 })
 export class DashboardPage {
   private readonly router = inject(Router);

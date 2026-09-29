@@ -85,6 +85,7 @@ const VALID_TABS: HistoryTab[] = [
   templateUrl: './patient-history-page.html',
   styleUrl: './patient-history-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { 'data-component-id': 'patient-history-page' },
 })
 export class PatientHistoryPage {
   private readonly ehrService = inject(EhrService);

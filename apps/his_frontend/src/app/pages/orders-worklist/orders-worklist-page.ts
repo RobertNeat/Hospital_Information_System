@@ -57,6 +57,7 @@ const NEXT_STATUSES: Record<OrderStatus, OrderStatus[]> = {
   templateUrl: './orders-worklist-page.html',
   styleUrl: './orders-worklist-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { 'data-component-id': 'orders-worklist-page' },
 })
 export class OrdersWorklistPage {
   private readonly labOrderService = inject(LabOrderService);

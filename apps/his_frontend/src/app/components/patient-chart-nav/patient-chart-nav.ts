@@ -21,6 +21,7 @@ const ITEMS: ChartNavItem[] = [
   templateUrl: './patient-chart-nav.html',
   styleUrl: './patient-chart-nav.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { 'data-component-id': 'patient-chart-nav' },
 })
 export class PatientChartNav {
   readonly patientId = input.required<string>();

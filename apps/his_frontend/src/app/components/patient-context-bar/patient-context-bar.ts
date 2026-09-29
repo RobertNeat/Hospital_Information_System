@@ -19,6 +19,7 @@ export type PatientBarAction =
   templateUrl: './patient-context-bar.html',
   styleUrl: './patient-context-bar.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { 'data-component-id': 'patient-context-bar' },
 })
 export class PatientContextBar {
   private readonly wardService = inject(WardService);

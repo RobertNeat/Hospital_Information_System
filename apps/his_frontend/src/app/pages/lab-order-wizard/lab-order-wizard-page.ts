@@ -62,6 +62,7 @@ interface DiagnosisOption {
   ],
   templateUrl: './lab-order-wizard-page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { 'data-component-id': 'lab-order-wizard-page' },
 })
 export class LabOrderWizardPage implements HasUnsavedChanges {
   private readonly fb = inject(FormBuilder).nonNullable;

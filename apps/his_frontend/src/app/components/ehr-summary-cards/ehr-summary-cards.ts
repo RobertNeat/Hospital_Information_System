@@ -17,6 +17,7 @@ import { EmptyState } from '../empty-state/empty-state';
   templateUrl: './ehr-summary-cards.html',
   styleUrl: './ehr-summary-cards.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { 'data-component-id': 'ehr-summary-cards' },
 })
 export class EhrSummaryCards {
   readonly summary = input.required<EhrSummary>();

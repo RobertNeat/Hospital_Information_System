@@ -17,6 +17,7 @@ import { ImagingOrderService } from '../../services/imaging-order.service';
   templateUrl: './slot-picker.html',
   styleUrl: './slot-picker.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { 'data-component-id': 'slot-picker' },
 })
 export class SlotPicker {
   private readonly imagingOrderService = inject(ImagingOrderService);

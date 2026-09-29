@@ -15,6 +15,7 @@ import { FullNamePipe } from '../../pipes/full-name.pipe';
   templateUrl: './app-sidebar.html',
   styleUrl: './app-sidebar.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { 'data-component-id': 'app-sidebar' },
 })
 export class AppSidebar {
   protected readonly layout = inject(LayoutStateService);

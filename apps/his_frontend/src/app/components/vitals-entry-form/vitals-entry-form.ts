@@ -44,6 +44,7 @@ export interface VitalsSaveResult {
   templateUrl: './vitals-entry-form.html',
   styleUrl: './vitals-entry-form.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { 'data-component-id': 'vitals-entry-form' },
 })
 export class VitalsEntryForm {
   private readonly fb = inject(FormBuilder).nonNullable;

@@ -16,6 +16,7 @@ import { FullNamePipe } from '../../pipes/full-name.pipe';
   templateUrl: './patient-search.html',
   styleUrl: './patient-search.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { 'data-component-id': 'patient-search' },
 })
 export class PatientSearch {
   private readonly patientService = inject(PatientService);

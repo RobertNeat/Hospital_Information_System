@@ -49,6 +49,7 @@ interface ActiveMedicationRow {
   templateUrl: './patient-prescriptions-page.html',
   styleUrl: './patient-prescriptions-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { 'data-component-id': 'patient-prescriptions-page' },
 })
 export class PatientPrescriptionsPage {
   readonly patientId = input.required<string>();

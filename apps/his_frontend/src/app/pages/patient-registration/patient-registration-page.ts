@@ -110,6 +110,7 @@ function fromIsoDate(iso: string): Date {
   templateUrl: './patient-registration-page.html',
   styleUrl: './patient-registration-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { 'data-component-id': 'patient-registration-page' },
 })
 export class PatientRegistrationPage implements HasUnsavedChanges {
   private readonly fb = inject(FormBuilder).nonNullable;

@@ -7,6 +7,7 @@ import { Button } from 'primeng/button';
   templateUrl: './wizard-step-footer.html',
   styleUrl: './wizard-step-footer.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { 'data-component-id': 'wizard-step-footer' },
 })
 export class WizardStepFooter {
   readonly first = input(false);

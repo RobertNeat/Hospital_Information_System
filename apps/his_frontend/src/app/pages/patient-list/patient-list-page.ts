@@ -39,6 +39,7 @@ const STATUS_FILTER_OPTIONS: { label: string; value: AdmissionStatus | '' }[] = 
   templateUrl: './patient-list-page.html',
   styleUrl: './patient-list-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { 'data-component-id': 'patient-list-page' },
 })
 export class PatientListPage {
   private readonly router = inject(Router);

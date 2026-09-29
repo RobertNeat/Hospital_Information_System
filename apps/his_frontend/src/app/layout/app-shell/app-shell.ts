@@ -20,5 +20,6 @@ import { AppSidebar } from '../app-sidebar/app-sidebar';
   templateUrl: './app-shell.html',
   styleUrl: './app-shell.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { 'data-component-id': 'app-shell' },
 })
 export class AppShell {}

@@ -31,6 +31,7 @@ const FLAG_CLASS: Record<ResultFlag, string> = {
   templateUrl: './lab-result-observations.html',
   styleUrl: './lab-result-observations.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { 'data-component-id': 'lab-result-observations' },
 })
 export class LabResultObservations {
   readonly observations = input.required<LabObservation[]>();

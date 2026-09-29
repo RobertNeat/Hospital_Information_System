@@ -12,6 +12,7 @@ import { StatusTag } from '../status-tag/status-tag';
   templateUrl: './order-status-timeline.html',
   styleUrl: './order-status-timeline.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { 'data-component-id': 'order-status-timeline' },
 })
 export class OrderStatusTimeline {
   readonly history = input.required<StatusChange[]>();

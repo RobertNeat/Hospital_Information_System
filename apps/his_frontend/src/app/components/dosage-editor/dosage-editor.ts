@@ -37,6 +37,7 @@ interface DosageFormValue {
   templateUrl: './dosage-editor.html',
   styleUrl: './dosage-editor.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { 'data-component-id': 'dosage-editor' },
 })
 export class DosageEditor {
   readonly form = input.required<FormGroup>();

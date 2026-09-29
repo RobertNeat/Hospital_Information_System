@@ -8,6 +8,7 @@ export type SectionHeaderVariant = 'navy' | 'primary' | 'success' | 'warn' | 'da
   templateUrl: './section-header.html',
   styleUrl: './section-header.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { 'data-component-id': 'section-header' },
 })
 export class SectionHeader {
   readonly title = input.required<string>();

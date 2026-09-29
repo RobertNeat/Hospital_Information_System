@@ -92,6 +92,7 @@ function anomalyLevelsOf(v: VitalSigns): Partial<Record<VitalType, 'warning' | '
   templateUrl: './patient-vitals-page.html',
   styleUrl: './patient-vitals-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { 'data-component-id': 'patient-vitals-page' },
 })
 export class PatientVitalsPage {
   private readonly vitalsService = inject(VitalsService);

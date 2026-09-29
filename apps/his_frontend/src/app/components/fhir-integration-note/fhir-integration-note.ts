@@ -6,6 +6,7 @@ import { Message } from 'primeng/message';
   imports: [Message],
   templateUrl: './fhir-integration-note.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { 'data-component-id': 'fhir-integration-note' },
 })
 export class FhirIntegrationNote {
   readonly resource = input.required<'ServiceRequest' | 'MedicationRequest' | 'Observation'>();

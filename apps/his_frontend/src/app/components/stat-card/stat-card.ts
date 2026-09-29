@@ -8,6 +8,7 @@ import { RouterLink } from '@angular/router';
   templateUrl: './stat-card.html',
   styleUrl: './stat-card.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { 'data-component-id': 'stat-card' },
 })
 export class StatCard {
   readonly label = input.required<string>();

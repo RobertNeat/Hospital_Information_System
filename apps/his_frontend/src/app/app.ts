@@ -14,5 +14,6 @@ import { Toast } from 'primeng/toast';
   templateUrl: './app.html',
   styleUrl: './app.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { 'data-component-id': 'app-root' },
 })
 export class App {}

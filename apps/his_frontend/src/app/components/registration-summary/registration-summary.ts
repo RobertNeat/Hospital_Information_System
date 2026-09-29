@@ -19,6 +19,7 @@ export interface RegistrationSummarySection {
   templateUrl: './registration-summary.html',
   styleUrl: './registration-summary.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { 'data-component-id': 'registration-summary' },
 })
 export class RegistrationSummary {
   readonly sections = input.required<RegistrationSummarySection[]>();

@@ -24,6 +24,7 @@ import type { Patient, Prescription, StaffMember } from '../../models';
   styleUrl: './e-prescription-dialog.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
+  host: { 'data-component-id': 'e-prescription-dialog' },
 })
 export class EPrescriptionDialog {
   readonly visible = input.required<boolean>();

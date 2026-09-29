@@ -20,6 +20,7 @@ import { FullNamePipe } from '../../pipes/full-name.pipe';
   templateUrl: './app-header.html',
   styleUrl: './app-header.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { 'data-component-id': 'app-header' },
 })
 export class AppHeader {
   protected readonly layout = inject(LayoutStateService);

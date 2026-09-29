@@ -42,6 +42,7 @@ type Loaded =
   ],
   templateUrl: './result-detail-page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { 'data-component-id': 'result-detail-page' },
 })
 export class ResultDetailPage {
   private readonly labResultService = inject(LabResultService);

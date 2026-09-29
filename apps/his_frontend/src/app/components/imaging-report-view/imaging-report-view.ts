@@ -14,6 +14,7 @@ import type { ImagingResult } from '../../models';
   templateUrl: './imaging-report-view.html',
   styleUrl: './imaging-report-view.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { 'data-component-id': 'imaging-report-view' },
 })
 export class ImagingReportView {
   readonly result = input.required<ImagingResult>();

@@ -44,6 +44,7 @@ const NO_MEASUREMENT_THRESHOLD_MIN = 8 * 60;
   templateUrl: './vitals-board-page.html',
   styleUrl: './vitals-board-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { 'data-component-id': 'vitals-board-page' },
 })
 export class VitalsBoardPage {
   private readonly vitalsService = inject(VitalsService);

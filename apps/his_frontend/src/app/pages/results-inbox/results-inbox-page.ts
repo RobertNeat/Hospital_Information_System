@@ -41,6 +41,7 @@ const FILTER_OPTIONS = [
   ],
   templateUrl: './results-inbox-page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { 'data-component-id': 'results-inbox-page' },
 })
 export class ResultsInboxPage {
   private readonly labResultService = inject(LabResultService);

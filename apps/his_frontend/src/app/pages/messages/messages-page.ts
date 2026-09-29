@@ -105,6 +105,7 @@ const TAB_VALUES: Record<MessagesTab, string> = {
   templateUrl: './messages-page.html',
   styleUrl: './messages-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { 'data-component-id': 'messages-page' },
 })
 export class MessagesPage {
   private readonly teamMessageService = inject(TeamMessageService);

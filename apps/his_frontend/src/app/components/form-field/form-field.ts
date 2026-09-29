@@ -13,6 +13,7 @@ import {
   templateUrl: './form-field.html',
   styleUrl: './form-field.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { 'data-component-id': 'form-field' },
 })
 export class FormField {
   readonly label = input.required<string>();

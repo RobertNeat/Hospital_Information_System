@@ -7,6 +7,7 @@ import { Skeleton } from 'primeng/skeleton';
   templateUrl: './loading-block.html',
   styleUrl: './loading-block.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { 'data-component-id': 'loading-block' },
 })
 export class LoadingBlock {
   readonly lines = input(3);

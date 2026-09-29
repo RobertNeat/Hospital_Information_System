@@ -9,6 +9,7 @@ import { LabelPipe, type LabelMapKey } from '../../pipes/label.pipe';
   templateUrl: './status-tag.html',
   styleUrl: './status-tag.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { 'data-component-id': 'status-tag' },
 })
 export class StatusTag {
   readonly kind = input.required<TagKind>();

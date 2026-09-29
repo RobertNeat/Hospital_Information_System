@@ -14,6 +14,7 @@ import type { PatientSummary } from '../../models';
   templateUrl: './patient-picker-page.html',
   styleUrl: './patient-picker-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { 'data-component-id': 'patient-picker-page' },
 })
 export class PatientPickerPage {
   private readonly router = inject(Router);

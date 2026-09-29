@@ -52,6 +52,7 @@ interface StaffOptionGroup {
   templateUrl: './task-dialog.html',
   styleUrl: './task-dialog.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { 'data-component-id': 'task-dialog' },
 })
 export class TaskDialog {
   private readonly fb = inject(FormBuilder).nonNullable;

@@ -53,6 +53,7 @@ import type { Allergy, VitalSigns } from '../../models';
   ],
   templateUrl: './patient-overview-page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { 'data-component-id': 'patient-overview-page' },
 })
 export class PatientOverviewPage {
   private readonly router = inject(Router);

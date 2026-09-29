@@ -55,6 +55,7 @@ const FIELDS: VitalType[] = [
   templateUrl: './vitals-compare-table.html',
   styleUrl: './vitals-compare-table.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { 'data-component-id': 'vitals-compare-table' },
 })
 export class VitalsCompareTable {
   readonly measurementA = input<VitalSigns | undefined>(undefined);

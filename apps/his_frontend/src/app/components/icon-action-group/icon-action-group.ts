@@ -17,6 +17,7 @@ export interface IconAction {
   templateUrl: './icon-action-group.html',
   styleUrl: './icon-action-group.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { 'data-component-id': 'icon-action-group' },
 })
 export class IconActionGroup {
   readonly actions = input.required<IconAction[]>();

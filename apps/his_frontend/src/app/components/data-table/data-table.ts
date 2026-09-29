@@ -24,6 +24,7 @@ import { StatusTag } from '../status-tag/status-tag';
   templateUrl: './data-table.html',
   styleUrl: './data-table.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { 'data-component-id': 'data-table' },
 })
 export class DataTable<T extends Record<string, unknown>> {
   readonly rows = input.required<T[]>();

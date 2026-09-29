@@ -2,5 +2,20 @@
   "name": "Hospital_Information_System",
   "private": true,
   "packageManager": "pnpm@11.17.0",
-  "scripts": {}
+  "scripts": {
+    "start": "pnpm --filter his-frontend start",
+    "start:frontend": "pnpm --filter his-frontend start",
+    "start:backend": "cd apps/his_backend && mvnw spring-boot:run",
+    "build": "pnpm build:frontend && pnpm build:backend",
+    "build:frontend": "pnpm --filter his-frontend build",
+    "build:backend": "cd apps/his_backend && mvnw -DskipTests package",
+    "lint": "pnpm --filter his-frontend lint",
+    "typecheck": "pnpm --filter his-frontend typecheck",
+    "format": "pnpm --filter his-frontend format",
+    "format:check": "pnpm --filter his-frontend format:check",
+    "test": "pnpm test:frontend && pnpm test:backend",
+    "test:frontend": "pnpm --filter his-frontend test",
+    "test:backend": "cd apps/his_backend && mvnw test",
+    "verify": "pnpm lint && pnpm typecheck && pnpm format:check && pnpm test"
+  }
 }

@@ -15,6 +15,7 @@ export interface SummaryItem {
   templateUrl: './summary-list.html',
   styleUrl: './summary-list.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { 'data-component-id': 'summary-list' },
 })
 export class SummaryList {
   readonly items = input.required<SummaryItem[]>();

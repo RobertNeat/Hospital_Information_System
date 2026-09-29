@@ -46,6 +46,7 @@ type OrdersTab = 'lab' | 'imaging';
   templateUrl: './patient-orders-page.html',
   styleUrl: './patient-orders-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { 'data-component-id': 'patient-orders-page' },
 })
 export class PatientOrdersPage {
   private readonly labOrderService = inject(LabOrderService);

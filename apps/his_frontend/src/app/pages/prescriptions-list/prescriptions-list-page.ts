@@ -27,6 +27,7 @@ type PrescriptionRow = {
   imports: [PageHeader, EmptyState, DataTable, Select, DatePicker, FormsModule],
   templateUrl: './prescriptions-list-page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { 'data-component-id': 'prescriptions-list-page' },
 })
 export class PrescriptionsListPage {
   private readonly prescriptionService = inject(PrescriptionService);

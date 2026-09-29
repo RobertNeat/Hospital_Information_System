@@ -88,6 +88,7 @@ const CONTRAST_ATC_PREFIX = 'V08';
   ],
   templateUrl: './imaging-order-wizard-page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { 'data-component-id': 'imaging-order-wizard-page' },
 })
 export class ImagingOrderWizardPage implements HasUnsavedChanges {
   private readonly fb = inject(FormBuilder).nonNullable;
