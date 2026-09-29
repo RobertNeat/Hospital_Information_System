@@ -3,6 +3,8 @@ import {
   ChangeDetectionStrategy,
   Component,
   contentChild,
+  ElementRef,
+  inject,
   input,
   output,
   TemplateRef,
@@ -38,6 +40,10 @@ export class DataTable<T extends Record<string, unknown>> {
   readonly emptyMessage = input('Brak danych');
 
   readonly rowSelect = output<T>();
+
+  private readonly hostId = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement.id;
+  /** Stable id for the global search input, derived from the host's `id` (e.g. `patient-list-table-search`). */
+  protected readonly searchInputId = `${this.hostId || 'data-table'}-search`;
 
   readonly cellTemplate = contentChild<TemplateRef<unknown>>('cell');
   readonly rowActionsTemplate = contentChild<TemplateRef<unknown>>('rowActions');

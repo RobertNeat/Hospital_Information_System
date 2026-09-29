@@ -1,5 +1,7 @@
 :host {
   display: block;
+  border-radius: var(--his-radius) var(--his-radius) 0 0;
+  overflow: hidden;
 }
 
 .his-section-header {

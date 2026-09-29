@@ -148,3 +148,21 @@ body {
 .his-page > .his-toolbar {
   margin-bottom: 0;
 }
+
+/* p-tabs (messages, patient history/orders, ...) render as a panel: round it like `.his-card`. */
+p-tabs {
+  display: block;
+  border-radius: var(--his-radius);
+  overflow: hidden;
+}
+
+/* A section header directly followed by a data table forms one block: cancel the flex `gap`
+   and square off the joined edges. */
+.his-page > app-section-header:has(+ app-data-table) {
+  margin-bottom: -1rem;
+}
+.his-page > app-section-header + app-data-table {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  border-top: 0;
+}

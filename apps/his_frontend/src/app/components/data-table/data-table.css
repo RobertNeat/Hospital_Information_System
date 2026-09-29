@@ -1,8 +1,39 @@
 :host {
   display: block;
+  border: 1px solid var(--his-card-border);
+  border-radius: var(--his-radius);
+  overflow: hidden;
+  background: var(--his-card-bg);
+}
+
+/* Caption (toolbar + search) is part of the table: same surface, padding and divider as the body. */
+:host ::ng-deep .p-datatable.p-datatable-sm .p-datatable-header {
+  background: var(--his-card-bg);
+  border-color: var(--his-card-border);
+  padding: 0.75rem 1rem;
+}
+
+/* No toolbar content and no search field -> no empty white strip above the header row. */
+:host ::ng-deep .p-datatable-header:has(.his-toolbar:empty) {
+  display: none;
+}
+
+:host ::ng-deep .p-datatable-header .his-toolbar {
+  margin-bottom: 0;
+}
+
+:host ::ng-deep .p-datatable-header .p-inputtext,
+:host ::ng-deep .p-datatable-header .p-select {
+  background: var(--his-card-bg);
 }
 
 .his-data-table__actions {
   text-align: right;
   white-space: nowrap;
+}
+
+/* Already framed by a surrounding `.his-section`: don't double the border/corners. */
+:host-context(.his-section) {
+  border: 0;
+  border-radius: 0;
 }
