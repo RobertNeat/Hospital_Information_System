@@ -1,7 +1,7 @@
-<div class="his-page">
-  <app-page-header [title]="pageTitle()" icon="pi pi-chart-bar">
-    <a actions routerLink="../.." class="his-muted">
-      <i class="pi pi-arrow-left" aria-hidden="true"></i>
+<div id="result-detail-page" class="his-page">
+  <app-page-header id="result-detail-app-page-header" [title]="pageTitle()" icon="pi pi-chart-bar">
+    <a id="result-detail-muted" actions routerLink="../.." class="his-muted">
+      <i id="result-detail-pi" class="pi pi-arrow-left" aria-hidden="true"></i>
       Wróć do wyników
     </a>
   </app-page-header>
@@ -9,30 +9,40 @@
   @if (loaded(); as loadedResult) {
     @switch (loadedResult.kind) {
       @case ('lab') {
-        <div class="his-section">
-          <div class="his-toolbar">
-            <div>
-              <div>
+        <div class="his-section his-section--padded" id="result-detail-lab-section">
+          <div id="result-detail-toolbar" class="his-toolbar">
+            <div id="result-detail-div">
+              <div id="result-detail-div-2">
                 <strong>{{ loadedResult.result.testName }}</strong>
               </div>
-              <div class="his-muted">
+              <div id="result-detail-muted-2" class="his-muted">
                 Pobranie: {{ loadedResult.result.collectedAt | date: 'dd.MM.yyyy HH:mm' }} · Wynik:
                 {{ loadedResult.result.resultedAt | date: 'dd.MM.yyyy HH:mm' }}
               </div>
-              <div class="his-muted">Wykonawca: {{ loadedResult.result.performerName }}</div>
+              <div id="result-detail-muted-3" class="his-muted">
+                Wykonawca: {{ loadedResult.result.performerName }}
+              </div>
             </div>
-            <div>
-              <app-status-tag kind="resultStatus" [value]="loadedResult.result.status" />
+            <div id="result-detail-div-3">
+              <app-status-tag
+                id="result-detail-app-status-tag"
+                kind="resultStatus"
+                [value]="loadedResult.result.status"
+              />
             </div>
           </div>
 
           @if (loadedResult.result.comment) {
-            <p>{{ loadedResult.result.comment }}</p>
+            <p id="result-detail-p">{{ loadedResult.result.comment }}</p>
           }
 
-          <app-lab-result-observations [observations]="loadedResult.result.observations" />
+          <app-lab-result-observations
+            id="result-detail-app-lab-result-observations"
+            [observations]="loadedResult.result.observations"
+          />
 
           <p-button
+            id="result-detail-p-button"
             label="Pobierz raport"
             icon="pi pi-download"
             (onClick)="downloadLab(loadedResult.result)"
@@ -42,21 +52,29 @@
         </div>
       }
       @case ('imaging') {
-        <div class="his-section">
-          <div class="his-toolbar">
-            <div>
+        <div class="his-section his-section--padded" id="result-detail-imaging-section">
+          <div id="result-detail-toolbar-2" class="his-toolbar">
+            <div id="result-detail-div-4">
               <strong>{{ loadedResult.result.examName }}</strong>
-              <div class="his-muted">
+              <div id="result-detail-muted-4" class="his-muted">
                 {{ loadedResult.result.bodyRegion }} ·
                 {{ loadedResult.result.modality | label: 'imagingModality' }}
               </div>
             </div>
-            <app-status-tag kind="resultStatus" [value]="loadedResult.result.status" />
+            <app-status-tag
+              id="result-detail-app-status-tag-2"
+              kind="resultStatus"
+              [value]="loadedResult.result.status"
+            />
           </div>
 
-          <app-imaging-report-view [result]="loadedResult.result" />
+          <app-imaging-report-view
+            id="result-detail-app-imaging-report-view"
+            [result]="loadedResult.result"
+          />
 
           <p-button
+            id="result-detail-p-button-2"
             label="Pobierz raport"
             icon="pi pi-download"
             (onClick)="downloadImaging(loadedResult.result)"
@@ -67,6 +85,7 @@
       }
       @case ('not-found') {
         <app-empty-state
+          id="result-detail-app-empty-state"
           icon="pi pi-exclamation-triangle"
           title="Nie znaleziono wyniku"
           message="Sprawdź, czy odnośnik do wyniku jest prawidłowy."
@@ -74,6 +93,6 @@
       }
     }
   } @else {
-    <app-loading-block />
+    <app-loading-block id="result-detail-app-loading-block" />
   }
 </div>

@@ -1,4 +1,5 @@
 <p-autocomplete
+  id="patient-search-p-autocomplete"
   styleClass="his-patient-search__autocomplete"
   inputId="patient-search-input"
   [(ngModel)]="selectedValue"
@@ -11,9 +12,11 @@
   [showEmptyMessage]="true"
 >
   <ng-template let-patient #item>
-    <div class="his-patient-search__item">
-      <span class="his-patient-search__name">{{ patient | fullName }}</span>
-      <span class="his-muted">
+    <div [id]="'patient-search-item-' + patient.id" class="his-patient-search__item">
+      <span [id]="'patient-search-name-' + patient.id" class="his-patient-search__name">{{
+        patient | fullName
+      }}</span>
+      <span [id]="'patient-search-muted-' + patient.id" class="his-muted">
         {{ patient.pesel ?? 'brak PESEL' }} · {{ patient.birthDate | age }}
         @if (patient.wardName) {
           · {{ patient.wardName }}

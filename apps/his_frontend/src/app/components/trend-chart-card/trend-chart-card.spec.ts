@@ -43,4 +43,23 @@ describe('TrendChartCard', () => {
     const data = fixture.componentInstance['chartData']();
     expect(data.datasets.length).toBe(3);
   });
+
+  it('formats ISO x-axis labels as short Polish date/time', async () => {
+    const fixture = TestBed.createComponent(TrendChartCard);
+    fixture.componentRef.setInput('title', 'Glukoza');
+    fixture.componentRef.setInput('series', [
+      {
+        label: 'Glukoza',
+        points: [
+          { at: '2026-01-05', value: 95 },
+          { at: '2026-02-01T08:30:00', value: 100 },
+        ],
+      },
+    ]);
+    await fixture.whenStable();
+
+    const labels = fixture.componentInstance['chartData']().labels as string[];
+    expect(labels[0]).toBe('05.01.26');
+    expect(labels[1]).toMatch(/^01\.02\.26,? 08:30$/);
+  });
 });

@@ -1,25 +1,33 @@
 <ng-template #navContent>
-  <nav class="his-sidebar" [class.his-sidebar--collapsed]="layout.collapsed()">
+  <nav
+    id="app-sidebar-sidebar"
+    class="his-sidebar"
+    [class.his-sidebar--collapsed]="layout.collapsed()"
+  >
     @if (ctx.hasPatient()) {
       <div
+        id="app-sidebar-sidebar-patient-group"
         class="his-sidebar__patient-group"
         [class.his-sidebar__patient-group--collapsed]="layout.collapsed()"
         [attr.title]="layout.collapsed() ? 'Karta pacjenta: ' + (ctx.patient()! | fullName) : null"
       >
         @if (layout.collapsed()) {
-          <i class="pi pi-user" aria-hidden="true"></i>
+          <i id="app-sidebar-pi" class="pi pi-user" aria-hidden="true"></i>
         } @else {
           Karta pacjenta: {{ ctx.patient()! | fullName }}
         }
       </div>
     }
-    @for (group of navGroups; track group.label) {
-      <div class="his-sidebar__group">
+    @for (group of navGroups; track group.label; let idx0 = $index) {
+      <div [id]="'app-sidebar-sidebar-group-' + idx0" class="his-sidebar__group">
         @if (!layout.collapsed()) {
-          <div class="his-sidebar__group-label">{{ group.label }}</div>
+          <div [id]="'app-sidebar-sidebar-group-label-' + idx0" class="his-sidebar__group-label">
+            {{ group.label }}
+          </div>
         }
-        @for (item of group.items; track item.label) {
+        @for (item of group.items; track item.label; let idx1 = $index) {
           <a
+            [id]="'app-sidebar-sidebar-item-' + idx0 + '-' + idx1"
             class="his-sidebar__item"
             [routerLink]="linkFor(item)"
             [queryParams]="queryParamsFor(item)"
@@ -33,15 +41,21 @@
             (click)="closeDrawer()"
           >
             <i
+              [id]="'app-sidebar-sidebar-item-icon-' + idx0 + '-' + idx1"
               [class]="item.icon"
               class="his-sidebar__item-icon"
               [attr.aria-label]="layout.collapsed() ? item.label : null"
             ></i>
             @if (!layout.collapsed()) {
-              <span class="his-sidebar__item-label">{{ item.label }}</span>
+              <span
+                [id]="'app-sidebar-sidebar-item-label-' + idx0 + '-' + idx1"
+                class="his-sidebar__item-label"
+                >{{ item.label }}</span
+              >
             }
             @if (!layout.collapsed() && isMessagesItem(item) && unreadCount() > 0) {
               <span
+                [id]="'app-sidebar-sidebar-badge-' + idx0 + '-' + idx1"
                 class="his-sidebar__badge"
                 pBadge
                 [value]="unreadCount().toString()"
@@ -55,11 +69,16 @@
   </nav>
 </ng-template>
 
-<div class="his-sidebar__desktop" [style.width]="layout.sidebarWidth()">
+<div
+  id="app-sidebar-sidebar-desktop"
+  class="his-sidebar__desktop"
+  [style.width]="layout.sidebarWidth()"
+>
   <ng-container [ngTemplateOutlet]="navContent" />
 </div>
 
 <p-drawer
+  id="app-sidebar-p-drawer"
   [visible]="layout.mobileDrawerOpen()"
   (visibleChange)="!$event && closeDrawer()"
   appendTo="body"

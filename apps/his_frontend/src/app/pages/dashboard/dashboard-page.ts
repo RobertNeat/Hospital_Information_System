@@ -28,9 +28,6 @@ import type {
   TeamTask,
 } from '../../models';
 
-/** `DataTable<T>` requires `T extends Record<string, unknown>`; `TeamTask` is a closed interface. */
-type DashboardTaskRow = TeamTask & Record<string, unknown>;
-
 const QUICK_ACTIONS: IconAction[] = [
   { id: 'register-patient', icon: 'pi pi-user-plus', label: 'Rejestracja pacjenta' },
   { id: 'lab-order', icon: 'pi pi-eye-dropper', label: 'Zlecenie laboratoryjne' },
@@ -73,7 +70,7 @@ export class DashboardPage {
 
   protected readonly stats = signal<DashboardStats | null>(null);
   protected readonly criticalAlerts = signal<ClinicalAlert[]>([]);
-  protected readonly myTasks = signal<DashboardTaskRow[]>([]);
+  protected readonly myTasks = signal<TeamTask[]>([]);
   protected readonly abnormalResults = signal<(LabResult & { patient: PatientSummary })[]>([]);
   protected readonly fallbackAdmitted = signal<PatientSummary[]>([]);
   protected readonly loading = signal(true);
@@ -99,7 +96,7 @@ export class DashboardPage {
       .subscribe(({ stats, alerts, tasks, abnormalResults, admitted }) => {
         this.stats.set(stats);
         this.criticalAlerts.set(alerts.filter((a) => a.severity === 'critical'));
-        this.myTasks.set(tasks as DashboardTaskRow[]);
+        this.myTasks.set(tasks);
         this.abnormalResults.set(abnormalResults);
         this.fallbackAdmitted.set(admitted);
         this.loading.set(false);

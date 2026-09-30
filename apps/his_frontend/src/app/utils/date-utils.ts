@@ -27,3 +27,12 @@ export function startOfDay(date: Date | ISODate | ISODateTime = new Date()): Dat
 export function minutesAgo(at: ISODateTime, now: Date = new Date()): number {
   return Math.round((now.getTime() - new Date(at).getTime()) / 60000);
 }
+
+/** Formats a Date as a local (not UTC) ISO date "yyyy-MM-dd" -- avoids the UTC-drift trap of
+ *  `date.toISOString().slice(0,10)`, which can shift local midnight to the previous day. */
+export function toLocalIsoDate(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}

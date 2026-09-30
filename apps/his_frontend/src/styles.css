@@ -68,6 +68,16 @@ body {
   overflow: hidden;
 }
 
+.his-section--padded {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.his-section--padded > .his-toolbar {
+  margin-bottom: 0;
+}
+
 .his-grid-2 {
   display: grid;
   grid-template-columns: repeat(1, minmax(0, 1fr));

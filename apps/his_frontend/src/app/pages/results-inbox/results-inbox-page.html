@@ -1,8 +1,9 @@
-<div class="his-page">
-  <app-page-header title="Wyniki badań" icon="pi pi-chart-bar" />
+<div id="results-inbox-page" class="his-page">
+  <app-page-header id="results-inbox-app-page-header" title="Wyniki badań" icon="pi pi-chart-bar" />
 
-  <div class="his-toolbar">
+  <div id="results-inbox-toolbar" class="his-toolbar">
     <p-selectbutton
+      id="results-inbox-p-selectbutton"
       [options]="filterOptions"
       [ngModel]="effectiveFilter()"
       (ngModelChange)="onFilterChange($event)"
@@ -12,12 +13,17 @@
   </div>
 
   <app-section-header
+    id="results-inbox-app-section-header"
     title="Wyniki laboratoryjne"
     icon="pi pi-eye-dropper"
     [count]="rows().length"
   />
   @if (rows().length === 0) {
-    <app-empty-state title="Brak wyników" message="Nie znaleziono wyników spełniających filtr." />
+    <app-empty-state
+      id="results-inbox-app-empty-state"
+      title="Brak wyników"
+      message="Nie znaleziono wyników spełniających filtr."
+    />
   } @else {
     <app-data-table
       id="results-inbox-lab-table"
@@ -31,6 +37,7 @@
         @switch (col.field) {
           @case ('patientName') {
             <a
+              [id]="'results-inbox-a-' + row.id"
               [routerLink]="['/patients', row.patient.id, 'results']"
               [queryParams]="{ tab: 'lab' }"
               (click)="$event.stopPropagation()"
@@ -45,6 +52,7 @@
       </ng-template>
       <ng-template #rowActions let-row>
         <button
+          [id]="'results-inbox-p-button-' + row.id"
           type="button"
           class="p-button p-button-text p-button-sm"
           [routerLink]="['/patients', row.patient.id, 'results']"
@@ -52,15 +60,21 @@
           aria-label="Otwórz wyniki pacjenta"
           pTooltip="Otwórz wyniki pacjenta"
         >
-          <i class="pi pi-eye" aria-hidden="true"></i>
+          <i [id]="'results-inbox-pi-' + row.id" class="pi pi-eye" aria-hidden="true"></i>
         </button>
       </ng-template>
     </app-data-table>
   }
 
-  <app-section-header title="Wyniki obrazowe" icon="pi pi-image" [count]="imagingRows().length" />
+  <app-section-header
+    id="results-inbox-app-section-header-2"
+    title="Wyniki obrazowe"
+    icon="pi pi-image"
+    [count]="imagingRows().length"
+  />
   @if (imagingRows().length === 0) {
     <app-empty-state
+      id="results-inbox-app-empty-state-2"
       title="Brak wyników obrazowych"
       message="Nie znaleziono wyników spełniających filtr."
     />
@@ -77,6 +91,7 @@
         @switch (col.field) {
           @case ('patientName') {
             <a
+              [id]="'results-inbox-a-2-' + row.id"
               [routerLink]="['/patients', row.patient.id, 'results']"
               [queryParams]="{ tab: 'imaging' }"
               (click)="$event.stopPropagation()"
@@ -91,6 +106,7 @@
       </ng-template>
       <ng-template #rowActions let-row>
         <button
+          [id]="'results-inbox-p-button-2-' + row.id"
           type="button"
           class="p-button p-button-text p-button-sm"
           [routerLink]="['/patients', row.patient.id, 'results']"
@@ -98,7 +114,7 @@
           aria-label="Otwórz wyniki pacjenta"
           pTooltip="Otwórz wyniki pacjenta"
         >
-          <i class="pi pi-eye" aria-hidden="true"></i>
+          <i [id]="'results-inbox-pi-2-' + row.id" class="pi pi-eye" aria-hidden="true"></i>
         </button>
       </ng-template>
     </app-data-table>

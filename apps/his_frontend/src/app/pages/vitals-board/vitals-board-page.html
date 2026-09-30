@@ -1,29 +1,34 @@
-<div class="his-page">
+<div id="vitals-board-page" class="his-page">
   <app-page-header
+    id="vitals-board-app-page-header"
     title="Monitoring parametrów"
     subtitle="Przegląd parametrów życiowych pacjentów oddziału"
   />
 
-  <div class="his-grid-4">
+  <div id="vitals-board-grid-4" class="his-grid-4">
     <app-stat-card
+      id="vitals-board-app-stat-card"
       label="Monitorowani pacjenci"
       [value]="patientsMonitored()"
       icon="pi pi-users"
       severity="primary"
     />
     <app-stat-card
+      id="vitals-board-app-stat-card-2"
       label="Krytyczne odchylenia"
       [value]="criticalCount()"
       icon="pi pi-exclamation-triangle"
       severity="danger"
     />
     <app-stat-card
+      id="vitals-board-app-stat-card-3"
       label="Ostrzeżenia"
       [value]="warningCount()"
       icon="pi pi-exclamation-circle"
       severity="warn"
     />
     <app-stat-card
+      id="vitals-board-app-stat-card-4"
       label="Brak pomiaru > 8 h"
       [value]="noRecentMeasurementCount()"
       icon="pi pi-clock"
@@ -31,8 +36,9 @@
     />
   </div>
 
-  <div class="his-toolbar">
+  <div id="vitals-board-toolbar" class="his-toolbar">
     <p-select
+      id="vitals-board-p-select"
       [options]="wardOptions()"
       optionLabel="label"
       optionValue="value"
@@ -42,7 +48,7 @@
     />
   </div>
 
-  <div class="his-card">
+  <div id="vitals-board-card" class="his-card">
     <app-data-table
       id="vitals-board-table"
       [rows]="rows()"
@@ -53,11 +59,14 @@
       <ng-template #cell let-row let-col="col">
         @switch (col.field) {
           @case ('fullNameSource') {
-            <span>{{ row.fullNameSource | fullName }}</span>
-            <span class="his-muted"> · {{ row.fullNameSource.birthDate | age }}</span>
+            <span [id]="'vitals-board-span-' + row.id">{{ row.fullNameSource | fullName }}</span>
+            <span [id]="'vitals-board-muted-' + row.id" class="his-muted">
+              · {{ row.fullNameSource.birthDate | age }}</span
+            >
           }
           @case ('systolic') {
             <span
+              [id]="'vitals-board-span-2-' + row.id"
               [class.vitals-cell--danger]="row.anomalyLevels.systolic === 'critical'"
               [class.vitals-cell--warn]="row.anomalyLevels.systolic === 'warning'"
             >
@@ -66,6 +75,7 @@
           }
           @case ('diastolic') {
             <span
+              [id]="'vitals-board-span-3-' + row.id"
               [class.vitals-cell--danger]="row.anomalyLevels.diastolic === 'critical'"
               [class.vitals-cell--warn]="row.anomalyLevels.diastolic === 'warning'"
             >
@@ -74,6 +84,7 @@
           }
           @case ('heartRate') {
             <span
+              [id]="'vitals-board-span-4-' + row.id"
               [class.vitals-cell--danger]="row.anomalyLevels.heartRate === 'critical'"
               [class.vitals-cell--warn]="row.anomalyLevels.heartRate === 'warning'"
             >
@@ -82,6 +93,7 @@
           }
           @case ('temperature') {
             <span
+              [id]="'vitals-board-span-5-' + row.id"
               [class.vitals-cell--danger]="row.anomalyLevels.temperature === 'critical'"
               [class.vitals-cell--warn]="row.anomalyLevels.temperature === 'warning'"
             >
@@ -90,6 +102,7 @@
           }
           @case ('spo2') {
             <span
+              [id]="'vitals-board-span-6-' + row.id"
               [class.vitals-cell--danger]="row.anomalyLevels.spo2 === 'critical'"
               [class.vitals-cell--warn]="row.anomalyLevels.spo2 === 'warning'"
             >
@@ -98,6 +111,7 @@
           }
           @case ('respiratoryRate') {
             <span
+              [id]="'vitals-board-span-7-' + row.id"
               [class.vitals-cell--danger]="row.anomalyLevels.respiratoryRate === 'critical'"
               [class.vitals-cell--warn]="row.anomalyLevels.respiratoryRate === 'warning'"
             >
@@ -106,18 +120,26 @@
           }
           @case ('lastMeasuredAgoMin') {
             @if (row.lastMeasuredAgoMin === null) {
-              <span class="his-muted">Brak pomiaru</span>
+              <span [id]="'vitals-board-muted-2-' + row.id" class="his-muted">Brak pomiaru</span>
             } @else {
               {{ formatAgo(row.lastMeasuredAgoMin) }}
             }
           }
           @case ('criticalCount') {
             @if (row.criticalCount > 0) {
-              <p-tag severity="danger" [value]="row.criticalCount + ' krytyczne'" />
+              <p-tag
+                [id]="'vitals-board-p-tag-' + row.id"
+                severity="danger"
+                [value]="row.criticalCount + ' krytyczne'"
+              />
             } @else if (row.warningCount > 0) {
-              <p-tag severity="warn" [value]="row.warningCount + ' ostrzeżenia'" />
+              <p-tag
+                [id]="'vitals-board-p-tag-2-' + row.id"
+                severity="warn"
+                [value]="row.warningCount + ' ostrzeżenia'"
+              />
             } @else {
-              <p-tag severity="success" value="W normie" />
+              <p-tag [id]="'vitals-board-p-tag-3-' + row.id" severity="success" value="W normie" />
             }
           }
           @default {

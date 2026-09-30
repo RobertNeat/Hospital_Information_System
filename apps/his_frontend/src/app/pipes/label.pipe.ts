@@ -23,6 +23,7 @@ const LABEL_MAPS = {
   diagnosisStatus: labels.DIAGNOSIS_STATUS_LABELS,
   allergyCategory: labels.ALLERGY_CATEGORY_LABELS,
   allergySeverity: labels.ALLERGY_SEVERITY_LABELS,
+  allergyStatus: labels.ALLERGY_STATUS_LABELS,
   treatmentType: labels.TREATMENT_TYPE_LABELS,
   treatmentStatus: labels.TREATMENT_STATUS_LABELS,
   urgency: labels.URGENCY_LABELS,

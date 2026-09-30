@@ -1,22 +1,37 @@
-<div class="his-page">
+<div id="patient-vitals-page" class="his-page">
   <app-page-header
+    id="patient-vitals-app-page-header"
     title="Parametry życiowe"
     subtitle="Monitorowanie i pomiar parametrów pacjenta"
   />
 
-  <div class="his-section">
-    <app-section-header title="Pomiar w trakcie badania" icon="pi pi-heart" variant="navy" />
-    <div class="his-card">
-      <app-vitals-entry-form [patientId]="patientId()" (saved)="onSaved($event)" />
+  <div id="patient-vitals-section" class="his-section">
+    <app-section-header
+      id="patient-vitals-app-section-header"
+      title="Pomiar w trakcie badania"
+      icon="pi pi-heart"
+      variant="navy"
+    />
+    <div id="patient-vitals-card" class="his-card">
+      <app-vitals-entry-form
+        id="patient-vitals-app-vitals-entry-form"
+        [patientId]="patientId()"
+        (saved)="onSaved($event)"
+      />
 
       @if (saveMessageText()) {
-        <p-message [severity]="saveMessageSeverity()" [text]="saveMessageText()" />
+        <p-message
+          id="patient-vitals-p-message"
+          [severity]="saveMessageSeverity()"
+          [text]="saveMessageText()"
+        />
       }
     </div>
   </div>
 
-  <div class="his-toolbar">
+  <div id="patient-vitals-toolbar" class="his-toolbar">
     <p-selectbutton
+      id="patient-vitals-p-selectbutton"
       [options]="rangeOptions"
       optionLabel="label"
       optionValue="value"
@@ -25,27 +40,36 @@
     />
   </div>
 
-  <div class="his-grid-2">
-    <app-trend-chart-card title="Ciśnienie tętnicze" unit="mmHg" [series]="bpSeries()" />
+  <div id="patient-vitals-grid-2" class="his-grid-2">
     <app-trend-chart-card
+      id="patient-vitals-app-trend-chart-card"
+      title="Ciśnienie tętnicze"
+      unit="mmHg"
+      [series]="bpSeries()"
+    />
+    <app-trend-chart-card
+      id="patient-vitals-app-trend-chart-card-2"
       title="Tętno"
       unit="/min"
       [series]="hrSeries()"
       [referenceRange]="{ low: thresholds.heartRate.low, high: thresholds.heartRate.high }"
     />
     <app-trend-chart-card
+      id="patient-vitals-app-trend-chart-card-3"
       title="Temperatura"
       unit="°C"
       [series]="tempSeries()"
       [referenceRange]="{ low: thresholds.temperature.low, high: thresholds.temperature.high }"
     />
     <app-trend-chart-card
+      id="patient-vitals-app-trend-chart-card-4"
       title="SpO₂"
       unit="%"
       [series]="spo2Series()"
       [referenceRange]="{ low: thresholds.spo2.low, high: thresholds.spo2.high }"
     />
     <app-trend-chart-card
+      id="patient-vitals-app-trend-chart-card-5"
       title="Częstość oddechów"
       unit="/min"
       [series]="rrSeries()"
@@ -56,13 +80,19 @@
     />
   </div>
 
-  <div class="his-section">
-    <app-section-header title="Porównanie pomiarów" icon="pi pi-sort-alt" variant="navy" />
-    <div class="his-card">
-      <div class="his-form-grid">
-        <label>
+  <div id="patient-vitals-section-2" class="his-section">
+    <app-section-header
+      id="patient-vitals-app-section-header-2"
+      title="Porównanie pomiarów"
+      icon="pi pi-sort-alt"
+      variant="navy"
+    />
+    <div id="patient-vitals-card-2" class="his-card">
+      <div id="patient-vitals-form-grid" class="his-form-grid">
+        <label id="patient-vitals-label">
           Pomiar A (wcześniejszy)
           <p-select
+            id="patient-vitals-p-select"
             [options]="measurementOptions()"
             optionLabel="label"
             optionValue="value"
@@ -71,9 +101,10 @@
             [fluid]="true"
           />
         </label>
-        <label>
+        <label id="patient-vitals-label-2">
           Pomiar B (późniejszy)
           <p-select
+            id="patient-vitals-p-select-2"
             [options]="measurementOptions()"
             optionLabel="label"
             optionValue="value"
@@ -83,13 +114,22 @@
           />
         </label>
       </div>
-      <app-vitals-compare-table [measurementA]="measurementA()" [measurementB]="measurementB()" />
+      <app-vitals-compare-table
+        id="patient-vitals-app-vitals-compare-table"
+        [measurementA]="measurementA()"
+        [measurementB]="measurementB()"
+      />
     </div>
   </div>
 
-  <div class="his-section">
-    <app-section-header title="Historia pomiarów" icon="pi pi-history" variant="navy" />
-    <div class="his-card">
+  <div id="patient-vitals-section-3" class="his-section">
+    <app-section-header
+      id="patient-vitals-app-section-header-3"
+      title="Historia pomiarów"
+      icon="pi pi-history"
+      variant="navy"
+    />
+    <div id="patient-vitals-card-3" class="his-card">
       <app-data-table
         id="patient-vitals-history-table"
         [rows]="historyRows()"
@@ -102,6 +142,7 @@
             }
             @case ('systolic') {
               <span
+                [id]="'patient-vitals-span-' + row.id"
                 [class.vitals-cell--danger]="row.anomalyLevels.systolic === 'critical'"
                 [class.vitals-cell--warn]="row.anomalyLevels.systolic === 'warning'"
               >
@@ -110,6 +151,7 @@
             }
             @case ('diastolic') {
               <span
+                [id]="'patient-vitals-span-2-' + row.id"
                 [class.vitals-cell--danger]="row.anomalyLevels.diastolic === 'critical'"
                 [class.vitals-cell--warn]="row.anomalyLevels.diastolic === 'warning'"
               >
@@ -118,6 +160,7 @@
             }
             @case ('heartRate') {
               <span
+                [id]="'patient-vitals-span-3-' + row.id"
                 [class.vitals-cell--danger]="row.anomalyLevels.heartRate === 'critical'"
                 [class.vitals-cell--warn]="row.anomalyLevels.heartRate === 'warning'"
               >
@@ -126,6 +169,7 @@
             }
             @case ('temperature') {
               <span
+                [id]="'patient-vitals-span-4-' + row.id"
                 [class.vitals-cell--danger]="row.anomalyLevels.temperature === 'critical'"
                 [class.vitals-cell--warn]="row.anomalyLevels.temperature === 'warning'"
               >
@@ -134,6 +178,7 @@
             }
             @case ('spo2') {
               <span
+                [id]="'patient-vitals-span-5-' + row.id"
                 [class.vitals-cell--danger]="row.anomalyLevels.spo2 === 'critical'"
                 [class.vitals-cell--warn]="row.anomalyLevels.spo2 === 'warning'"
               >
@@ -142,6 +187,7 @@
             }
             @case ('respiratoryRate') {
               <span
+                [id]="'patient-vitals-span-6-' + row.id"
                 [class.vitals-cell--danger]="row.anomalyLevels.respiratoryRate === 'critical'"
                 [class.vitals-cell--warn]="row.anomalyLevels.respiratoryRate === 'warning'"
               >

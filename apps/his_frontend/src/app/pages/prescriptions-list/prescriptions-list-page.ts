@@ -11,8 +11,6 @@ import type { Prescription, TableColumn } from '../../models';
 import { PrescriptionService } from '../../services/prescription.service';
 import { StaffService } from '../../services/staff.service';
 
-// `type` (not `interface`) so it structurally satisfies `DataTable`'s
-// `T extends Record<string, unknown>` constraint (interfaces don't).
 type PrescriptionRow = {
   id: string;
   patientId: string;

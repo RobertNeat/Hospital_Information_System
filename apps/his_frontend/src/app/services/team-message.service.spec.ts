@@ -95,6 +95,16 @@ describe('TeamMessageService', () => {
     expect(after.length).toBe(before.length + 1);
   });
 
+  it('alerts signal is live: reflects pushAlert and acknowledgeAlert', async () => {
+    const before = service.alerts().length;
+    const alert = await firstValueFrom(
+      service.pushAlert({ type: 'system', severity: 'info', message: 'Live alert' }),
+    );
+    expect(service.alerts().length).toBe(before + 1);
+    await firstValueFrom(service.acknowledgeAlert(alert.id, 'stf-001'));
+    expect(service.alerts().find((a) => a.id === alert.id)?.acknowledged).toBe(true);
+  });
+
   it('unreadCount and unacknowledgedAlertCount are derived signals', () => {
     expect(typeof service.unreadCount()).toBe('number');
     expect(typeof service.unacknowledgedAlertCount()).toBe('number');

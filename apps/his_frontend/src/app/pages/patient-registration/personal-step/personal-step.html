@@ -1,0 +1,95 @@
+<form id="personal-step-card" [formGroup]="form()" class="his-card his-form-grid">
+  <app-form-field
+    id="personal-step-app-form-field"
+    label="Imię"
+    for="firstName"
+    [required]="true"
+    [control]="form().controls.firstName"
+  >
+    <input pInputText id="firstName" formControlName="firstName" />
+  </app-form-field>
+  <app-form-field id="personal-step-app-form-field-2" label="Drugie imię" for="secondName">
+    <input pInputText id="secondName" formControlName="secondName" />
+  </app-form-field>
+  <app-form-field
+    id="personal-step-app-form-field-3"
+    label="Nazwisko"
+    for="lastName"
+    [required]="true"
+    [control]="form().controls.lastName"
+  >
+    <input pInputText id="lastName" formControlName="lastName" />
+  </app-form-field>
+  <app-form-field
+    id="personal-step-app-form-field-4"
+    label="Telefon"
+    for="phone"
+    [control]="form().controls.phone"
+  >
+    <input pInputText id="phone" formControlName="phone" placeholder="+48 512 000 001" />
+  </app-form-field>
+  <app-form-field
+    id="personal-step-app-form-field-5"
+    label="E-mail"
+    for="email"
+    [control]="form().controls.email"
+  >
+    <input pInputText id="email" formControlName="email" type="email" />
+  </app-form-field>
+
+  <div
+    id="personal-step-registration-full-row"
+    class="his-registration__full-row his-registration__subheading"
+  >
+    Adres zamieszkania
+  </div>
+
+  <app-form-field
+    id="personal-step-app-form-field-6"
+    label="Ulica"
+    for="street"
+    [required]="true"
+    [control]="form().controls.street"
+  >
+    <input pInputText id="street" formControlName="street" />
+  </app-form-field>
+  <app-form-field
+    id="personal-step-app-form-field-7"
+    label="Nr domu"
+    for="buildingNumber"
+    [required]="true"
+    [control]="form().controls.buildingNumber"
+  >
+    <input pInputText id="buildingNumber" formControlName="buildingNumber" />
+  </app-form-field>
+  <app-form-field id="personal-step-app-form-field-8" label="Nr lokalu" for="apartmentNumber">
+    <input pInputText id="apartmentNumber" formControlName="apartmentNumber" />
+  </app-form-field>
+  <app-form-field
+    id="personal-step-app-form-field-9"
+    label="Kod pocztowy"
+    for="postalCode"
+    [required]="true"
+    [control]="form().controls.postalCode"
+  >
+    <input pInputText id="postalCode" formControlName="postalCode" placeholder="00-001" />
+  </app-form-field>
+  <app-form-field
+    id="personal-step-app-form-field-10"
+    label="Miejscowość"
+    for="city"
+    [required]="true"
+    [control]="form().controls.city"
+  >
+    <input pInputText id="city" formControlName="city" />
+  </app-form-field>
+  <app-form-field
+    id="personal-step-app-form-field-11"
+    label="Kraj"
+    for="country"
+    [required]="true"
+    [control]="form().controls.country"
+  >
+    <input pInputText id="country" formControlName="country" />
+  </app-form-field>
+</form>

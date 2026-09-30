@@ -1,7 +1,8 @@
-<div class="his-catalog-picker">
-  <p-iconfield>
-    <p-inputicon class="pi pi-search" />
+<div id="catalog-picker" class="his-catalog-picker">
+  <p-iconfield id="catalog-picker-p-iconfield">
+    <p-inputicon id="catalog-picker-pi" class="pi pi-search" />
     <input
+      id="catalog-picker-input"
       pInputText
       type="text"
       placeholder="Szukaj badania..."
@@ -11,9 +12,10 @@
   </p-iconfield>
 
   @if (panels().length) {
-    <div class="his-catalog-picker__panels">
-      @for (panel of panels(); track panel.id) {
+    <div id="catalog-picker-panels" class="his-catalog-picker__panels">
+      @for (panel of panels(); track panel.id; let idx0 = $index) {
         <p-button
+          [id]="'catalog-picker-p-button-' + idx0"
           [label]="panel.name"
           severity="secondary"
           size="small"
@@ -25,25 +27,32 @@
     </div>
   }
 
-  @for (group of groups(); track group.category) {
-    <div class="his-catalog-picker__group">
-      <h4 class="his-catalog-picker__group-title">{{ group.label }}</h4>
-      @for (test of group.tests; track test.code) {
-        <label class="his-catalog-picker__item">
+  @for (group of groups(); track group.category; let idx0 = $index) {
+    <div [id]="'catalog-picker-group-' + idx0" class="his-catalog-picker__group">
+      <h4 [id]="'catalog-picker-group-title-' + idx0" class="his-catalog-picker__group-title">
+        {{ group.label }}
+      </h4>
+      @for (test of group.tests; track test.code; let idx1 = $index) {
+        <label [id]="'catalog-picker-item-' + idx0 + '-' + idx1" class="his-catalog-picker__item">
           <p-checkbox
+            [id]="'catalog-picker-p-checkbox-' + idx0 + '-' + idx1"
             [binary]="true"
             [ngModel]="isSelected(test.code)"
             (ngModelChange)="toggle(test.code, $event)"
             [inputId]="'test-' + test.code"
           />
-          <span>{{ test.name }}</span>
+          <span [id]="'catalog-picker-span-' + idx0 + '-' + idx1">{{ test.name }}</span>
           @if (test.fastingRequired) {
-            <span class="his-muted">(na czczo)</span>
+            <span [id]="'catalog-picker-muted-' + idx0 + '-' + idx1" class="his-muted"
+              >(na czczo)</span
+            >
           }
         </label>
       }
     </div>
   } @empty {
-    <p class="his-muted">Brak badań spełniających kryteria wyszukiwania.</p>
+    <p id="catalog-picker-muted-2" class="his-muted">
+      Brak badań spełniających kryteria wyszukiwania.
+    </p>
   }
 </div>

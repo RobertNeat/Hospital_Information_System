@@ -1,7 +1,15 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  input,
+  signal,
+} from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
-import { debounceTime, distinctUntilChanged, switchMap, take } from 'rxjs';
+import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs';
 import { Button } from 'primeng/button';
 import { InputText } from 'primeng/inputtext';
 import { Select } from 'primeng/select';
@@ -16,8 +24,6 @@ import { AgePipe } from '../../pipes/age.pipe';
 import { FullNamePipe } from '../../pipes/full-name.pipe';
 import { ADMISSION_STATUS_OPTIONS, PATIENT_FLAG_LABELS } from '../../constants/labels';
 import type { AdmissionStatus, PatientSummary, TableColumn, Ward } from '../../models';
-
-type PatientRow = PatientSummary & Record<string, unknown>;
 
 const STATUS_FILTER_OPTIONS: { label: string; value: AdmissionStatus | '' }[] = [
   { label: 'Wszyscy', value: '' },
@@ -62,10 +68,10 @@ export class PatientListPage {
   protected readonly selectedStatus = signal<AdmissionStatus | ''>('');
   protected readonly selectedWard = signal('');
 
-  protected readonly rows = signal<PatientRow[]>([]);
+  protected readonly rows = signal<PatientSummary[]>([]);
   protected readonly loading = signal(true);
 
-  protected readonly columns: TableColumn<PatientRow>[] = [
+  protected readonly columns: TableColumn<PatientSummary>[] = [
     { field: 'lastName', header: 'Nazwisko i imię', sortable: true },
     { field: 'pesel', header: 'PESEL' },
     { field: 'birthDate', header: 'Wiek' },
@@ -83,18 +89,10 @@ export class PatientListPage {
   }));
 
   constructor() {
-    // `q`/`status`/`ward` are route-bound signal inputs -- still hold their defaults at
-    // construction time, so seed the editable signals from the first emission of each
-    // input's observable (fires once inputs are actually bound) rather than reading them here.
-    toObservable(this.q)
-      .pipe(take(1))
-      .subscribe((q) => this.searchTerm.set(q ?? ''));
-    toObservable(this.status)
-      .pipe(take(1))
-      .subscribe((status) => this.selectedStatus.set(status ?? ''));
-    toObservable(this.ward)
-      .pipe(take(1))
-      .subscribe((ward) => this.selectedWard.set(ward ?? ''));
+    // Follow the route-bound inputs reactively so back/forward navigation re-syncs the filters.
+    effect(() => this.searchTerm.set(this.q() ?? ''));
+    effect(() => this.selectedStatus.set(this.status() ?? ''));
+    effect(() => this.selectedWard.set(this.ward() ?? ''));
 
     this.wardService.getWards().subscribe((wards: Ward[]) => {
       this.wardOptions.set([
@@ -120,7 +118,7 @@ export class PatientListPage {
         takeUntilDestroyed(),
       )
       .subscribe((patients) => {
-        this.rows.set(patients as PatientRow[]);
+        this.rows.set(patients);
         this.loading.set(false);
       });
   }
@@ -149,25 +147,25 @@ export class PatientListPage {
     });
   }
 
-  protected flagLabels(row: PatientRow): string {
+  protected flagLabels(row: PatientSummary): string {
     return row.flags.map((f) => PATIENT_FLAG_LABELS[f]).join(', ');
   }
 
-  protected openChart(row: PatientRow): void {
+  protected openChart(row: PatientSummary): void {
     this.router.navigate(['/patients', row.id]);
   }
 
-  protected editPatient(row: PatientRow, event: Event): void {
+  protected editPatient(row: PatientSummary, event: Event): void {
     event.stopPropagation();
     this.router.navigate(['/patients', row.id, 'edit']);
   }
 
-  protected newLabOrder(row: PatientRow, event: Event): void {
+  protected newLabOrder(row: PatientSummary, event: Event): void {
     event.stopPropagation();
     this.router.navigate(['/patients', row.id, 'orders', 'lab', 'new']);
   }
 
-  protected newPrescription(row: PatientRow, event: Event): void {
+  protected newPrescription(row: PatientSummary, event: Event): void {
     event.stopPropagation();
     this.router.navigate(['/patients', row.id, 'prescriptions', 'new']);
   }

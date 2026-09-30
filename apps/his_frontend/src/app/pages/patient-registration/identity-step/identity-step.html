@@ -1,0 +1,114 @@
+<form id="identity-step-card" [formGroup]="form()" class="his-card his-form-grid">
+  <div id="identity-step-registration-full-row" class="his-registration__full-row">
+    <label id="identity-step-registration-toggle" class="his-registration__toggle">
+      <p-toggleswitch id="identity-step-no-pesel" formControlName="noPesel" />
+      Pacjent bez numeru PESEL
+    </label>
+  </div>
+
+  @if (!form().controls.noPesel.value) {
+    <app-form-field
+      id="identity-step-app-form-field"
+      label="PESEL"
+      for="pesel"
+      [required]="true"
+      [control]="form().controls.pesel"
+    >
+      <p-inputmask
+        id="identity-step-pesel"
+        inputId="pesel"
+        formControlName="pesel"
+        mask="99999999999"
+        [unmask]="true"
+        placeholder="np. 90010112345"
+      />
+    </app-form-field>
+
+    @if (duplicate(); as dup) {
+      <div id="identity-step-registration-full-row-2" class="his-registration__full-row">
+        <p-message id="identity-step-p-message" severity="warn">
+          Pacjent o tym numerze PESEL już istnieje: {{ dup.label }}.
+          <a id="identity-step-a" [routerLink]="['/patients', dup.id]">Otwórz kartę pacjenta</a>
+        </p-message>
+      </div>
+    }
+
+    <app-form-field id="identity-step-app-form-field-2" label="Data urodzenia" for="birthDate1">
+      <p-datepicker
+        id="identity-step-birth-date"
+        inputId="birthDate1"
+        formControlName="birthDate"
+        dateFormat="dd.mm.yy"
+        [readonlyInput]="true"
+      />
+    </app-form-field>
+    <app-form-field id="identity-step-app-form-field-3" label="Płeć" for="gender1">
+      <p-select
+        id="identity-step-gender"
+        inputId="gender1"
+        formControlName="gender"
+        [options]="genderOptions"
+        optionLabel="label"
+        optionValue="value"
+      />
+    </app-form-field>
+  } @else {
+    <app-form-field
+      id="identity-step-app-form-field-4"
+      label="Powód braku numeru PESEL"
+      for="noPeselReason"
+      [required]="true"
+      [control]="form().controls.noPeselReason"
+    >
+      <p-select
+        id="identity-step-no-pesel-reason"
+        inputId="noPeselReason"
+        formControlName="noPeselReason"
+        [options]="noPeselReasonOptions"
+        optionLabel="label"
+        optionValue="value"
+      />
+    </app-form-field>
+    <app-form-field id="identity-step-app-form-field-5" label="Typ dokumentu" for="documentType">
+      <p-select
+        id="identity-step-document-type"
+        inputId="documentType"
+        formControlName="documentType"
+        [options]="identityDocumentTypeOptions"
+        optionLabel="label"
+        optionValue="value"
+      />
+    </app-form-field>
+    <app-form-field
+      id="identity-step-app-form-field-6"
+      label="Numer dokumentu"
+      for="documentNumber"
+    >
+      <input pInputText id="documentNumber" formControlName="documentNumber" />
+    </app-form-field>
+    <app-form-field
+      id="identity-step-app-form-field-7"
+      label="Data urodzenia"
+      for="birthDate2"
+      [required]="true"
+      [control]="form().controls.birthDate"
+    >
+      <p-datepicker
+        id="identity-step-birth-date-2"
+        inputId="birthDate2"
+        formControlName="birthDate"
+        dateFormat="dd.mm.yy"
+      />
+    </app-form-field>
+    <app-form-field id="identity-step-app-form-field-8" label="Płeć" for="gender2">
+      <p-select
+        id="identity-step-gender-2"
+        inputId="gender2"
+        formControlName="gender"
+        [options]="genderOptions"
+        optionLabel="label"
+        optionValue="value"
+      />
+    </app-form-field>
+  }
+</form>

@@ -1,15 +1,21 @@
-<dl class="his-summary-list" [class.his-summary-list--1col]="columns() === 1">
-  @for (item of items(); track item.label) {
-    <div class="his-summary-list__row">
-      <dt>{{ item.label }}</dt>
-      <dd>
+<dl id="summary-list" class="his-summary-list" [class.his-summary-list--1col]="columns() === 1">
+  @for (item of items(); track item.label; let idx0 = $index) {
+    <div [id]="'summary-list-row-' + idx0" class="his-summary-list__row">
+      <dt [id]="'summary-list-dt-' + idx0">{{ item.label }}</dt>
+      <dd [id]="'summary-list-dd-' + idx0">
         @if (item.severity) {
-          <p-tag [value]="item.value ?? '—'" [severity]="item.severity" />
+          <p-tag
+            [id]="'summary-list-p-tag-' + idx0"
+            [value]="item.value ?? '—'"
+            [severity]="item.severity"
+          />
         } @else {
           {{ item.value ?? '—' }}
         }
         @if (item.hint) {
-          <span class="his-muted his-summary-list__hint">{{ item.hint }}</span>
+          <span [id]="'summary-list-muted-' + idx0" class="his-muted his-summary-list__hint">{{
+            item.hint
+          }}</span>
         }
       </dd>
     </div>

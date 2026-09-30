@@ -1,20 +1,21 @@
-<div class="his-page">
-  <div class="his-dashboard__greeting">
-    <div>
-      <h1 class="his-dashboard__greeting-title">
+<div id="dashboard-page" class="his-page">
+  <div id="dashboard-greeting" class="his-dashboard__greeting">
+    <div id="dashboard-div">
+      <h1 id="dashboard-greeting-title" class="his-dashboard__greeting-title">
         Dzień dobry, {{ staffService.currentUser().title }}
         {{ staffService.currentUser().lastName }}
       </h1>
-      <span class="his-muted">{{ today | date: 'EEEE, d MMMM y' }}</span>
+      <span id="dashboard-muted" class="his-muted">{{ today | date: 'EEEE, d MMMM y' }}</span>
     </div>
   </div>
 
-  <div class="his-card">
-    <app-patient-search (patientSelected)="goToPatient($event)" />
+  <div id="dashboard-card" class="his-card">
+    <app-patient-search id="dashboard-app-patient-search" (patientSelected)="goToPatient($event)" />
   </div>
 
-  <div class="his-grid-3 his-dashboard__stats">
+  <div id="dashboard-grid-3" class="his-grid-3 his-dashboard__stats">
     <app-stat-card
+      id="dashboard-app-stat-card"
       label="Pacjenci na oddziale"
       [value]="stats()?.admittedPatients ?? 0"
       icon="pi pi-users"
@@ -22,6 +23,7 @@
       link="/patients?status=admitted"
     />
     <app-stat-card
+      id="dashboard-app-stat-card-2"
       label="Nowe wyniki"
       [value]="stats()?.newResults ?? 0"
       icon="pi pi-chart-bar"
@@ -29,6 +31,7 @@
       link="/results"
     />
     <app-stat-card
+      id="dashboard-app-stat-card-3"
       label="Alerty krytyczne"
       [value]="stats()?.criticalAlerts ?? 0"
       icon="pi pi-exclamation-triangle"
@@ -36,6 +39,7 @@
       link="/messages?tab=alerts"
     />
     <app-stat-card
+      id="dashboard-app-stat-card-4"
       label="Moje zadania"
       [value]="stats()?.openTasks ?? 0"
       icon="pi pi-list-check"
@@ -43,6 +47,7 @@
       link="/messages?tab=tasks"
     />
     <app-stat-card
+      id="dashboard-app-stat-card-5"
       label="Oczekujące zlecenia"
       [value]="stats()?.pendingOrders ?? 0"
       icon="pi pi-send"
@@ -50,6 +55,7 @@
       link="/orders"
     />
     <app-stat-card
+      id="dashboard-app-stat-card-6"
       label="Odchylenia parametrów"
       [value]="stats()?.vitalsAnomalies ?? 0"
       icon="pi pi-heart"
@@ -58,50 +64,65 @@
     />
   </div>
 
-  <div class="his-card">
+  <div id="dashboard-card-2" class="his-card">
     <app-icon-action-group
+      id="dashboard-app-icon-action-group"
       [actions]="quickActions"
       [showLabels]="true"
       (action)="onQuickAction($event)"
     />
   </div>
 
-  <div class="his-section">
+  <div id="dashboard-section" class="his-section">
     <app-section-header
+      id="dashboard-app-section-header"
       title="Alerty krytyczne"
       icon="pi pi-exclamation-triangle"
       variant="danger"
       [count]="criticalAlerts().length"
     />
     @if (criticalAlerts().length === 0) {
-      <app-empty-state icon="pi pi-check-circle" title="Brak krytycznych alertów" />
+      <app-empty-state
+        id="dashboard-app-empty-state"
+        icon="pi pi-check-circle"
+        title="Brak krytycznych alertów"
+      />
     } @else {
-      <ul class="his-dashboard__alert-list">
-        @for (alert of criticalAlerts(); track alert.id) {
-          <li>
+      <ul id="dashboard-alert-list" class="his-dashboard__alert-list">
+        @for (alert of criticalAlerts(); track alert.id; let idx0 = $index) {
+          <li [id]="'dashboard-li-' + idx0">
             @if (alert.link) {
-              <a [routerLink]="alert.link">{{ alert.message }}</a>
+              <a [id]="'dashboard-a-' + idx0" [routerLink]="alert.link">{{ alert.message }}</a>
             } @else if (alert.patientId) {
-              <a [routerLink]="['/patients', alert.patientId]">{{ alert.message }}</a>
+              <a [id]="'dashboard-a-2-' + idx0" [routerLink]="['/patients', alert.patientId]">{{
+                alert.message
+              }}</a>
             } @else {
-              <span>{{ alert.message }}</span>
+              <span [id]="'dashboard-span-' + idx0">{{ alert.message }}</span>
             }
-            <span class="his-muted">{{ alert.createdAt | date: 'dd.MM.yyyy HH:mm' }}</span>
+            <span [id]="'dashboard-muted-2-' + idx0" class="his-muted">{{
+              alert.createdAt | date: 'dd.MM.yyyy HH:mm'
+            }}</span>
           </li>
         }
       </ul>
     }
   </div>
 
-  <div class="his-section">
+  <div id="dashboard-section-2" class="his-section">
     <app-section-header
+      id="dashboard-app-section-header-2"
       title="Moje zadania na dziś"
       icon="pi pi-list-check"
       variant="primary"
       [count]="myTasks().length"
     />
     @if (myTasks().length === 0) {
-      <app-empty-state icon="pi pi-check-circle" title="Brak przydzielonych zadań" />
+      <app-empty-state
+        id="dashboard-app-empty-state-2"
+        icon="pi pi-check-circle"
+        title="Brak przydzielonych zadań"
+      />
     } @else {
       <app-data-table
         id="dashboard-tasks-table"
@@ -112,52 +133,75 @@
     }
   </div>
 
-  <div class="his-section">
-    <app-section-header title="Ostatnio przeglądani pacjenci" icon="pi pi-history" variant="navy" />
+  <div id="dashboard-section-3" class="his-section">
+    <app-section-header
+      id="dashboard-app-section-header-3"
+      title="Ostatnio przeglądani pacjenci"
+      icon="pi pi-history"
+      variant="navy"
+    />
     @if (ctx.recentPatients().length > 0) {
-      <ul class="his-dashboard__patient-list">
-        @for (p of ctx.recentPatients(); track p.id) {
-          <li>
-            <a [routerLink]="['/patients', p.id, 'overview']">
-              <span>{{ p | fullName }}</span>
-              <span class="his-muted">{{ p.pesel ?? 'brak PESEL' }} · {{ p.birthDate | age }}</span>
+      <ul id="dashboard-patient-list" class="his-dashboard__patient-list">
+        @for (p of ctx.recentPatients(); track p.id; let idx0 = $index) {
+          <li [id]="'dashboard-li-2-' + idx0">
+            <a [id]="'dashboard-a-3-' + idx0" [routerLink]="['/patients', p.id, 'overview']">
+              <span [id]="'dashboard-span-2-' + idx0">{{ p | fullName }}</span>
+              <span [id]="'dashboard-muted-3-' + idx0" class="his-muted"
+                >{{ p.pesel ?? 'brak PESEL' }} · {{ p.birthDate | age }}</span
+              >
             </a>
           </li>
         }
       </ul>
     } @else if (fallbackAdmitted().length > 0) {
-      <ul class="his-dashboard__patient-list">
-        @for (p of fallbackAdmitted(); track p.id) {
-          <li>
-            <a [routerLink]="['/patients', p.id, 'overview']">
-              <span>{{ p | fullName }}</span>
-              <span class="his-muted">{{ p.pesel ?? 'brak PESEL' }} · {{ p.birthDate | age }}</span>
+      <ul id="dashboard-patient-list-2" class="his-dashboard__patient-list">
+        @for (p of fallbackAdmitted(); track p.id; let idx0 = $index) {
+          <li [id]="'dashboard-li-3-' + idx0">
+            <a [id]="'dashboard-a-4-' + idx0" [routerLink]="['/patients', p.id, 'overview']">
+              <span [id]="'dashboard-span-3-' + idx0">{{ p | fullName }}</span>
+              <span [id]="'dashboard-muted-4-' + idx0" class="his-muted"
+                >{{ p.pesel ?? 'brak PESEL' }} · {{ p.birthDate | age }}</span
+              >
             </a>
           </li>
         }
       </ul>
     } @else {
-      <app-empty-state icon="pi pi-users" title="Brak ostatnio przeglądanych pacjentów" />
+      <app-empty-state
+        id="dashboard-app-empty-state-3"
+        icon="pi pi-users"
+        title="Brak ostatnio przeglądanych pacjentów"
+      />
     }
   </div>
 
-  <div class="his-section">
+  <div id="dashboard-section-4" class="his-section">
     <app-section-header
+      id="dashboard-app-section-header-4"
       title="Nieprawidłowe wyniki"
       icon="pi pi-chart-bar"
       variant="warn"
       [count]="abnormalResults().length"
     />
     @if (abnormalResults().length === 0) {
-      <app-empty-state icon="pi pi-check-circle" title="Brak nieprawidłowych wyników" />
+      <app-empty-state
+        id="dashboard-app-empty-state-4"
+        icon="pi pi-check-circle"
+        title="Brak nieprawidłowych wyników"
+      />
     } @else {
-      <ul class="his-dashboard__result-list">
-        @for (r of abnormalResults(); track r.id) {
-          <li>
-            <a [routerLink]="['/patients', r.patientId, 'results', 'lab', r.id]">
+      <ul id="dashboard-result-list" class="his-dashboard__result-list">
+        @for (r of abnormalResults(); track r.id; let idx0 = $index) {
+          <li [id]="'dashboard-li-4-' + idx0">
+            <a
+              [id]="'dashboard-a-5-' + idx0"
+              [routerLink]="['/patients', r.patientId, 'results', 'lab', r.id]"
+            >
               {{ r.testName }} — {{ r.patient | fullName }}
             </a>
-            <span class="his-muted">{{ r.resultedAt | date: 'dd.MM.yyyy HH:mm' }}</span>
+            <span [id]="'dashboard-muted-5-' + idx0" class="his-muted">{{
+              r.resultedAt | date: 'dd.MM.yyyy HH:mm'
+            }}</span>
           </li>
         }
       </ul>

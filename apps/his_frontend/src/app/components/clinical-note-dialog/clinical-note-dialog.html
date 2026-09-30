@@ -1,4 +1,5 @@
 <p-dialog
+  id="clinical-note-dialog-p-dialog"
   header="Dodaj notatkę kliniczną"
   [visible]="visible()"
   [modal]="true"
@@ -6,9 +7,15 @@
   (visibleChange)="visibleChange.emit($event)"
   (onHide)="onHide()"
 >
-  <form [formGroup]="form" class="his-form-grid">
-    <app-form-field label="Kategoria" [required]="true" [control]="form.controls.category">
+  <form id="clinical-note-dialog-form-grid" [formGroup]="form" class="his-form-grid">
+    <app-form-field
+      id="clinical-note-dialog-app-form-field"
+      label="Kategoria"
+      [required]="true"
+      [control]="form.controls.category"
+    >
       <p-select
+        id="clinical-note-dialog-category"
         [options]="categoryOptions"
         formControlName="category"
         optionLabel="label"
@@ -18,13 +25,29 @@
       />
     </app-form-field>
 
-    <app-form-field label="Tytuł" [required]="true" [control]="form.controls.title">
-      <input pInputText formControlName="title" class="his-full-width" />
+    <app-form-field
+      id="clinical-note-dialog-app-form-field-2"
+      label="Tytuł"
+      [required]="true"
+      [control]="form.controls.title"
+    >
+      <input
+        id="clinical-note-dialog-title"
+        pInputText
+        formControlName="title"
+        class="his-full-width"
+      />
     </app-form-field>
 
-    <div class="his-form-grid__full">
-      <app-form-field label="Treść" [required]="true" [control]="form.controls.content">
+    <div id="clinical-note-dialog-form-grid-full" class="his-form-grid__full">
+      <app-form-field
+        id="clinical-note-dialog-app-form-field-3"
+        label="Treść"
+        [required]="true"
+        [control]="form.controls.content"
+      >
         <textarea
+          id="clinical-note-dialog-content"
           pTextarea
           formControlName="content"
           rows="5"
@@ -34,9 +57,14 @@
       </app-form-field>
     </div>
 
-    <div class="his-form-grid__full">
-      <app-form-field label="Objawy" [control]="form.controls.symptoms">
+    <div id="clinical-note-dialog-form-grid-full-2" class="his-form-grid__full">
+      <app-form-field
+        id="clinical-note-dialog-app-form-field-4"
+        label="Objawy"
+        [control]="form.controls.symptoms"
+      >
         <p-multiselect
+          id="clinical-note-dialog-symptoms"
           [options]="symptomOptions"
           formControlName="symptoms"
           optionLabel="label"
@@ -50,9 +78,20 @@
   </form>
 
   <ng-template #footer>
-    <div class="his-dialog-footer">
-      <p-button label="Anuluj" severity="secondary" [text]="true" (onClick)="onCancel()" />
-      <p-button label="Zapisz notatkę" icon="pi pi-check" (onClick)="onSave()" />
+    <div id="clinical-note-dialog-dialog-footer" class="his-dialog-footer">
+      <p-button
+        id="clinical-note-dialog-p-button"
+        label="Anuluj"
+        severity="secondary"
+        [text]="true"
+        (onClick)="onCancel()"
+      />
+      <p-button
+        id="clinical-note-dialog-p-button-2"
+        label="Zapisz notatkę"
+        icon="pi pi-check"
+        (onClick)="onSave()"
+      />
     </div>
   </ng-template>
 </p-dialog>

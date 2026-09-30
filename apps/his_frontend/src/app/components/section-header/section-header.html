@@ -1,14 +1,14 @@
-<div class="his-section-header" [class]="'his-section-header--' + variant()">
-  <div class="his-section-header__title">
+<div id="section-header" class="his-section-header" [class]="'his-section-header--' + variant()">
+  <div id="section-header-title" class="his-section-header__title">
     @if (icon()) {
-      <i [class]="icon()"></i>
+      <i id="section-header-i" [class]="icon()"></i>
     }
-    <span>{{ title() }}</span>
+    <span id="section-header-span">{{ title() }}</span>
     @if (count(); as c) {
-      <span class="his-section-header__count">{{ c }}</span>
+      <span id="section-header-count" class="his-section-header__count">{{ c }}</span>
     }
   </div>
-  <div class="his-section-header__actions">
+  <div id="section-header-actions" class="his-section-header__actions">
     <ng-content select="[actions]" />
   </div>
 </div>

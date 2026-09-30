@@ -1,117 +1,180 @@
 @if (inProgressEncounter(); as active) {
-  <div class="his-section his-summary-cards__active">
-    <app-section-header title="Wizyta w trakcie" icon="pi pi-clock" variant="warn" />
-    <div class="his-summary-cards__active-body">
-      <span>{{ active.type | label: 'encounterType' }}</span>
-      <span class="his-muted">{{ active.startAt | date: 'dd.MM.yyyy HH:mm' }}</span>
-      <span>{{ active.practitionerId | staffName }}</span>
-      <span>{{ active.reason }}</span>
+  <div id="ehr-summary-cards-section" class="his-section his-summary-cards__active">
+    <app-section-header
+      id="ehr-summary-cards-app-section-header"
+      title="Wizyta w trakcie"
+      icon="pi pi-clock"
+      variant="warn"
+    />
+    <div id="ehr-summary-cards-summary-cards-active-body" class="his-summary-cards__active-body">
+      <span id="ehr-summary-cards-span">{{ active.type | label: 'encounterType' }}</span>
+      <span id="ehr-summary-cards-muted" class="his-muted">{{
+        active.startAt | date: 'dd.MM.yyyy HH:mm'
+      }}</span>
+      <span id="ehr-summary-cards-span-2">{{ active.practitionerId | staffName }}</span>
+      <span id="ehr-summary-cards-span-3">{{ active.reason }}</span>
     </div>
   </div>
 }
 
-<div class="his-grid-2">
-  <div class="his-section">
-    <app-section-header title="Ostatnie rozpoznania" icon="pi pi-book" />
+<div id="ehr-summary-cards-grid-2" class="his-grid-2">
+  <div id="ehr-summary-cards-section-2" class="his-section">
+    <app-section-header
+      id="ehr-summary-cards-app-section-header-2"
+      title="Ostatnie rozpoznania"
+      icon="pi pi-book"
+    />
     @if (summary().recentDiagnoses.length) {
-      <table class="his-summary-table">
-        <thead>
-          <tr>
-            <th>Kod</th>
-            <th>Jednostka chorobowa</th>
-            <th>Data</th>
+      <table id="ehr-summary-cards-summary-table" class="his-summary-table">
+        <thead id="ehr-summary-cards-thead">
+          <tr id="ehr-summary-cards-tr">
+            <th id="ehr-summary-cards-th">Kod</th>
+            <th id="ehr-summary-cards-th-2">Jednostka chorobowa</th>
+            <th id="ehr-summary-cards-th-3">Data</th>
           </tr>
         </thead>
-        <tbody>
-          @for (d of summary().recentDiagnoses; track trackDiagnosis($index, d)) {
-            <tr>
-              <td>{{ d.code.code }}</td>
-              <td>{{ d.code.display }}</td>
-              <td>{{ d.diagnosedAt | date: 'dd.MM.yyyy' }}</td>
+        <tbody id="ehr-summary-cards-tbody">
+          @for (
+            d of summary().recentDiagnoses;
+            track trackDiagnosis($index, d);
+            let idx0 = $index
+          ) {
+            <tr [id]="'ehr-summary-cards-tr-2-' + idx0">
+              <td [id]="'ehr-summary-cards-td-' + idx0">{{ d.code.code }}</td>
+              <td [id]="'ehr-summary-cards-td-2-' + idx0">{{ d.code.display }}</td>
+              <td [id]="'ehr-summary-cards-td-3-' + idx0">
+                {{ d.diagnosedAt | date: 'dd.MM.yyyy' }}
+              </td>
             </tr>
           }
         </tbody>
       </table>
     } @else {
-      <app-empty-state title="Brak rozpoznań" icon="pi pi-book" />
+      <app-empty-state
+        id="ehr-summary-cards-app-empty-state"
+        title="Brak rozpoznań"
+        icon="pi pi-book"
+      />
     }
   </div>
 
-  <div class="his-section">
-    <app-section-header title="Leki stałe" icon="pi pi-file-edit" />
+  <div id="ehr-summary-cards-section-3" class="his-section">
+    <app-section-header
+      id="ehr-summary-cards-app-section-header-3"
+      title="Leki stałe"
+      icon="pi pi-file-edit"
+    />
     @if (summary().activeMedications.length) {
-      <table class="his-summary-table">
-        <thead>
-          <tr>
-            <th>Lek</th>
-            <th>Dawka</th>
-            <th>Częstość</th>
+      <table id="ehr-summary-cards-summary-table-2" class="his-summary-table">
+        <thead id="ehr-summary-cards-thead-2">
+          <tr id="ehr-summary-cards-tr-3">
+            <th id="ehr-summary-cards-th-4">Lek</th>
+            <th id="ehr-summary-cards-th-5">Dawka</th>
+            <th id="ehr-summary-cards-th-6">Częstość</th>
           </tr>
         </thead>
-        <tbody>
-          @for (m of summary().activeMedications; track m.drugId) {
-            <tr>
-              <td>{{ m.drugName }} {{ m.strength }}</td>
-              <td>{{ m.dosage.dose }} {{ m.dosage.doseUnit }}</td>
-              <td>{{ m.dosage.frequency | label: 'frequency' }}</td>
+        <tbody id="ehr-summary-cards-tbody-2">
+          @for (m of summary().activeMedications; track m.drugId; let idx0 = $index) {
+            <tr [id]="'ehr-summary-cards-tr-4-' + idx0">
+              <td [id]="'ehr-summary-cards-td-4-' + idx0">{{ m.drugName }} {{ m.strength }}</td>
+              <td [id]="'ehr-summary-cards-td-5-' + idx0">
+                {{ m.dosage.dose }} {{ m.dosage.doseUnit }}
+              </td>
+              <td [id]="'ehr-summary-cards-td-6-' + idx0">
+                {{ m.dosage.frequency | label: 'frequency' }}
+              </td>
             </tr>
           }
         </tbody>
       </table>
     } @else {
-      <app-empty-state title="Brak leków stałych" icon="pi pi-file-edit" />
+      <app-empty-state
+        id="ehr-summary-cards-app-empty-state-2"
+        title="Brak leków stałych"
+        icon="pi pi-file-edit"
+      />
     }
   </div>
 
-  <div class="his-section">
-    <app-section-header title="Choroby przewlekłe" icon="pi pi-heart" />
+  <div id="ehr-summary-cards-section-4" class="his-section">
+    <app-section-header
+      id="ehr-summary-cards-app-section-header-4"
+      title="Choroby przewlekłe"
+      icon="pi pi-heart"
+    />
     @if (summary().chronicConditions.length) {
-      <table class="his-summary-table">
-        <thead>
-          <tr>
-            <th>Kod</th>
-            <th>Jednostka chorobowa</th>
-            <th>Data</th>
+      <table id="ehr-summary-cards-summary-table-3" class="his-summary-table">
+        <thead id="ehr-summary-cards-thead-3">
+          <tr id="ehr-summary-cards-tr-5">
+            <th id="ehr-summary-cards-th-7">Kod</th>
+            <th id="ehr-summary-cards-th-8">Jednostka chorobowa</th>
+            <th id="ehr-summary-cards-th-9">Data</th>
           </tr>
         </thead>
-        <tbody>
-          @for (d of summary().chronicConditions; track trackDiagnosis($index, d)) {
-            <tr>
-              <td>{{ d.code.code }}</td>
-              <td>{{ d.code.display }}</td>
-              <td>{{ d.diagnosedAt | date: 'dd.MM.yyyy' }}</td>
+        <tbody id="ehr-summary-cards-tbody-3">
+          @for (
+            d of summary().chronicConditions;
+            track trackDiagnosis($index, d);
+            let idx0 = $index
+          ) {
+            <tr [id]="'ehr-summary-cards-tr-6-' + idx0">
+              <td [id]="'ehr-summary-cards-td-7-' + idx0">{{ d.code.code }}</td>
+              <td [id]="'ehr-summary-cards-td-8-' + idx0">{{ d.code.display }}</td>
+              <td [id]="'ehr-summary-cards-td-9-' + idx0">
+                {{ d.diagnosedAt | date: 'dd.MM.yyyy' }}
+              </td>
             </tr>
           }
         </tbody>
       </table>
     } @else {
-      <app-empty-state title="Brak chorób przewlekłych" icon="pi pi-heart" />
+      <app-empty-state
+        id="ehr-summary-cards-app-empty-state-3"
+        title="Brak chorób przewlekłych"
+        icon="pi pi-heart"
+      />
     }
   </div>
 
-  <div class="his-section">
-    <app-section-header title="Ostatnie wizyty" icon="pi pi-calendar-clock" />
+  <div id="ehr-summary-cards-section-5" class="his-section">
+    <app-section-header
+      id="ehr-summary-cards-app-section-header-5"
+      title="Ostatnie wizyty"
+      icon="pi pi-calendar-clock"
+    />
     @if (summary().recentEncounters.length) {
-      <table class="his-summary-table">
-        <thead>
-          <tr>
-            <th>Typ</th>
-            <th>Data</th>
-            <th>Lekarz prowadzący</th>
+      <table id="ehr-summary-cards-summary-table-4" class="his-summary-table">
+        <thead id="ehr-summary-cards-thead-4">
+          <tr id="ehr-summary-cards-tr-7">
+            <th id="ehr-summary-cards-th-10">Typ</th>
+            <th id="ehr-summary-cards-th-11">Data</th>
+            <th id="ehr-summary-cards-th-12">Lekarz prowadzący</th>
           </tr>
         </thead>
-        <tbody>
-          @for (e of summary().recentEncounters; track trackEncounter($index, e)) {
-            <tr>
-              <td>{{ e.type | label: 'encounterType' }}</td>
-              <td>{{ e.startAt | date: 'dd.MM.yyyy HH:mm' }}</td>
-              <td>{{ e.practitionerId | staffName }}</td>
+        <tbody id="ehr-summary-cards-tbody-4">
+          @for (
+            e of summary().recentEncounters;
+            track trackEncounter($index, e);
+            let idx0 = $index
+          ) {
+            <tr [id]="'ehr-summary-cards-tr-8-' + idx0">
+              <td [id]="'ehr-summary-cards-td-10-' + idx0">
+                {{ e.type | label: 'encounterType' }}
+              </td>
+              <td [id]="'ehr-summary-cards-td-11-' + idx0">
+                {{ e.startAt | date: 'dd.MM.yyyy HH:mm' }}
+              </td>
+              <td [id]="'ehr-summary-cards-td-12-' + idx0">{{ e.practitionerId | staffName }}</td>
             </tr>
           }
         </tbody>
       </table>
     } @else {
-      <app-empty-state title="Brak wizyt" icon="pi pi-calendar-clock" />
+      <app-empty-state
+        id="ehr-summary-cards-app-empty-state-4"
+        title="Brak wizyt"
+        icon="pi pi-calendar-clock"
+      />
     }
   </div>
 </div>

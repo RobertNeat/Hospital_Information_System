@@ -51,6 +51,12 @@ describe('PrescriptionService', () => {
   it('getActiveMedications returns items only from issued/partially_dispensed, non-expired prescriptions', async () => {
     const items = await firstValueFrom(service.getActiveMedications('pat-001'));
     expect(items.length).toBeGreaterThan(0);
+    const all = await firstValueFrom(service.getPrescriptions({ patientId: 'pat-001' }));
+    for (const item of items) {
+      const origin = all.find((p) => p.id === item.prescriptionId);
+      expect(origin).toBeDefined();
+      expect(item.date).toBe(origin?.validFrom);
+    }
   });
 
   it('issuePrescription generates a 4-digit accessCode and 44-char eRxKey, and persists', async () => {

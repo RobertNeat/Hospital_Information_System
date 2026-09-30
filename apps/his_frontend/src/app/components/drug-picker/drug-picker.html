@@ -1,4 +1,5 @@
 <p-autocomplete
+  id="drug-picker-p-autocomplete"
   [ngModel]="selected()"
   (ngModelChange)="onSelect($event)"
   [suggestions]="suggestions()"
@@ -12,20 +13,24 @@
   ariaLabel="Wyszukaj lek"
 >
   <ng-template #item let-drug>
-    <div class="his-drug-picker__item">
-      <div class="his-drug-picker__item-main">
-        <span class="his-drug-picker__name">{{ drug.name }}</span>
+    <div [id]="'drug-picker-item-' + drug.id" class="his-drug-picker__item">
+      <div [id]="'drug-picker-item-main-' + drug.id" class="his-drug-picker__item-main">
+        <span [id]="'drug-picker-name-' + drug.id" class="his-drug-picker__name">{{
+          drug.name
+        }}</span>
         @if (drug.rxOnly) {
-          <p-tag value="Rp" severity="warn" />
+          <p-tag [id]="'drug-picker-p-tag-' + drug.id" value="Rp" severity="warn" />
         }
       </div>
-      <div class="his-drug-picker__item-details">
+      <div [id]="'drug-picker-item-details-' + drug.id" class="his-drug-picker__item-details">
         {{ drug.activeSubstance }} · {{ drug.strength }} · {{ drug.form | label: 'drugForm' }} · ATC
         {{ drug.atcCode }}
       </div>
     </div>
   </ng-template>
   <ng-template #empty>
-    <div class="his-muted">{{ searching() ? 'Szukiwanie...' : 'Brak wyników.' }}</div>
+    <div id="drug-picker-muted" class="his-muted">
+      {{ searching() ? 'Szukiwanie...' : 'Brak wyników.' }}
+    </div>
   </ng-template>
 </p-autocomplete>

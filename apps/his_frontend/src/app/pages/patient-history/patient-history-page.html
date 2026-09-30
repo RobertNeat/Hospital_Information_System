@@ -1,58 +1,100 @@
-<div class="his-page">
-  <app-page-header title="Historia choroby" icon="pi pi-book" />
+<div id="patient-history-page" class="his-page">
+  <app-page-header
+    id="patient-history-app-page-header"
+    title="Historia choroby"
+    icon="pi pi-book"
+  />
 
-  <p-tabs [value]="activeTab()" (valueChange)="onTabChange($event)">
-    <p-tablist>
-      <p-tab value="overview">Przegląd</p-tab>
-      <p-tab value="encounters">Wizyty i epizody leczenia</p-tab>
-      <p-tab value="notes">Notatki kliniczne</p-tab>
-      <p-tab value="diagnoses">Rozpoznania</p-tab>
-      <p-tab value="treatments">Leczenie / Terapia</p-tab>
-      <p-tab value="allergies">Alergie i przeciwwskazania</p-tab>
+  <p-tabs id="patient-history-p-tabs" [value]="activeTab()" (valueChange)="onTabChange($event)">
+    <p-tablist id="patient-history-p-tablist">
+      <p-tab id="patient-history-p-tab" value="overview">Przegląd</p-tab>
+      <p-tab id="patient-history-p-tab-2" value="encounters">Wizyty i epizody leczenia</p-tab>
+      <p-tab id="patient-history-p-tab-3" value="notes">Notatki kliniczne</p-tab>
+      <p-tab id="patient-history-p-tab-4" value="diagnoses">Rozpoznania</p-tab>
+      <p-tab id="patient-history-p-tab-5" value="treatments">Leczenie / Terapia</p-tab>
+      <p-tab id="patient-history-p-tab-6" value="allergies">Alergie i przeciwwskazania</p-tab>
     </p-tablist>
 
-    <p-tabpanels>
+    <p-tabpanels id="patient-history-p-tabpanels">
       <!-- Przegląd -->
-      <p-tabpanel value="overview">
+      <p-tabpanel id="patient-history-p-tabpanel" value="overview">
         @if (summary(); as s) {
-          <app-ehr-summary-cards [summary]="s" [encounters]="encounters()" />
+          <app-ehr-summary-cards
+            id="patient-history-app-ehr-summary-cards"
+            [summary]="s"
+            [encounters]="encounters()"
+          />
         } @else {
-          <app-empty-state title="Brak danych" message="Ładowanie danych pacjenta..." />
+          <app-empty-state
+            id="patient-history-app-empty-state"
+            title="Brak danych"
+            message="Ładowanie danych pacjenta..."
+          />
         }
       </p-tabpanel>
 
       <!-- Wizyty i epizody leczenia -->
-      <p-tabpanel value="encounters">
+      <p-tabpanel id="patient-history-p-tabpanel-2" value="encounters">
         @if (episodeGroups().length) {
-          <div class="his-episode-groups">
-            @for (group of episodeGroups(); track trackEpisode($index, group)) {
-              <div class="his-section his-episode-group">
+          <div id="patient-history-episode-groups" class="his-episode-groups">
+            @for (group of episodeGroups(); track trackEpisode($index, group); let idx0 = $index) {
+              <div [id]="'patient-history-section-' + idx0" class="his-section his-episode-group">
                 <app-section-header
+                  [id]="'patient-history-app-section-header-' + idx0"
                   [title]="group.episode?.title ?? 'Wizyty bez przypisanego epizodu'"
                   icon="pi pi-calendar-clock"
                   [variant]="group.episode?.status === 'active' ? 'warn' : 'navy'"
                 />
-                <div class="his-episode-group__body">
-                  <p-timeline [value]="group.encounters" align="left">
+                <div
+                  [id]="'patient-history-episode-group-body-' + idx0"
+                  class="his-episode-group__body"
+                >
+                  <p-timeline
+                    [id]="'patient-history-p-timeline-' + idx0"
+                    [value]="group.encounters"
+                    align="left"
+                  >
                     <ng-template pTemplate="content" let-encounter>
-                      <div class="his-timeline-entry">
-                        <div class="his-timeline-entry__header">
+                      <div
+                        [id]="'patient-history-timeline-entry-' + idx0 + '-' + encounter.id"
+                        class="his-timeline-entry"
+                      >
+                        <div
+                          [id]="
+                            'patient-history-timeline-entry-header-' + idx0 + '-' + encounter.id
+                          "
+                          class="his-timeline-entry__header"
+                        >
                           <strong>{{ encounter.type | label: 'encounterType' }}</strong>
-                          <span class="his-chip">{{
-                            encounter.status | label: 'encounterStatus'
-                          }}</span>
+                          <app-status-tag
+                            [id]="'patient-history-app-status-tag-' + idx0 + '-' + encounter.id"
+                            kind="encounterStatus"
+                            [value]="encounter.status"
+                          />
                         </div>
-                        <div class="his-muted">
+                        <div
+                          [id]="'patient-history-muted-' + idx0 + '-' + encounter.id"
+                          class="his-muted"
+                        >
                           {{ encounter.startAt | date: 'dd.MM.yyyy HH:mm' }}
                           @if (departmentName(encounter.wardId); as dept) {
                             · {{ dept }}
                           }
                         </div>
-                        <div>{{ encounter.practitionerId | staffName }}</div>
+                        <div [id]="'patient-history-div-' + idx0 + '-' + encounter.id">
+                          {{ encounter.practitionerId | staffName }}
+                        </div>
                         @if (encounter.summary) {
-                          <p>{{ encounter.summary }}</p>
+                          <p [id]="'patient-history-p-' + idx0 + '-' + encounter.id">
+                            {{ encounter.summary }}
+                          </p>
                         } @else {
-                          <p class="his-muted">{{ encounter.reason }}</p>
+                          <p
+                            [id]="'patient-history-muted-2-' + idx0 + '-' + encounter.id"
+                            class="his-muted"
+                          >
+                            {{ encounter.reason }}
+                          </p>
                         }
                       </div>
                     </ng-template>
@@ -63,6 +105,7 @@
           </div>
         } @else {
           <app-empty-state
+            id="patient-history-app-empty-state-2"
             icon="pi pi-calendar-clock"
             title="Brak wizyt"
             message="Nie odnotowano wizyt ani epizodów leczenia."
@@ -71,9 +114,10 @@
       </p-tabpanel>
 
       <!-- Notatki kliniczne -->
-      <p-tabpanel value="notes">
-        <div class="his-toolbar">
+      <p-tabpanel id="patient-history-p-tabpanel-3" value="notes">
+        <div id="patient-history-toolbar" class="his-toolbar">
           <p-select
+            id="patient-history-notes-filter"
             [options]="noteCategoryOptions"
             [(ngModel)]="noteCategoryFilterValue"
             optionLabel="label"
@@ -83,6 +127,7 @@
             class="his-notes-filter"
           />
           <p-button
+            id="patient-history-p-button"
             label="Dodaj notatkę"
             icon="pi pi-plus"
             ariaLabel="Dodaj notatkę kliniczną"
@@ -91,28 +136,43 @@
         </div>
 
         @if (filteredNotes().length) {
-          <div class="his-notes-list">
-            @for (note of filteredNotes(); track note.id) {
-              <div class="his-card his-note-card">
-                <div class="his-note-card__header">
-                  <span class="his-chip">{{ note.category | label: 'noteCategory' }}</span>
-                  <span class="his-muted">{{ note.createdAt | date: 'dd.MM.yyyy HH:mm' }}</span>
+          <div id="patient-history-notes-list" class="his-notes-list">
+            @for (note of filteredNotes(); track note.id; let idx0 = $index) {
+              <div [id]="'patient-history-card-' + idx0" class="his-card his-note-card">
+                <div
+                  [id]="'patient-history-note-card-header-' + idx0"
+                  class="his-note-card__header"
+                >
+                  <span [id]="'patient-history-chip-' + idx0" class="his-chip">{{
+                    note.category | label: 'noteCategory'
+                  }}</span>
+                  <span [id]="'patient-history-muted-3-' + idx0" class="his-muted">{{
+                    note.createdAt | date: 'dd.MM.yyyy HH:mm'
+                  }}</span>
                 </div>
-                <h4>{{ note.title }}</h4>
-                <p>{{ note.content }}</p>
+                <h4 [id]="'patient-history-h4-' + idx0">{{ note.title }}</h4>
+                <p [id]="'patient-history-p-2-' + idx0">{{ note.content }}</p>
                 @if (note.symptoms?.length) {
-                  <div class="his-note-card__symptoms">
-                    @for (s of note.symptoms; track s) {
-                      <span class="his-chip">{{ s }}</span>
+                  <div
+                    [id]="'patient-history-note-card-symptoms-' + idx0"
+                    class="his-note-card__symptoms"
+                  >
+                    @for (s of note.symptoms; track s; let idx1 = $index) {
+                      <span [id]="'patient-history-chip-2-' + idx0 + '-' + idx1" class="his-chip">{{
+                        s
+                      }}</span>
                     }
                   </div>
                 }
-                <div class="his-muted">{{ note.authorId | staffName }}</div>
+                <div [id]="'patient-history-muted-4-' + idx0" class="his-muted">
+                  {{ note.authorId | staffName }}
+                </div>
               </div>
             }
           </div>
         } @else {
           <app-empty-state
+            id="patient-history-app-empty-state-3"
             icon="pi pi-comments"
             title="Brak notatek"
             message="Brak notatek w tej kategorii."
@@ -121,7 +181,7 @@
       </p-tabpanel>
 
       <!-- Rozpoznania -->
-      <p-tabpanel value="diagnoses">
+      <p-tabpanel id="patient-history-p-tabpanel-4" value="diagnoses">
         @if (diagnoses().length) {
           <app-data-table
             id="patient-history-diagnoses-table"
@@ -142,7 +202,11 @@
                   {{ row.type | label: 'diagnosisType' }}
                 }
                 @case ('status') {
-                  {{ row.status | label: 'diagnosisStatus' }}
+                  <app-status-tag
+                    [id]="'patient-history-app-status-tag-2-' + row.id"
+                    kind="diagnosisStatus"
+                    [value]="row.status"
+                  />
                 }
                 @case ('diagnosedById') {
                   {{ row.diagnosedById | staffName }}
@@ -151,12 +215,16 @@
             </ng-template>
           </app-data-table>
         } @else {
-          <app-empty-state icon="pi pi-book" title="Brak rozpoznań" />
+          <app-empty-state
+            id="patient-history-app-empty-state-4"
+            icon="pi pi-book"
+            title="Brak rozpoznań"
+          />
         }
       </p-tabpanel>
 
       <!-- Leczenie / Terapia -->
-      <p-tabpanel value="treatments">
+      <p-tabpanel id="patient-history-p-tabpanel-5" value="treatments">
         @if (treatments().length) {
           <app-data-table
             id="patient-history-treatments-table"
@@ -181,6 +249,7 @@
           </app-data-table>
         } @else {
           <app-empty-state
+            id="patient-history-app-empty-state-5"
             icon="pi pi-file-edit"
             title="Brak leczenia"
             message="Brak odnotowanych terapii."
@@ -189,88 +258,20 @@
       </p-tabpanel>
 
       <!-- Alergie i przeciwwskazania -->
-      <p-tabpanel value="allergies">
-        @if (lifeThreateningAllergies().length) {
-          <p-message severity="error" [closable]="false">
-            Pacjent posiada alergie zagrażające życiu:
-            {{ lifeThreateningAllergies().length }}
-            @for (a of lifeThreateningAllergies(); track a.id) {
-              — {{ a.substance }} ({{ a.reaction }})
-            }
-          </p-message>
-        }
-
-        <div class="his-grid-2">
-          <div class="his-section">
-            <app-section-header
-              title="Alergie"
-              icon="pi pi-exclamation-triangle"
-              variant="danger"
-            />
-            @if (allergies().length) {
-              <table class="his-summary-table">
-                <thead>
-                  <tr>
-                    <th>Substancja</th>
-                    <th>Kategoria</th>
-                    <th>Reakcja</th>
-                    <th>Nasilenie</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (a of allergies(); track a.id) {
-                    <tr>
-                      <td>{{ a.substance }}</td>
-                      <td>{{ a.category | label: 'allergyCategory' }}</td>
-                      <td>{{ a.reaction }}</td>
-                      <td><app-status-tag kind="allergySeverity" [value]="a.severity" /></td>
-                      <td>{{ a.status === 'active' ? 'Aktywna' : 'Nieaktywna' }}</td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
-            } @else {
-              <app-empty-state icon="pi pi-exclamation-triangle" title="Brak alergii" />
-            }
-          </div>
-
-          <div class="his-section">
-            <app-section-header
-              title="Przeciwwskazania"
-              icon="pi pi-exclamation-triangle"
-              variant="warn"
-            />
-            @if (contraindications().length) {
-              <table class="his-summary-table">
-                <thead>
-                  <tr>
-                    <th>Opis</th>
-                    <th>Powód</th>
-                    <th>Data</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (c of contraindications(); track c.id) {
-                    <tr>
-                      <td>{{ c.description }}</td>
-                      <td>{{ c.reason }}</td>
-                      <td>{{ c.recordedAt | date: 'dd.MM.yyyy' }}</td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
-            } @else {
-              <app-empty-state icon="pi pi-exclamation-triangle" title="Brak przeciwwskazań" />
-            }
-          </div>
-        </div>
+      <p-tabpanel id="patient-history-p-tabpanel-6" value="allergies">
+        <app-history-allergies-panel
+          id="patient-history-allergies-panel"
+          [allergies]="allergies()"
+          [contraindications]="contraindications()"
+          [lifeThreatening]="lifeThreateningAllergies()"
+        />
       </p-tabpanel>
     </p-tabpanels>
   </p-tabs>
 </div>
 
 <app-clinical-note-dialog
+  id="patient-history-app-clinical-note-dialog"
   [visible]="noteDialogVisible()"
   [patientId]="patientId()"
   [authorId]="currentUserId()"

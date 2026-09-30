@@ -1,7 +1,8 @@
-<div class="his-thread-list">
-  <p-iconfield class="his-thread-list__search">
-    <p-inputicon class="pi pi-search" />
+<div id="message-thread-list-thread-list" class="his-thread-list">
+  <p-iconfield id="message-thread-list-thread-list-search" class="his-thread-list__search">
+    <p-inputicon id="message-thread-list-pi" class="pi pi-search" />
     <input
+      id="message-thread-list-input"
       pInputText
       type="text"
       placeholder="Szukaj wątku..."
@@ -10,31 +11,48 @@
     />
   </p-iconfield>
 
-  <ul class="his-thread-list__items">
-    @for (thread of filteredThreads(); track thread.id) {
-      <li>
+  <ul id="message-thread-list-thread-list-items" class="his-thread-list__items">
+    @for (thread of filteredThreads(); track thread.id; let idx0 = $index) {
+      <li [id]="'message-thread-list-li-' + idx0">
         <button
+          [id]="'message-thread-list-thread-list-item-' + idx0"
           type="button"
           class="his-thread-list__item"
           [class.his-thread-list__item--active]="thread.id === selectedThreadId()"
           (click)="select(thread)"
         >
-          <div class="his-thread-list__row">
-            <span class="his-thread-list__subject">{{ thread.subject }}</span>
+          <div [id]="'message-thread-list-thread-list-row-' + idx0" class="his-thread-list__row">
+            <span
+              [id]="'message-thread-list-thread-list-subject-' + idx0"
+              class="his-thread-list__subject"
+              >{{ thread.subject }}</span
+            >
             @if (thread.unreadCount > 0) {
-              <p-badge [value]="thread.unreadCount.toString()" severity="danger" />
+              <p-badge
+                [id]="'message-thread-list-p-badge-' + idx0"
+                [value]="thread.unreadCount.toString()"
+                severity="danger"
+              />
             }
           </div>
-          <div class="his-thread-list__row">
+          <div [id]="'message-thread-list-thread-list-row-2-' + idx0" class="his-thread-list__row">
             @if (thread.patientId) {
-              <p-tag [value]="patientLabel()(thread.patientId)" severity="info" />
+              <p-tag
+                [id]="'message-thread-list-p-tag-' + idx0"
+                [value]="patientLabel()(thread.patientId)"
+                severity="info"
+              />
             }
-            <span class="his-muted">{{ thread.lastMessageAt | date: 'dd.MM.yyyy HH:mm' }}</span>
+            <span [id]="'message-thread-list-muted-' + idx0" class="his-muted">{{
+              thread.lastMessageAt | date: 'dd.MM.yyyy HH:mm'
+            }}</span>
           </div>
         </button>
       </li>
     } @empty {
-      <li class="his-muted his-thread-list__empty">Brak wątków.</li>
+      <li id="message-thread-list-muted-2" class="his-muted his-thread-list__empty">
+        Brak wątków.
+      </li>
     }
   </ul>
 </div>

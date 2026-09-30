@@ -1,33 +1,53 @@
-<div class="his-conversation">
+<div id="message-conversation-conversation" class="his-conversation">
   @if (subject()) {
-    <div class="his-conversation__subject">{{ subject() }}</div>
+    <div id="message-conversation-conversation-subject" class="his-conversation__subject">
+      {{ subject() }}
+    </div>
   }
 
-  <div class="his-conversation__bubbles">
-    @for (message of orderedMessages(); track message.id) {
+  <div id="message-conversation-conversation-bubbles" class="his-conversation__bubbles">
+    @for (message of orderedMessages(); track message.id; let idx0 = $index) {
       <div
+        [id]="'message-conversation-conversation-bubble-' + idx0"
         class="his-conversation__bubble"
         [class.his-conversation__bubble--out]="isOwn(message)"
         [class.his-conversation__bubble--in]="!isOwn(message)"
       >
-        <div class="his-conversation__bubble-meta">
-          <span class="his-conversation__sender">{{ senderLabel()(message.senderId) }}</span>
+        <div
+          [id]="'message-conversation-conversation-bubble-meta-' + idx0"
+          class="his-conversation__bubble-meta"
+        >
+          <span
+            [id]="'message-conversation-conversation-sender-' + idx0"
+            class="his-conversation__sender"
+            >{{ senderLabel()(message.senderId) }}</span
+          >
           @if (message.priority !== 'normal') {
-            <app-status-tag kind="priority" [value]="message.priority" />
+            <app-status-tag
+              [id]="'message-conversation-app-status-tag-' + idx0"
+              kind="priority"
+              [value]="message.priority"
+            />
           }
         </div>
-        <div class="his-conversation__body">{{ message.body }}</div>
-        <div class="his-conversation__time his-muted">
+        <div [id]="'message-conversation-conversation-body-' + idx0" class="his-conversation__body">
+          {{ message.body }}
+        </div>
+        <div
+          [id]="'message-conversation-conversation-time-' + idx0"
+          class="his-conversation__time his-muted"
+        >
           {{ message.sentAt | date: 'dd.MM.yyyy HH:mm' }}
         </div>
       </div>
     } @empty {
-      <p class="his-muted">Brak wiadomości w tym wątku.</p>
+      <p id="message-conversation-muted" class="his-muted">Brak wiadomości w tym wątku.</p>
     }
   </div>
 
-  <div class="his-conversation__composer">
+  <div id="message-conversation-conversation-composer" class="his-conversation__composer">
     <textarea
+      id="message-conversation-textarea"
       pTextarea
       rows="2"
       placeholder="Napisz wiadomość... (Ctrl+Enter, aby wysłać)"
@@ -35,8 +55,9 @@
       (ngModelChange)="draftBody.set($event)"
       (keydown)="onComposerKeydown($event)"
     ></textarea>
-    <div class="his-conversation__composer-row">
+    <div id="message-conversation-conversation-composer-row" class="his-conversation__composer-row">
       <p-select
+        id="message-conversation-p-select"
         [options]="priorityOptions"
         optionLabel="label"
         optionValue="value"
@@ -45,6 +66,7 @@
         placeholder="Priorytet"
       />
       <p-button
+        id="message-conversation-p-button"
         label="Wyślij"
         icon="pi pi-send"
         [disabled]="sending() || !draftBody().trim()"

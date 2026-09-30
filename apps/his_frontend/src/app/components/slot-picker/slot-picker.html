@@ -1,15 +1,20 @@
-<div class="his-slot-picker">
+<div id="slot-picker" class="his-slot-picker">
   @if (loading()) {
-    <p class="his-muted">Ładowanie terminów...</p>
+    <p id="slot-picker-muted" class="his-muted">Ładowanie terminów...</p>
   } @else if (!hasSlots()) {
-    <p class="his-muted">Brak zdefiniowanych terminów dla wybranej daty.</p>
+    <p id="slot-picker-muted-2" class="his-muted">
+      Brak zdefiniowanych terminów dla wybranej daty.
+    </p>
   } @else {
-    @for (roomGroup of rooms(); track roomGroup.room) {
-      <div class="his-slot-picker__room">
-        <h4 class="his-slot-picker__room-title">{{ roomGroup.room }}</h4>
-        <div class="his-slot-picker__grid">
-          @for (slot of roomGroup.slots; track slot.id) {
+    @for (roomGroup of rooms(); track roomGroup.room; let idx0 = $index) {
+      <div [id]="'slot-picker-room-' + idx0" class="his-slot-picker__room">
+        <h4 [id]="'slot-picker-room-title-' + idx0" class="his-slot-picker__room-title">
+          {{ roomGroup.room }}
+        </h4>
+        <div [id]="'slot-picker-grid-' + idx0" class="his-slot-picker__grid">
+          @for (slot of roomGroup.slots; track slot.id; let idx1 = $index) {
             <p-button
+              [id]="'slot-picker-p-button-' + idx0 + '-' + idx1"
               [label]="(slot.start | date: 'HH:mm') ?? ''"
               size="small"
               [outlined]="selectedSlotId() !== slot.id"

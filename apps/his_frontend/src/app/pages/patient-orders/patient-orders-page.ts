@@ -8,14 +8,14 @@ import { ConfirmationService, MessageService } from 'primeng/api';
 import { ConfirmDialog } from 'primeng/confirmdialog';
 import { Tab, TabList, TabPanel, TabPanels, Tabs } from 'primeng/tabs';
 import { Textarea } from 'primeng/textarea';
-import { TableModule } from 'primeng/table';
 import { Tooltip } from 'primeng/tooltip';
+import { DataTable } from '../../components/data-table/data-table';
 import { EmptyState } from '../../components/empty-state/empty-state';
 import { PageHeader } from '../../components/page-header/page-header';
 import { StatusTag } from '../../components/status-tag/status-tag';
 import { OrderStatusTimeline } from '../../components/order-status-timeline/order-status-timeline';
 import { LabelPipe } from '../../pipes/label.pipe';
-import type { ImagingOrder, LabOrder } from '../../models';
+import type { ImagingOrder, LabOrder, TableColumn } from '../../models';
 import { LabOrderService } from '../../services/lab-order.service';
 import { ImagingOrderService } from '../../services/imaging-order.service';
 
@@ -33,7 +33,7 @@ type OrdersTab = 'lab' | 'imaging';
     Tab,
     TabPanels,
     TabPanel,
-    TableModule,
+    DataTable,
     StatusTag,
     OrderStatusTimeline,
     ConfirmDialog,
@@ -62,6 +62,19 @@ export class PatientOrdersPage {
   protected readonly activeTab = computed<OrdersTab>(() =>
     this.type() === 'imaging' ? 'imaging' : 'lab',
   );
+
+  protected readonly labColumns: TableColumn<LabOrder>[] = [
+    { field: 'orderedAt', header: 'Data zlecenia' },
+    { field: 'items', header: 'Badania' },
+    { field: 'urgency', header: 'Pilność' },
+    { field: 'status', header: 'Status' },
+  ];
+  protected readonly imagingColumns: TableColumn<ImagingOrder>[] = [
+    { field: 'orderedAt', header: 'Data zlecenia' },
+    { field: 'examName', header: 'Badanie' },
+    { field: 'urgency', header: 'Pilność' },
+    { field: 'status', header: 'Status' },
+  ];
 
   protected readonly cancelReason = signal('');
   private readonly cancelTargetId = signal<string | null>(null);

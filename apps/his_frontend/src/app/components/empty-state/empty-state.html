@@ -1,8 +1,8 @@
-<div class="his-empty-state">
-  <i [class]="icon()"></i>
-  <h3>{{ title() }}</h3>
+<div id="empty-state" class="his-empty-state">
+  <i id="empty-state-i" [class]="icon()"></i>
+  <h3 id="empty-state-h3">{{ title() }}</h3>
   @if (message()) {
-    <p class="his-muted">{{ message() }}</p>
+    <p id="empty-state-muted" class="his-muted">{{ message() }}</p>
   }
   <ng-content />
 </div>

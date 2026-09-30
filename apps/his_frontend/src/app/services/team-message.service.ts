@@ -28,13 +28,13 @@ export class TeamMessageService {
   private readonly messages: Message[] = structuredClone(MESSAGES);
   private readonly tasks = signal<TeamTask[]>(structuredClone(TASKS));
   private readonly handoffNotes: HandoffNote[] = structuredClone(HANDOFF_NOTES);
-  private readonly alerts = signal<ClinicalAlert[]>(structuredClone(ALERTS));
+  private readonly alertsState = signal<ClinicalAlert[]>(structuredClone(ALERTS));
 
   private messageSequence = this.messages.length;
   private threadSequence = this.threads().length;
   private taskSequence = this.tasks().length;
   private handoffSequence = this.handoffNotes.length;
-  private alertSequence = this.alerts().length;
+  private alertSequence = this.alertsState().length;
 
   /** `// TODO: WebSocket transport (STOMP/Socket) -- replace in-memory Subject */
   readonly realtimeMode = 'mock' as const;
@@ -43,8 +43,11 @@ export class TeamMessageService {
     this.threads().reduce((sum, t) => sum + t.unreadCount, 0),
   );
 
+  /** Live, read-only view of all alerts (updates on push/acknowledge). */
+  readonly alerts: Signal<ClinicalAlert[]> = this.alertsState.asReadonly();
+
   readonly unacknowledgedAlertCount: Signal<number> = computed(
-    () => this.alerts().filter((a) => !a.acknowledged).length,
+    () => this.alertsState().filter((a) => !a.acknowledged).length,
   );
 
   getThreads(userId: ID): Observable<MessageThread[]> {
@@ -184,7 +187,7 @@ export class TeamMessageService {
   }
 
   getAlerts(filter?: { patientId?: ID; acknowledged?: boolean }): Observable<ClinicalAlert[]> {
-    let result = this.alerts();
+    let result = this.alertsState();
     if (filter?.patientId) result = result.filter((a) => a.patientId === filter.patientId);
     if (filter?.acknowledged !== undefined) {
       result = result.filter((a) => a.acknowledged === filter.acknowledged);
@@ -194,7 +197,7 @@ export class TeamMessageService {
 
   acknowledgeAlert(id: ID, userId: ID): Observable<ClinicalAlert> {
     let updated: ClinicalAlert | undefined;
-    this.alerts.update((list) =>
+    this.alertsState.update((list) =>
       list.map((a) => {
         if (a.id !== id) return a;
         updated = { ...a, acknowledged: true, acknowledgedById: userId };
@@ -215,7 +218,7 @@ export class TeamMessageService {
       createdAt: new Date().toISOString(),
       acknowledged: false,
     };
-    this.alerts.update((list) => [newAlert, ...list]);
+    this.alertsState.update((list) => [newAlert, ...list]);
     return mockResponse(newAlert, this.latency);
   }
 }

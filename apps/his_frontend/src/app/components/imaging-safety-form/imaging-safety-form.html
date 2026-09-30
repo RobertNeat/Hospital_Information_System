@@ -1,0 +1,99 @@
+<form id="imaging-safety-form-card-3" [formGroup]="form()" class="his-card his-form-grid">
+  @if (needsPregnancyCheck()) {
+    <app-form-field id="imaging-safety-form-app-form-field-9" label="Ciąża">
+      <p-selectbutton
+        id="imaging-safety-form-pregnancy"
+        [options]="[
+          { label: 'Nie', value: 'no' },
+          { label: 'Tak', value: 'yes' },
+          { label: 'Nie wiadomo', value: 'unknown' },
+        ]"
+        formControlName="pregnancy"
+        optionLabel="label"
+        optionValue="value"
+      />
+    </app-form-field>
+  }
+
+  @if (isMri()) {
+    <app-form-field
+      id="imaging-safety-form-app-form-field-10"
+      label="Rozrusznik serca / implanty metalowe"
+    >
+      <p-checkbox
+        id="imaging-safety-form-pacemaker-or-implant"
+        [binary]="true"
+        formControlName="pacemakerOrImplant"
+      />
+    </app-form-field>
+    <app-form-field id="imaging-safety-form-app-form-field-11" label="Metalowe odłamki w ciele">
+      <p-checkbox
+        id="imaging-safety-form-metal-fragments"
+        [binary]="true"
+        formControlName="metalFragments"
+      />
+    </app-form-field>
+    @if (form().controls.pacemakerOrImplant.value || form().controls.metalFragments.value) {
+      <p-message
+        id="imaging-safety-form-p-message"
+        severity="error"
+        text="Obecność rozrusznika/implantu lub odłamków metalowych może uniemożliwić wykonanie badania RM. Skonsultuj się z radiologiem przed kontynuacją."
+      />
+    }
+    <app-form-field id="imaging-safety-form-app-form-field-12" label="Klaustrofobia">
+      <p-checkbox
+        id="imaging-safety-form-claustrophobia"
+        [binary]="true"
+        formControlName="claustrophobia"
+      />
+    </app-form-field>
+  }
+
+  <app-form-field
+    id="imaging-safety-form-app-form-field-13"
+    label="Uczulenie na środek kontrastowy"
+  >
+    <p-checkbox
+      id="imaging-safety-form-contrast-allergy"
+      [binary]="true"
+      formControlName="contrastAllergy"
+    />
+  </app-form-field>
+
+  @if (latestCreatinineEgfr(); as lab) {
+    <p id="imaging-safety-form-muted" class="his-muted">
+      Ostatnia kreatynina/eGFR:
+      {{ lab.creatinine ?? '—' }} mg/dL / {{ lab.egfr ?? '—' }} mL/min/1.73m2 ({{
+        lab.collectedAt | date: 'dd.MM.yyyy'
+      }})
+    </p>
+  } @else {
+    <p id="imaging-safety-form-muted-2" class="his-muted">Brak wyniku kreatyniny/eGFR.</p>
+  }
+
+  @if (egfrBlocksContrast()) {
+    <p-message
+      id="imaging-safety-form-p-message-2"
+      severity="warn"
+      text="eGFR poniżej 30 mL/min/1.73m2 przy badaniu z kontrastem — wymagane świadome potwierdzenie."
+    />
+    <app-form-field
+      id="imaging-safety-form-app-form-field-14"
+      label="Potwierdzam ryzyko związane z podaniem kontrastu"
+    >
+      <p-checkbox
+        id="imaging-safety-form-egfr-confirmed"
+        [binary]="true"
+        formControlName="egfrConfirmed"
+      />
+    </app-form-field>
+  }
+
+  <app-form-field
+    id="imaging-safety-form-app-form-field-15"
+    label="Potwierdzam weryfikację bezpieczeństwa pacjenta"
+    [required]="true"
+  >
+    <p-checkbox id="imaging-safety-form-confirmed" [binary]="true" formControlName="confirmed" />
+  </app-form-field>
+</form>

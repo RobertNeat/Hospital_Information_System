@@ -12,6 +12,27 @@ export interface TrendSeries {
 const DEFAULT_COLORS = ['#1e90ff', '#f59e0b', '#22c55e', '#ef4444'];
 const ABNORMAL_FLAGS: ResultFlag[] = ['L', 'H', 'LL', 'HH', 'A'];
 
+const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
+const DATE_FORMAT = new Intl.DateTimeFormat('pl-PL', {
+  day: '2-digit',
+  month: '2-digit',
+  year: '2-digit',
+});
+const DATE_TIME_FORMAT = new Intl.DateTimeFormat('pl-PL', {
+  day: '2-digit',
+  month: '2-digit',
+  year: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+});
+
+/** Short Polish date/time for an axis label; unparseable input is returned unchanged. */
+export function formatTrendLabel(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  return (DATE_ONLY.test(iso) ? DATE_FORMAT : DATE_TIME_FORMAT).format(date);
+}
+
 /**
  * ng2-charts line chart card. Registers chart.js at the component level (not in
  * app.config.ts) so chart.js is only pulled into the lazy chunks that use this card.
@@ -82,7 +103,7 @@ export class TrendChartCard {
           ]
         : [];
 
-    return { labels, datasets: [...bandDatasets, ...seriesDatasets] };
+    return { labels: labels.map(formatTrendLabel), datasets: [...bandDatasets, ...seriesDatasets] };
   });
 
   protected readonly chartOptions = computed<ChartConfiguration<'line'>['options']>(() => ({

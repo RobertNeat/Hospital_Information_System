@@ -1,13 +1,35 @@
-<div class="his-wizard-step-footer">
-  <p-button label="Anuluj" severity="secondary" [text]="true" (onClick)="cancelled.emit()" />
-  <div class="his-wizard-step-footer__right">
+<div id="wizard-step-footer" class="his-wizard-step-footer">
+  <p-button
+    id="wizard-step-footer-p-button"
+    label="Anuluj"
+    severity="secondary"
+    [text]="true"
+    (onClick)="cancelled.emit()"
+  />
+  <div id="wizard-step-footer-right" class="his-wizard-step-footer__right">
     @if (!first()) {
-      <p-button label="Wstecz" severity="secondary" [outlined]="true" (onClick)="back.emit()" />
+      <p-button
+        id="wizard-step-footer-p-button-2"
+        label="Wstecz"
+        severity="secondary"
+        [outlined]="true"
+        (onClick)="back.emit()"
+      />
     }
     @if (!last()) {
-      <p-button [label]="nextLabel()" (onClick)="next.emit()" [loading]="busy()" />
+      <p-button
+        id="wizard-step-footer-p-button-3"
+        [label]="nextLabel()"
+        (onClick)="next.emit()"
+        [loading]="busy()"
+      />
     } @else {
-      <p-button [label]="submitLabel()" (onClick)="submitted.emit()" [loading]="busy()" />
+      <p-button
+        id="wizard-step-footer-p-button-4"
+        [label]="submitLabel()"
+        (onClick)="submitted.emit()"
+        [loading]="busy()"
+      />
     }
   </div>
 </div>

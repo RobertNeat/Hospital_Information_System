@@ -1,0 +1,50 @@
+<div id="messages-handoff-list-grid-2" class="his-grid-2">
+  @for (note of notes(); track note.id; let idx0 = $index) {
+    <div [id]="'messages-handoff-list-card-3-' + idx0" class="his-card">
+      <div [id]="'messages-handoff-list-toolbar-4-' + idx0" class="his-toolbar">
+        <span
+          [id]="'messages-handoff-list-handoff-title-' + idx0"
+          class="his-messages__handoff-title"
+        >
+          {{ wardName()(note.wardId) }} ·
+          {{ note.shift === 'day' ? 'Zmiana dzienna' : 'Zmiana nocna' }}
+        </span>
+        <span [id]="'messages-handoff-list-muted-' + idx0" class="his-muted">{{
+          note.createdAt | date: 'dd.MM.yyyy HH:mm'
+        }}</span>
+      </div>
+      <p [id]="'messages-handoff-list-muted-2-' + idx0" class="his-muted">
+        Od: {{ note.fromId | staffName }} → Do: {{ note.toId | staffName }}
+      </p>
+      @if (note.generalNotes) {
+        <p [id]="'messages-handoff-list-p-' + idx0">{{ note.generalNotes }}</p>
+      }
+      <table [id]="'messages-handoff-list-sbar-table-' + idx0" class="his-messages__sbar-table">
+        <thead [id]="'messages-handoff-list-thead-' + idx0">
+          <tr [id]="'messages-handoff-list-tr-' + idx0">
+            <th [id]="'messages-handoff-list-th-' + idx0">Pacjent</th>
+            <th [id]="'messages-handoff-list-th-2-' + idx0">S</th>
+            <th [id]="'messages-handoff-list-th-3-' + idx0">B</th>
+            <th [id]="'messages-handoff-list-th-4-' + idx0">A</th>
+            <th [id]="'messages-handoff-list-th-5-' + idx0">R</th>
+          </tr>
+        </thead>
+        <tbody [id]="'messages-handoff-list-tbody-' + idx0">
+          @for (pn of note.patientNotes; track pn.patientId; let idx1 = $index) {
+            <tr [id]="'messages-handoff-list-tr-2-' + idx0 + '-' + idx1">
+              <td [id]="'messages-handoff-list-td-' + idx0 + '-' + idx1">
+                {{ patientLabel()(pn.patientId) }}
+              </td>
+              <td [id]="'messages-handoff-list-td-2-' + idx0 + '-' + idx1">{{ pn.situation }}</td>
+              <td [id]="'messages-handoff-list-td-3-' + idx0 + '-' + idx1">{{ pn.background }}</td>
+              <td [id]="'messages-handoff-list-td-4-' + idx0 + '-' + idx1">{{ pn.assessment }}</td>
+              <td [id]="'messages-handoff-list-td-5-' + idx0 + '-' + idx1">
+                {{ pn.recommendation }}
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>

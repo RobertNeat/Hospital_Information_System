@@ -37,6 +37,21 @@ describe('PatientListPage', () => {
     expect(searchTerm).toBe('Kowalski');
   });
 
+  it('re-syncs filters when the query inputs change', async () => {
+    const fixture = TestBed.createComponent(PatientListPage);
+    fixture.componentRef.setInput('q', 'Kowalski');
+    await fixture.whenStable();
+    fixture.componentRef.setInput('q', 'Nowak');
+    fixture.componentRef.setInput('status', 'admitted');
+    await fixture.whenStable();
+    const cmp = fixture.componentInstance as unknown as {
+      searchTerm: () => string;
+      selectedStatus: () => string;
+    };
+    expect(cmp.searchTerm()).toBe('Nowak');
+    expect(cmp.selectedStatus()).toBe('admitted');
+  });
+
   it('navigates to the chart when a row is opened', async () => {
     const fixture = TestBed.createComponent(PatientListPage);
     await fixture.whenStable();

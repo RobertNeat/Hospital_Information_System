@@ -1,40 +1,55 @@
 <p-dialog
+  id="e-prescription-dialog-p-dialog"
   [visible]="visible()"
   [modal]="true"
   [closable]="false"
   header="e-Recepta wystawiona"
   [style]="{ width: '480px' }"
 >
-  <div class="his-erx-dialog__body">
-    <p class="his-muted">
+  <div id="e-prescription-dialog-erx-dialog-body" class="his-erx-dialog__body">
+    <p id="e-prescription-dialog-muted" class="his-muted">
       Recepta została wystawiona. Przekaż pacjentowi poniższy kod dostępu i informację o e-recepcie.
     </p>
 
-    <div class="his-erx-dialog__code">
-      <span class="his-erx-dialog__code-label">Kod dostępu</span>
-      <span class="his-erx-dialog__code-value">{{ prescription().accessCode }}</span>
+    <div id="e-prescription-dialog-erx-dialog-code" class="his-erx-dialog__code">
+      <span id="e-prescription-dialog-erx-dialog-code-label" class="his-erx-dialog__code-label"
+        >Kod dostępu</span
+      >
+      <span id="e-prescription-dialog-erx-dialog-code-value" class="his-erx-dialog__code-value">{{
+        prescription().accessCode
+      }}</span>
     </div>
 
-    <div class="his-erx-dialog__key">
-      <span class="his-erx-dialog__key-label">Klucz e-recepty</span>
-      <code class="his-erx-dialog__key-value">{{ prescription().eRxKey }}</code>
+    <div id="e-prescription-dialog-erx-dialog-key" class="his-erx-dialog__key">
+      <span id="e-prescription-dialog-erx-dialog-key-label" class="his-erx-dialog__key-label"
+        >Klucz e-recepty</span
+      >
+      <code id="e-prescription-dialog-erx-dialog-key-value" class="his-erx-dialog__key-value">{{
+        prescription().eRxKey
+      }}</code>
     </div>
 
-    <div class="his-erx-print">
-      <h2>Informacja o e-recepcie</h2>
-      <p>
+    <div id="e-prescription-dialog-erx-print" class="his-erx-print">
+      <h2 id="e-prescription-dialog-h2">Informacja o e-recepcie</h2>
+      <p id="e-prescription-dialog-p">
         Pacjent: {{ patient().lastName }} {{ patient().firstName }}
         @if (patient().pesel) {
           (PESEL: {{ patient().pesel }})
         }
       </p>
-      <p>
+      <p id="e-prescription-dialog-p-2">
         Wystawił: {{ prescriber().title }} {{ prescriber().firstName }} {{ prescriber().lastName }}
       </p>
-      <p>Data wystawienia: {{ prescription().issuedAt | date: 'dd.MM.yyyy HH:mm' }}</p>
-      <p class="his-erx-print__code">Kod dostępu: {{ prescription().accessCode }}</p>
-      <p class="his-erx-print__key">Klucz e-recepty: {{ prescription().eRxKey }}</p>
-      <p>
+      <p id="e-prescription-dialog-p-3">
+        Data wystawienia: {{ prescription().issuedAt | date: 'dd.MM.yyyy HH:mm' }}
+      </p>
+      <p id="e-prescription-dialog-erx-print-code" class="his-erx-print__code">
+        Kod dostępu: {{ prescription().accessCode }}
+      </p>
+      <p id="e-prescription-dialog-erx-print-key" class="his-erx-print__key">
+        Klucz e-recepty: {{ prescription().eRxKey }}
+      </p>
+      <p id="e-prescription-dialog-p-4">
         Ważna od {{ prescription().validFrom | date: 'dd.MM.yyyy' }} do
         {{ prescription().validUntil | date: 'dd.MM.yyyy' }}.
       </p>
@@ -43,12 +58,13 @@
 
   <ng-template #footer>
     <p-button
+      id="e-prescription-dialog-p-button"
       label="Drukuj informację dla pacjenta"
       icon="pi pi-print"
       severity="secondary"
       [outlined]="true"
       (onClick)="print()"
     />
-    <p-button label="Zamknij" (onClick)="close()" />
+    <p-button id="e-prescription-dialog-p-button-2" label="Zamknij" (onClick)="close()" />
   </ng-template>
 </p-dialog>

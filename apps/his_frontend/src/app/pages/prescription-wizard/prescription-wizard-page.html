@@ -1,23 +1,28 @@
-<div class="his-page">
-  <app-page-header title="Nowa recepta" subtitle="Wystawienie e-recepty" />
+<div id="prescription-wizard-page" class="his-page">
+  <app-page-header
+    id="prescription-wizard-app-page-header"
+    title="Nowa recepta"
+    subtitle="Wystawienie e-recepty"
+  />
 
-  <p-stepper [value]="1" [linear]="true">
-    <p-step-list>
-      <p-step [value]="1">Wybór leku</p-step>
-      <p-step [value]="2">Dawkowanie</p-step>
-      <p-step [value]="3">Ilość i czas terapii</p-step>
-      <p-step [value]="4">Podsumowanie</p-step>
+  <p-stepper id="prescription-wizard-p-stepper" [value]="1" [linear]="true">
+    <p-step-list id="prescription-wizard-p-step-list">
+      <p-step id="prescription-wizard-p-step" [value]="1">Wybór leku</p-step>
+      <p-step id="prescription-wizard-p-step-2" [value]="2">Dawkowanie</p-step>
+      <p-step id="prescription-wizard-p-step-3" [value]="3">Ilość i czas terapii</p-step>
+      <p-step id="prescription-wizard-p-step-4" [value]="4">Podsumowanie</p-step>
     </p-step-list>
 
-    <p-step-panels>
+    <p-step-panels id="prescription-wizard-p-step-panels">
       <!-- Step 1: Wybór leku -->
-      <p-step-panel [value]="1">
+      <p-step-panel id="prescription-wizard-p-step-panel" [value]="1">
         <ng-template #content let-activateCallback="activateCallback">
-          <div class="his-card his-wizard-step">
+          <div id="prescription-wizard-card" class="his-card his-wizard-step">
             @if (items().length > 0) {
-              <p class="his-muted">
+              <p id="prescription-wizard-muted" class="his-muted">
                 Dodane leki: {{ items().length }} / 5.
                 <button
+                  id="prescription-wizard-link-button"
                   type="button"
                   class="his-link-button"
                   (click)="goToSummary(activateCallback)"
@@ -27,29 +32,45 @@
               </p>
             }
 
-            <app-drug-picker (drugSelected)="onDrugSelected($event)" />
+            <app-drug-picker
+              id="prescription-wizard-app-drug-picker"
+              (drugSelected)="onDrugSelected($event)"
+            />
 
             @if (selectedDrug(); as drug) {
-              <div class="his-card his-wizard-step__drug-details">
-                <h3>{{ drug.name }}</h3>
-                <p class="his-muted">
+              <div id="prescription-wizard-card-2" class="his-card his-wizard-step__drug-details">
+                <h3 id="prescription-wizard-h3">{{ drug.name }}</h3>
+                <p id="prescription-wizard-muted-2" class="his-muted">
                   {{ drug.activeSubstance }} · {{ drug.strength }} · ATC {{ drug.atcCode }}
                 </p>
               </div>
 
               @if (safetyLoading()) {
-                <p class="his-muted">Sprawdzanie bezpieczeństwa...</p>
+                <p id="prescription-wizard-muted-3" class="his-muted">
+                  Sprawdzanie bezpieczeństwa...
+                </p>
               } @else {
-                @for (warning of safetyWarnings(); track warning.message) {
-                  <p-message [severity]="warning.severity === 'danger' ? 'error' : 'warn'">
+                @for (warning of safetyWarnings(); track warning.message; let idx0 = $index) {
+                  <p-message
+                    [id]="'prescription-wizard-p-message-' + idx0"
+                    [severity]="warning.severity === 'danger' ? 'error' : 'warn'"
+                  >
                     {{ warning.message }}
                   </p-message>
                 }
 
                 @if (hasAllergyDanger()) {
-                  <div class="his-card his-wizard-step__override" [formGroup]="safetyStep1Form">
-                    <label class="his-wizard-step__override-toggle">
+                  <div
+                    id="prescription-wizard-card-3"
+                    class="his-card his-wizard-step__override"
+                    [formGroup]="safetyStep1Form"
+                  >
+                    <label
+                      id="prescription-wizard-wizard-step-override-toggle"
+                      class="his-wizard-step__override-toggle"
+                    >
                       <p-toggleswitch
+                        id="prescription-wizard-override-confirmed"
                         formControlName="overrideConfirmed"
                         ariaLabel="Świadomie przepisuję mimo ostrzeżenia"
                       />
@@ -57,6 +78,7 @@
                     </label>
                     @if (safetyStep1Form.controls.overrideConfirmed.value) {
                       <app-form-field
+                        id="prescription-wizard-app-form-field"
                         label="Uzasadnienie"
                         for="overrideJustification"
                         [required]="true"
@@ -77,6 +99,7 @@
             }
           </div>
           <app-wizard-step-footer
+            id="prescription-wizard-app-wizard-step-footer"
             [first]="true"
             (next)="tryAdvanceStep1(activateCallback)"
             (cancelled)="closeDialogCancel()"
@@ -85,14 +108,19 @@
       </p-step-panel>
 
       <!-- Step 2: Dawkowanie -->
-      <p-step-panel [value]="2">
+      <p-step-panel id="prescription-wizard-p-step-panel-2" [value]="2">
         <ng-template #content let-activateCallback="activateCallback">
-          <div class="his-card his-wizard-step">
+          <div id="prescription-wizard-card-4" class="his-card his-wizard-step">
             @if (selectedDrug(); as drug) {
-              <app-dosage-editor [form]="dosageForm" [drug]="drug" />
+              <app-dosage-editor
+                id="prescription-wizard-app-dosage-editor"
+                [form]="dosageForm"
+                [drug]="drug"
+              />
             }
           </div>
           <app-wizard-step-footer
+            id="prescription-wizard-app-wizard-step-footer-2"
             (back)="activateCallback(1)"
             (next)="tryAdvanceStep2(activateCallback)"
             (cancelled)="closeDialogCancel()"
@@ -101,76 +129,28 @@
       </p-step-panel>
 
       <!-- Step 3: Ilość i czas terapii -->
-      <p-step-panel [value]="3">
+      <p-step-panel id="prescription-wizard-p-step-panel-3" [value]="3">
         <ng-template #content let-activateCallback="activateCallback">
-          <div class="his-card his-wizard-step" [formGroup]="quantityForm">
-            <div class="his-form-grid">
-              <app-form-field
-                label="Czas terapii (dni)"
-                for="durationDays"
-                [required]="true"
-                [control]="quantityForm.get('durationDays')"
-              >
-                <p-inputNumber
-                  inputId="durationDays"
-                  formControlName="durationDays"
-                  [min]="1"
-                  [max]="365"
-                  [fluid]="true"
-                  (onInput)="recomputeSuggestedQuantity()"
-                />
-              </app-form-field>
+          <div
+            id="prescription-wizard-card-5"
+            class="his-card his-wizard-step"
+            [formGroup]="quantityForm"
+          >
+            <app-prescription-quantity-fields
+              id="prescription-wizard-quantity-fields"
+              [quantityForm]="quantityForm"
+              [datesForm]="prescriptionDatesForm"
+              [reimbursementOptions]="reimbursementOptionsForDrug()"
+              (durationInput)="recomputeSuggestedQuantity()"
+              (quantityInput)="onQuantityFieldTouched()"
+            />
 
-              <app-form-field
-                label="Ilość opakowań"
-                for="quantityPackages"
-                [required]="true"
-                [control]="quantityForm.get('quantityPackages')"
-                hint="Sugerowana ilość jest wyliczana automatycznie; można ją zmienić ręcznie."
-              >
-                <p-inputNumber
-                  inputId="quantityPackages"
-                  formControlName="quantityPackages"
-                  [min]="1"
-                  [fluid]="true"
-                  (onInput)="onQuantityFieldTouched()"
-                />
-              </app-form-field>
-
-              <app-form-field
-                label="Poziom refundacji"
-                for="reimbursement"
-                [required]="true"
-                [control]="quantityForm.get('reimbursement')"
-              >
-                <p-select
-                  inputId="reimbursement"
-                  formControlName="reimbursement"
-                  [options]="reimbursementOptionsForDrug()"
-                  optionLabel="label"
-                  optionValue="value"
-                  placeholder="Wybierz poziom refundacji"
-                  [fluid]="true"
-                />
-              </app-form-field>
-
-              <app-form-field
-                label="Ważna od"
-                for="validFrom"
-                [control]="prescriptionDatesForm.get('validFrom')"
-              >
-                <p-datepicker
-                  inputId="validFrom"
-                  [formControl]="prescriptionDatesForm.controls.validFrom"
-                  dateFormat="dd.mm.yy"
-                  [showIcon]="true"
-                  [fluid]="true"
-                />
-              </app-form-field>
-            </div>
-
-            <label class="his-wizard-step__toggle-row">
+            <label
+              id="prescription-wizard-wizard-step-toggle-row"
+              class="his-wizard-step__toggle-row"
+            >
               <p-toggleswitch
+                id="prescription-wizard-substitution-allowed"
                 formControlName="substitutionAllowed"
                 ariaLabel="Zamiennik dozwolony"
               />
@@ -181,24 +161,33 @@
               }
             </label>
 
-            <label class="his-wizard-step__toggle-row">
-              <p-toggleswitch formControlName="longTermOverride" ariaLabel="Leczenie przewlekłe" />
+            <label
+              id="prescription-wizard-wizard-step-toggle-row-2"
+              class="his-wizard-step__toggle-row"
+            >
+              <p-toggleswitch
+                id="prescription-wizard-long-term-override"
+                formControlName="longTermOverride"
+                ariaLabel="Leczenie przewlekłe"
+              />
               Leczenie przewlekłe (recepta ważna 365 dni)
             </label>
 
-            <p class="his-muted">
+            <p id="prescription-wizard-muted-4" class="his-muted">
               Recepta będzie ważna do <strong>{{ validUntil() | date: 'dd.MM.yyyy' }}</strong
               >{{ isLongTerm() ? ' (leczenie przewlekłe)' : '' }}.
             </p>
 
-            <div class="his-wizard-step__actions">
+            <div id="prescription-wizard-wizard-step-actions" class="his-wizard-step__actions">
               <p-button
+                id="prescription-wizard-p-button"
                 label="Dodaj lek do recepty"
                 icon="pi pi-plus-circle"
                 [disabled]="!canAddMore()"
                 (onClick)="addItemToList()"
               />
               <p-button
+                id="prescription-wizard-p-button-2"
                 label="Dodaj i wybierz kolejny lek"
                 severity="secondary"
                 [outlined]="true"
@@ -209,21 +198,26 @@
             </div>
 
             @if (!canAddMore()) {
-              <p-message severity="info"
+              <p-message id="prescription-wizard-p-message-2" severity="info"
                 >Osiągnięto maksymalną liczbę 5 leków na recepcie.</p-message
               >
             }
 
             @if (items().length > 0) {
-              <div class="his-wizard-step__items">
-                <h3>Leki na recepcie</h3>
-                @for (item of items(); track item.drugId + $index) {
-                  <app-prescription-item-card [item]="item" (remove)="removeItem($index)" />
+              <div id="prescription-wizard-wizard-step-items" class="his-wizard-step__items">
+                <h3 id="prescription-wizard-h3-2">Leki na recepcie</h3>
+                @for (item of items(); track item.drugId + $index; let idx0 = $index) {
+                  <app-prescription-item-card
+                    [id]="'prescription-wizard-app-prescription-item-card-' + idx0"
+                    [item]="item"
+                    (remove)="removeItem($index)"
+                  />
                 }
               </div>
             }
           </div>
           <app-wizard-step-footer
+            id="prescription-wizard-app-wizard-step-footer-3"
             (back)="activateCallback(2)"
             (next)="goToSummary(activateCallback)"
             (cancelled)="closeDialogCancel()"
@@ -232,21 +226,29 @@
       </p-step-panel>
 
       <!-- Step 4: Podsumowanie i wystawienie e-recepty -->
-      <p-step-panel [value]="4">
+      <p-step-panel id="prescription-wizard-p-step-panel-4" [value]="4">
         <ng-template #content let-activateCallback="activateCallback">
-          <div class="his-card his-wizard-step">
-            <app-summary-list [items]="summaryItems()" />
+          <div id="prescription-wizard-card-6" class="his-card his-wizard-step">
+            <app-summary-list id="prescription-wizard-app-summary-list" [items]="summaryItems()" />
 
-            <div class="his-wizard-step__items">
-              <h3>Pozycje recepty</h3>
-              @for (item of items(); track item.drugId + $index) {
-                <app-prescription-item-card [item]="item" [removable]="false" />
+            <div id="prescription-wizard-wizard-step-items-2" class="his-wizard-step__items">
+              <h3 id="prescription-wizard-h3-3">Pozycje recepty</h3>
+              @for (item of items(); track item.drugId + $index; let idx0 = $index) {
+                <app-prescription-item-card
+                  [id]="'prescription-wizard-app-prescription-item-card-2-' + idx0"
+                  [item]="item"
+                  [removable]="false"
+                />
               }
             </div>
 
-            <app-fhir-integration-note resource="MedicationRequest" />
+            <app-fhir-integration-note
+              id="prescription-wizard-app-fhir-integration-note"
+              resource="MedicationRequest"
+            />
           </div>
           <app-wizard-step-footer
+            id="prescription-wizard-app-wizard-step-footer-4"
             [last]="true"
             [busy]="issuing()"
             submitLabel="Wystaw e-receptę"
@@ -261,6 +263,7 @@
 
   @if (issuedPrescription(); as prescription) {
     <app-e-prescription-dialog
+      id="prescription-wizard-app-e-prescription-dialog"
       [visible]="dialogVisible()"
       [prescription]="prescription"
       [patient]="patient()!"

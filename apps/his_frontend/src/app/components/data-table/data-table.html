@@ -1,4 +1,5 @@
 <p-table
+  id="data-table-p-table"
   #table
   [value]="rows()"
   [columns]="columns()"
@@ -14,10 +15,10 @@
   (onRowSelect)="onRowSelect($event)"
 >
   <ng-template #caption>
-    <div class="his-toolbar">
+    <div id="data-table-toolbar" class="his-toolbar">
       <ng-container [ngTemplateOutlet]="toolbarTemplate() ?? null" />
       @if (globalFilterFields()) {
-        <p-iconfield>
+        <p-iconfield id="data-table-p-iconfield">
           <input
             pInputText
             [id]="searchInputId"
@@ -31,25 +32,48 @@
   </ng-template>
 
   <ng-template #header let-columns>
-    <tr>
-      @for (col of columns; track col.field) {
-        <th [pSortableColumn]="col.sortable ? col.field : undefined">
+    <tr id="data-table-tr">
+      @if (rowExpansionTemplate()) {
+        <th id="data-table-expander" class="his-data-table__expander"></th>
+      }
+      @for (col of columns; track col.field; let idx0 = $index) {
+        <th [id]="'data-table-th-' + idx0" [pSortableColumn]="col.sortable ? col.field : undefined">
           {{ col.header }}
           @if (col.sortable) {
-            <p-sortIcon [field]="col.field" />
+            <p-sortIcon [id]="'data-table-p-sorticon-' + idx0" [field]="col.field" />
           }
         </th>
       }
       @if (rowActionsTemplate()) {
-        <th></th>
+        <th id="data-table-th-2"></th>
       }
     </tr>
   </ng-template>
 
-  <ng-template #body let-row let-columns="columns">
-    <tr [pSelectableRow]="row">
-      @for (col of columns; track col.field) {
-        <td>
+  <ng-template #body let-row let-columns="columns" let-expanded="expanded">
+    <tr [id]="'data-table-tr-2-' + row.id" [pSelectableRow]="row">
+      @if (rowExpansionTemplate()) {
+        <td [id]="'data-table-expander-2-' + row.id" class="his-data-table__expander">
+          <button
+            [id]="'data-table-toggle-' + row.id"
+            type="button"
+            class="his-data-table__toggle"
+            [pRowToggler]="row"
+            [attr.aria-label]="expanded ? 'Zwiń szczegóły' : 'Rozwiń szczegóły'"
+            [attr.aria-expanded]="expanded"
+            (click)="$event.stopPropagation()"
+          >
+            <i
+              [id]="'data-table-pi-' + row.id"
+              class="pi"
+              [class.pi-chevron-down]="expanded"
+              [class.pi-chevron-right]="!expanded"
+            ></i>
+          </button>
+        </td>
+      }
+      @for (col of columns; track col.field; let idx0 = $index) {
+        <td [id]="'data-table-td-' + row.id + '-' + idx0">
           @if (cellTemplate(); as customCell) {
             <ng-container
               [ngTemplateOutlet]="customCell"
@@ -59,7 +83,11 @@
             @switch (col.type) {
               @case ('tag') {
                 @if (col.tagKind) {
-                  <app-status-tag [kind]="col.tagKind" [value]="cellValueAsString(row, col)" />
+                  <app-status-tag
+                    [id]="'data-table-app-status-tag-' + row.id + '-' + idx0"
+                    [kind]="col.tagKind"
+                    [value]="cellValueAsString(row, col)"
+                  />
                 }
               }
               @case ('date') {
@@ -76,7 +104,7 @@
         </td>
       }
       @if (rowActionsTemplate(); as actions) {
-        <td class="his-data-table__actions">
+        <td [id]="'data-table-actions-' + row.id" class="his-data-table__actions">
           <ng-container
             [ngTemplateOutlet]="actions"
             [ngTemplateOutletContext]="{ $implicit: row }"
@@ -86,9 +114,22 @@
     </tr>
   </ng-template>
 
+  @if (rowExpansionTemplate(); as expansion) {
+    <ng-template #expandedrow let-row>
+      <tr [id]="'data-table-expansion-' + row.id" class="his-data-table__expansion">
+        <td [id]="'data-table-td-2-' + row.id" [attr.colspan]="columnSpan()">
+          <ng-container
+            [ngTemplateOutlet]="expansion"
+            [ngTemplateOutletContext]="{ $implicit: row }"
+          />
+        </td>
+      </tr>
+    </ng-template>
+  }
+
   <ng-template #emptymessage>
-    <tr>
-      <td [attr.colspan]="columns().length + (rowActionsTemplate() ? 1 : 0)">
+    <tr id="data-table-tr-3">
+      <td id="data-table-td-3" [attr.colspan]="columnSpan()">
         {{ emptyMessage() }}
       </td>
     </tr>

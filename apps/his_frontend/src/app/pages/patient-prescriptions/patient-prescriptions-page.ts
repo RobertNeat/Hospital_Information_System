@@ -9,6 +9,7 @@ import {
   signal,
 } from '@angular/core';
 import { Router } from '@angular/router';
+import { forkJoin } from 'rxjs';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { TableModule, type TableRowCollapseEvent, type TableRowExpandEvent } from 'primeng/table';
@@ -18,7 +19,7 @@ import { PageHeader } from '../../components/page-header/page-header';
 import { SectionHeader } from '../../components/section-header/section-header';
 import { StatusTag } from '../../components/status-tag/status-tag';
 import { LabelPipe } from '../../pipes/label.pipe';
-import type { Prescription, PrescriptionItem } from '../../models';
+import type { ActiveMedication, Prescription, PrescriptionItem } from '../../models';
 import { PrescriptionService } from '../../services/prescription.service';
 
 interface ActiveMedicationRow {
@@ -61,6 +62,7 @@ export class PatientPrescriptionsPage {
 
   protected readonly loading = signal(true);
   protected readonly prescriptions = signal<Prescription[]>([]);
+  private readonly medications = signal<ActiveMedication[]>([]);
 
   constructor() {
     // `patientId` (input.required) is not yet available synchronously in the constructor --
@@ -73,41 +75,29 @@ export class PatientPrescriptionsPage {
 
   private load(patientId: string): void {
     this.loading.set(true);
-    this.prescriptionService.getPrescriptions({ patientId }).subscribe((rows) => {
+    forkJoin({
+      rows: this.prescriptionService.getPrescriptions({ patientId }),
+      medications: this.prescriptionService.getActiveMedications(patientId),
+    }).subscribe(({ rows, medications }) => {
       this.prescriptions.set(rows);
+      this.medications.set(medications);
       this.loading.set(false);
     });
   }
 
-  /**
-   * `PrescriptionService.getActiveMedications` returns flattened `PrescriptionItem[]` with no
-   * prescription id or date, so the "end date" column can't be derived from it (service gap,
-   * see report). Instead we derive active medications from the already-loaded prescriptions
-   * list, applying the same filter the service itself uses (issued/partially_dispensed and
-   * not yet past validUntil), and compute the end date as validFrom + item.durationDays.
-   */
-  protected readonly activeMedications = computed((): ActiveMedicationRow[] => {
-    const today = new Date().toISOString().slice(0, 10);
-    const rows: ActiveMedicationRow[] = [];
-    for (const p of this.prescriptions()) {
-      if (p.status !== 'issued' && p.status !== 'partially_dispensed') continue;
-      if (p.validUntil < today) continue;
-      for (const item of p.items) {
-        rows.push({
-          prescriptionId: p.id,
-          drugId: item.drugId,
-          drugName: item.drugName,
-          strength: item.strength,
-          dose: `${item.dosage.dose} ${item.dosage.doseUnit}`,
-          frequency: item.dosage.frequency,
-          route: item.dosage.route,
-          timesOfDay: (item.dosage.timesOfDay ?? []).join(', ') || '—',
-          endDate: addDays(p.validFrom, item.dosage.durationDays),
-        });
-      }
-    }
-    return rows;
-  });
+  protected readonly activeMedications = computed((): ActiveMedicationRow[] =>
+    this.medications().map((m) => ({
+      prescriptionId: m.prescriptionId,
+      drugId: m.drugId,
+      drugName: m.drugName,
+      strength: m.strength,
+      dose: `${m.dosage.dose} ${m.dosage.doseUnit}`,
+      frequency: m.dosage.frequency,
+      route: m.dosage.route,
+      timesOfDay: (m.dosage.timesOfDay ?? []).join(', ') || '—',
+      endDate: addDays(m.date, m.dosage.durationDays),
+    })),
+  );
 
   protected readonly expandedRows = signal<Record<string, boolean>>({});
 

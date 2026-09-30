@@ -76,6 +76,12 @@ describe('VitalsService', () => {
     expect(rows.some((r) => r.patient.id === 'pat-005')).toBe(false);
   });
 
+  it('getWardOverview populates wardName from ward data', async () => {
+    const rows = await firstValueFrom(service.getWardOverview('ward-int'));
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows.every((r) => r.patient.wardName === 'Oddział Chorób Wewnętrznych')).toBe(true);
+  });
+
   it('getWardOverview sorts critical anomalies first', async () => {
     const rows = await firstValueFrom(service.getWardOverview());
     expect(rows.length).toBeGreaterThan(0);

@@ -50,6 +50,14 @@ describe('ImagingOrderService', () => {
     expect(slots1.some((s) => !s.available)).toBe(true);
   });
 
+  it('getOrders filters by urgency', async () => {
+    const all = await firstValueFrom(service.getOrders());
+    const urgent = await firstValueFrom(service.getOrders({ urgency: 'urgent' }));
+    expect(urgent.length).toBeGreaterThan(0);
+    expect(urgent.length).toBeLessThan(all.length);
+    expect(urgent.every((o) => o.urgency === 'urgent')).toBe(true);
+  });
+
   it('createOrder without a slot sets status to ordered', async () => {
     const order = await firstValueFrom(service.createOrder(draft()));
     expect(order.status).toBe('ordered');

@@ -1,0 +1,50 @@
+<ul id="messages-alert-list-items" class="his-messages__alert-list">
+  @for (alert of alerts(); track alert.id; let idx0 = $index) {
+    <li [id]="'messages-alert-list-card-4-' + idx0" class="his-card his-messages__alert-item">
+      <div [id]="'messages-alert-list-alert-main-' + idx0" class="his-messages__alert-main">
+        <app-status-tag
+          [id]="'messages-alert-list-app-status-tag-' + idx0"
+          kind="alertSeverity"
+          [value]="alert.severity"
+        />
+        <span [id]="'messages-alert-list-span-3-' + idx0">{{ alert.message }}</span>
+        @if (alert.patientId) {
+          <p-tag
+            [id]="'messages-alert-list-p-tag-' + idx0"
+            [value]="patientLabel()(alert.patientId)"
+            severity="info"
+          />
+        }
+      </div>
+      <div [id]="'messages-alert-list-alert-meta-' + idx0" class="his-messages__alert-meta">
+        <span [id]="'messages-alert-list-muted-3-' + idx0" class="his-muted">{{
+          alertAgo()(alert)
+        }}</span>
+        @if (alert.link) {
+          <p-button
+            [id]="'messages-alert-list-goto-' + alert.id"
+            label="Przejdź"
+            severity="secondary"
+            size="small"
+            [routerLink]="alert.link"
+          />
+        }
+        @if (!alert.acknowledged) {
+          <p-button
+            [id]="'messages-alert-list-p-button-6-' + idx0"
+            label="Potwierdź"
+            icon="pi pi-check"
+            size="small"
+            (onClick)="acknowledge.emit(alert)"
+          />
+        } @else {
+          <p-tag
+            [id]="'messages-alert-list-p-tag-2-' + idx0"
+            value="Potwierdzone"
+            severity="success"
+          />
+        }
+      </div>
+    </li>
+  }
+</ul>

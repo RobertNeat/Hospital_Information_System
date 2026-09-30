@@ -1,26 +1,40 @@
-<table class="his-lro">
-  <thead>
-    <tr>
-      <th>Parametr</th>
-      <th>Wynik</th>
-      <th>Jednostka</th>
-      <th>Zakres referencyjny</th>
-      <th>Flaga</th>
+<table id="lab-result-observations-lro" class="his-lro">
+  <thead id="lab-result-observations-thead">
+    <tr id="lab-result-observations-tr">
+      <th id="lab-result-observations-th">Parametr</th>
+      <th id="lab-result-observations-th-2">Wynik</th>
+      <th id="lab-result-observations-th-3">Jednostka</th>
+      <th id="lab-result-observations-th-4">Zakres referencyjny</th>
+      <th id="lab-result-observations-th-5">Flaga</th>
     </tr>
   </thead>
-  <tbody>
-    @for (obs of observations(); track obs.analyteCode) {
-      <tr>
-        <td>{{ obs.analyteName }}</td>
-        <td class="his-lro__value" [class]="flagClass(obs.flag)">
+  <tbody id="lab-result-observations-tbody">
+    @for (obs of observations(); track obs.analyteCode; let idx0 = $index) {
+      <tr [id]="'lab-result-observations-tr-2-' + idx0">
+        <td [id]="'lab-result-observations-td-' + idx0">{{ obs.analyteName }}</td>
+        <td
+          [id]="'lab-result-observations-lro-value-' + idx0"
+          class="his-lro__value"
+          [class]="flagClass(obs.flag)"
+        >
           @if (flagIcon(obs.flag)) {
-            <i [class]="flagIcon(obs.flag)" aria-hidden="true"></i>
+            <i
+              [id]="'lab-result-observations-i-' + idx0"
+              [class]="flagIcon(obs.flag)"
+              aria-hidden="true"
+            ></i>
           }
           {{ obs.value }}
         </td>
-        <td>{{ obs.unit }}</td>
-        <td>{{ referenceRangeText(obs) }}</td>
-        <td><app-status-tag kind="resultFlag" [value]="obs.flag" /></td>
+        <td [id]="'lab-result-observations-td-2-' + idx0">{{ obs.unit }}</td>
+        <td [id]="'lab-result-observations-td-3-' + idx0">{{ referenceRangeText(obs) }}</td>
+        <td [id]="'lab-result-observations-td-4-' + idx0">
+          <app-status-tag
+            [id]="'lab-result-observations-app-status-tag-' + idx0"
+            kind="resultFlag"
+            [value]="obs.flag"
+          />
+        </td>
       </tr>
     }
   </tbody>

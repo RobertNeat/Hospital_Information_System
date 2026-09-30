@@ -1,8 +1,16 @@
-@for (section of sections(); track section.title) {
-  <div class="his-section">
-    <app-section-header [title]="section.title" [icon]="section.icon" variant="navy" />
-    <div class="his-registration-summary__body">
-      <app-summary-list [items]="section.items" />
+@for (section of sections(); track section.title; let idx0 = $index) {
+  <div [id]="'registration-summary-section-' + idx0" class="his-section">
+    <app-section-header
+      [id]="'registration-summary-app-section-header-' + idx0"
+      [title]="section.title"
+      [icon]="section.icon"
+      variant="navy"
+    />
+    <div [id]="'registration-summary-body-' + idx0" class="his-registration-summary__body">
+      <app-summary-list
+        [id]="'registration-summary-app-summary-list-' + idx0"
+        [items]="section.items"
+      />
     </div>
   </div>
 }

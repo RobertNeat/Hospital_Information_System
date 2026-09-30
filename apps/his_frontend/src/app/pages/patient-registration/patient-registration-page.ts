@@ -6,109 +6,64 @@ import {
   LOCALE_ID,
   signal,
 } from '@angular/core';
-import { DatePipe, formatDate } from '@angular/common';
-import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { Router, RouterLink } from '@angular/router';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { EMPTY, map, of, startWith, switchMap } from 'rxjs';
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
+import { Router } from '@angular/router';
+import { FormBuilder } from '@angular/forms';
+import { EMPTY, of, switchMap } from 'rxjs';
 import { MessageService } from 'primeng/api';
-import { Button } from 'primeng/button';
 import { StepperModule } from 'primeng/stepper';
-import { Select } from 'primeng/select';
-import { DatePicker } from 'primeng/datepicker';
-import { ToggleSwitch } from 'primeng/toggleswitch';
-import { InputMask } from 'primeng/inputmask';
-import { InputText } from 'primeng/inputtext';
-import { SelectButton } from 'primeng/selectbutton';
-import { Textarea } from 'primeng/textarea';
-import { Message } from 'primeng/message';
 
 import { PageHeader } from '../../components/page-header/page-header';
-import { FormField } from '../../components/form-field/form-field';
 import { WizardStepFooter } from '../../components/wizard-step-footer/wizard-step-footer';
-import {
-  RegistrationSummary,
-  type RegistrationSummarySection,
-} from '../../components/registration-summary/registration-summary';
+import { RegistrationSummary } from '../../components/registration-summary/registration-summary';
 
 import { PatientService } from '../../services/patient.service';
 import { PatientContextService } from '../../services/patient-context.service';
 import { WardService } from '../../services/ward.service';
 import { StaffService } from '../../services/staff.service';
 
-import { peselValidator, parsePesel } from '../../validators/pesel.validator';
-import { postalCodeValidator } from '../../validators/postal-code.validator';
-import { phoneValidator } from '../../validators/phone.validator';
+import { parsePesel } from '../../validators/pesel.validator';
+import { rawValueSignal } from '../../utils/form-signals';
 import { tryAdvance } from '../../utils/wizard';
 import { ageFromBirthDate } from '../../utils/date-utils';
 
-import {
-  ADMISSION_TYPE_OPTIONS,
-  BLOOD_TYPE_OPTIONS,
-  GENDER_OPTIONS,
-  IDENTITY_DOCUMENT_TYPE_OPTIONS,
-  INSURANCE_PAYER_OPTIONS,
-  INSURANCE_STATUS_LABELS,
-  NFZ_BRANCH_OPTIONS,
-  NO_PESEL_REASON_OPTIONS,
-  TRIAGE_OPTIONS,
-  ADMISSION_TYPE_LABELS,
-  GENDER_LABELS,
-  IDENTITY_DOCUMENT_TYPE_LABELS,
-  NO_PESEL_REASON_LABELS,
-  TRIAGE_LABELS,
-} from '../../constants/labels';
-
 import type { HasUnsavedChanges } from '../../guards/unsaved-changes.guard';
-import type {
-  Admission,
-  AdmissionStatus,
-  Gender,
-  Patient,
-  PatientDraft,
-  StaffMember,
-  TriageLevel,
-  Ward,
-} from '../../models';
+import type { Patient, StaffMember, Ward } from '../../models';
 
-type AdmissionType = 'planned' | 'emergency' | 'transfer' | 'outpatient';
-
-/** Formats a JS `Date` as a local `YYYY-MM-DD` ISO date string (never UTC-shifted). */
-function toIsoDate(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
-
-function fromIsoDate(iso: string): Date {
-  const [y, m, d] = iso.split('-').map(Number);
-  return new Date(y, m - 1, d);
-}
+import { AdmissionStep } from './admission-step/admission-step';
+import { IdentityStep } from './identity-step/identity-step';
+import { InsuranceStep } from './insurance-step/insurance-step';
+import { PersonalStep } from './personal-step/personal-step';
+import {
+  applyAdmissionType,
+  applyNoPesel,
+  createAdmissionForm,
+  createIdentityForm,
+  createInsuranceForm,
+  createPersonalForm,
+  fromIsoDate,
+  prefillForms,
+  toIsoDate,
+} from './patient-registration.forms';
+import {
+  buildAdmission,
+  buildPatientDraft,
+  buildSummarySections,
+} from './patient-registration.mappers';
 
 @Component({
   selector: 'app-patient-registration-page',
   imports: [
     PageHeader,
-    FormField,
     WizardStepFooter,
     RegistrationSummary,
-    ReactiveFormsModule,
-    Button,
     StepperModule,
-    Select,
-    DatePicker,
-    ToggleSwitch,
-    InputMask,
-    InputText,
-    SelectButton,
-    Textarea,
-    Message,
-    RouterLink,
-    DatePipe,
+    IdentityStep,
+    PersonalStep,
+    InsuranceStep,
+    AdmissionStep,
   ],
   templateUrl: './patient-registration-page.html',
-  styleUrl: './patient-registration-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { 'data-component-id': 'patient-registration-page' },
 })
@@ -134,82 +89,15 @@ export class PatientRegistrationPage implements HasUnsavedChanges {
   protected readonly wards = signal<Ward[]>([]);
   protected readonly doctors = signal<StaffMember[]>([]);
 
-  protected readonly genderOptions = GENDER_OPTIONS;
-  protected readonly noPeselReasonOptions = NO_PESEL_REASON_OPTIONS;
-  protected readonly identityDocumentTypeOptions = IDENTITY_DOCUMENT_TYPE_OPTIONS;
-  protected readonly insurancePayerOptions = INSURANCE_PAYER_OPTIONS;
-  protected readonly nfzBranchOptions = NFZ_BRANCH_OPTIONS;
-  protected readonly bloodTypeOptions = BLOOD_TYPE_OPTIONS;
-  protected readonly admissionTypeOptions = ADMISSION_TYPE_OPTIONS;
-  protected readonly triageOptions = TRIAGE_OPTIONS;
+  protected readonly step1 = createIdentityForm(this.fb);
+  protected readonly step2 = createPersonalForm(this.fb);
+  protected readonly step3 = createInsuranceForm(this.fb);
+  protected readonly step4 = createAdmissionForm(this.fb);
 
-  // ---- Step 1: Identyfikacja ----
-  protected readonly step1 = this.fb.group({
-    noPesel: this.fb.control(false),
-    pesel: this.fb.control('', [Validators.required, peselValidator()]),
-    birthDate: this.fb.control<Date | null>(null, Validators.required),
-    gender: this.fb.control<Gender>('unknown'),
-    noPeselReason: this.fb.control<'foreigner' | 'newborn' | 'unknown_identity' | null>(null),
-    documentType: this.fb.control<'id_card' | 'passport' | 'other' | null>(null),
-    documentNumber: this.fb.control(''),
-  });
-
-  // ---- Step 2: Dane osobowe i kontaktowe ----
-  protected readonly step2 = this.fb.group({
-    firstName: this.fb.control('', Validators.required),
-    secondName: this.fb.control(''),
-    lastName: this.fb.control('', Validators.required),
-    phone: this.fb.control('', [phoneValidator()]),
-    email: this.fb.control('', [Validators.email]),
-    street: this.fb.control('', Validators.required),
-    buildingNumber: this.fb.control('', Validators.required),
-    apartmentNumber: this.fb.control(''),
-    postalCode: this.fb.control('', [Validators.required, postalCodeValidator()]),
-    city: this.fb.control('', Validators.required),
-    country: this.fb.control('Polska', Validators.required),
-  });
-
-  // ---- Step 3: Ubezpieczenie i osoba kontaktowa ----
-  protected readonly step3 = this.fb.group({
-    insuranceStatus: this.fb.control<'active' | 'inactive' | 'unknown'>('unknown'),
-    insurancePayer: this.fb.control<'NFZ' | 'private' | 'none'>('NFZ'),
-    nfzBranch: this.fb.control(''),
-    ewusVerifiedAt: this.fb.control<string | null>(null),
-    contactFullName: this.fb.control(''),
-    contactRelation: this.fb.control(''),
-    contactPhone: this.fb.control(''),
-    isLegalGuardian: this.fb.control(false),
-    bloodType: this.fb.control<string | null>(null),
-  });
-
-  // ---- Step 4: Przyjęcie ----
-  protected readonly step4 = this.fb.group({
-    admissionType: this.fb.control<AdmissionType>('planned'),
-    wardId: this.fb.control(''),
-    room: this.fb.control(''),
-    bed: this.fb.control(''),
-    attendingPhysicianId: this.fb.control(''),
-    triageLevel: this.fb.control<TriageLevel | null>(null),
-    reason: this.fb.control(''),
-    referralNumber: this.fb.control(''),
-    admittedAt: this.fb.control<Date>(new Date()),
-  });
-
-  private readonly step1Value = toSignal(
-    this.step1.valueChanges.pipe(
-      startWith(null),
-      map(() => this.step1.getRawValue()),
-    ),
-    { initialValue: this.step1.getRawValue() },
-  );
-
-  private readonly step4Value = toSignal(
-    this.step4.valueChanges.pipe(
-      startWith(null),
-      map(() => this.step4.getRawValue()),
-    ),
-    { initialValue: this.step4.getRawValue() },
-  );
+  private readonly step1Value = rawValueSignal(this.step1);
+  private readonly step2Value = rawValueSignal(this.step2);
+  private readonly step3Value = rawValueSignal(this.step3);
+  private readonly step4Value = rawValueSignal(this.step4);
 
   protected readonly isAmbulatoryOnly = () => this.step4Value().admissionType === 'outpatient';
 
@@ -231,16 +119,8 @@ export class PatientRegistrationPage implements HasUnsavedChanges {
 
     // PESEL <-> manual-birth-date branch toggling.
     this.step1.controls.noPesel.valueChanges.subscribe((noPesel) => {
-      if (noPesel) {
-        this.step1.controls.pesel.disable({ emitEvent: false });
-        this.step1.controls.noPeselReason.setValidators(Validators.required);
-        this.duplicatePatient.set(null);
-      } else {
-        this.step1.controls.pesel.enable({ emitEvent: false });
-        this.step1.controls.noPeselReason.clearValidators();
-      }
-      // `birthDate` stays required in both branches (auto-filled from PESEL, or entered manually).
-      this.step1.controls.noPeselReason.updateValueAndValidity({ emitEvent: false });
+      applyNoPesel(this.step1, noPesel);
+      if (noPesel) this.duplicatePatient.set(null);
     });
 
     this.step1.controls.pesel.valueChanges
@@ -249,8 +129,8 @@ export class PatientRegistrationPage implements HasUnsavedChanges {
 
     this.step4.controls.admissionType.valueChanges
       .pipe(takeUntilDestroyed())
-      .subscribe((type) => this.onAdmissionTypeChange(type));
-    this.onAdmissionTypeChange(this.step4.controls.admissionType.value);
+      .subscribe((type) => applyAdmissionType(this.step4, type));
+    applyAdmissionType(this.step4, this.step4.controls.admissionType.value);
 
     // `mode`/`patientId` are route-bound signal inputs -- still default at construction
     // time, so gate on the observable stream instead of reading `this.mode()` here.
@@ -265,7 +145,10 @@ export class PatientRegistrationPage implements HasUnsavedChanges {
       )
       .subscribe((patient) => {
         this.originalPatient = patient;
-        this.prefill(patient);
+        prefillForms(
+          { step1: this.step1, step2: this.step2, step3: this.step3, step4: this.step4 },
+          patient,
+        );
         this.loadingPatient.set(false);
       });
   }
@@ -288,41 +171,6 @@ export class PatientRegistrationPage implements HasUnsavedChanges {
         });
       }
     });
-  }
-
-  private onAdmissionTypeChange(type: AdmissionType): void {
-    const controls = this.step4.controls;
-    if (type === 'outpatient') {
-      controls.wardId.disable({ emitEvent: false });
-      controls.room.disable({ emitEvent: false });
-      controls.bed.disable({ emitEvent: false });
-      controls.attendingPhysicianId.disable({ emitEvent: false });
-      controls.triageLevel.disable({ emitEvent: false });
-      controls.reason.disable({ emitEvent: false });
-      controls.referralNumber.disable({ emitEvent: false });
-      controls.admittedAt.disable({ emitEvent: false });
-      controls.wardId.clearValidators();
-      controls.attendingPhysicianId.clearValidators();
-      controls.reason.clearValidators();
-      controls.triageLevel.clearValidators();
-    } else {
-      controls.wardId.enable({ emitEvent: false });
-      controls.room.enable({ emitEvent: false });
-      controls.bed.enable({ emitEvent: false });
-      controls.attendingPhysicianId.enable({ emitEvent: false });
-      controls.triageLevel.enable({ emitEvent: false });
-      controls.reason.enable({ emitEvent: false });
-      controls.referralNumber.enable({ emitEvent: false });
-      controls.admittedAt.enable({ emitEvent: false });
-      controls.wardId.setValidators(Validators.required);
-      controls.attendingPhysicianId.setValidators(Validators.required);
-      controls.reason.setValidators(Validators.required);
-      controls.triageLevel.setValidators(type === 'emergency' ? Validators.required : null);
-    }
-    controls.wardId.updateValueAndValidity({ emitEvent: false });
-    controls.attendingPhysicianId.updateValueAndValidity({ emitEvent: false });
-    controls.reason.updateValueAndValidity({ emitEvent: false });
-    controls.triageLevel.updateValueAndValidity({ emitEvent: false });
   }
 
   protected verifyEwus(): void {
@@ -361,186 +209,31 @@ export class PatientRegistrationPage implements HasUnsavedChanges {
     tryAdvance(this.step4, activate, 5);
   }
 
-  private readonly step2Value = toSignal(
-    this.step2.valueChanges.pipe(
-      startWith(null),
-      map(() => this.step2.getRawValue()),
-    ),
-    { initialValue: this.step2.getRawValue() },
-  );
-
-  private readonly step3Value = toSignal(
-    this.step3.valueChanges.pipe(
-      startWith(null),
-      map(() => this.step3.getRawValue()),
-    ),
-    { initialValue: this.step3.getRawValue() },
-  );
-
-  private formatBirthDate(d: Date): string {
-    return formatDate(toIsoDate(d), 'dd.MM.yyyy', this.locale);
-  }
-
-  private formatDateTime(iso: string): string {
-    return formatDate(iso, 'dd.MM.yyyy HH:mm', this.locale);
-  }
-
-  protected readonly summarySections = (): RegistrationSummarySection[] => {
-    const s1 = this.step1Value();
-    const s2 = this.step2Value();
-    const s3 = this.step3Value();
-    const s4 = this.step4Value();
-
-    const sections: RegistrationSummarySection[] = [
-      {
-        title: 'Identyfikacja',
-        icon: 'pi pi-id-card',
-        items: s1.noPesel
-          ? [
-              {
-                label: 'Powód braku PESEL',
-                value: s1.noPeselReason ? NO_PESEL_REASON_LABELS[s1.noPeselReason] : null,
-              },
-              {
-                label: 'Dokument',
-                value: s1.documentType ? IDENTITY_DOCUMENT_TYPE_LABELS[s1.documentType] : null,
-              },
-              { label: 'Nr dokumentu', value: s1.documentNumber || null },
-              {
-                label: 'Data urodzenia',
-                value: s1.birthDate ? this.formatBirthDate(s1.birthDate) : null,
-              },
-              { label: 'Płeć', value: GENDER_LABELS[s1.gender] },
-            ]
-          : [
-              { label: 'PESEL', value: s1.pesel || null },
-              {
-                label: 'Data urodzenia',
-                value: s1.birthDate ? this.formatBirthDate(s1.birthDate) : null,
-              },
-              { label: 'Płeć', value: GENDER_LABELS[s1.gender] },
-            ],
-      },
-      {
-        title: 'Dane osobowe i kontaktowe',
-        icon: 'pi pi-users',
-        items: [
-          {
-            label: 'Imię i nazwisko',
-            value:
-              `${s2.firstName} ${s2.secondName ? s2.secondName + ' ' : ''}${s2.lastName}`.trim(),
-          },
-          { label: 'Telefon', value: s2.phone || null },
-          { label: 'E-mail', value: s2.email || null },
-          {
-            label: 'Adres',
-            value: `${s2.street} ${s2.buildingNumber}${s2.apartmentNumber ? '/' + s2.apartmentNumber : ''}, ${s2.postalCode} ${s2.city}, ${s2.country}`,
-          },
-        ],
-      },
-      {
-        title: 'Ubezpieczenie i osoba kontaktowa',
-        icon: 'pi pi-clipboard',
-        items: [
-          { label: 'Status ubezpieczenia', value: INSURANCE_STATUS_LABELS[s3.insuranceStatus] },
-          { label: 'Płatnik', value: s3.insurancePayer },
-          {
-            label: 'Oddział NFZ',
-            value: NFZ_BRANCH_OPTIONS.find((b) => b.value === s3.nfzBranch)?.label ?? null,
-          },
-          { label: 'Grupa krwi', value: s3.bloodType },
-          { label: 'Osoba kontaktowa', value: s3.contactFullName || null },
-          { label: 'Telefon kontaktowy', value: s3.contactPhone || null },
-        ],
-      },
-    ];
-
-    if (this.mode() === 'create') {
-      sections.push({
-        title: 'Przyjęcie',
-        icon: 'pi pi-calendar-clock',
-        items:
-          s4.admissionType === 'outpatient'
-            ? [{ label: 'Typ przyjęcia', value: ADMISSION_TYPE_LABELS[s4.admissionType] }]
-            : [
-                { label: 'Typ przyjęcia', value: ADMISSION_TYPE_LABELS[s4.admissionType] },
-                { label: 'Oddział', value: this.wardService.nameOf(s4.wardId) },
-                {
-                  label: 'Sala/Łóżko',
-                  value: [s4.room, s4.bed].filter(Boolean).join(' / ') || null,
-                },
-                {
-                  label: 'Lekarz prowadzący',
-                  value: this.staffService.nameOf(s4.attendingPhysicianId),
-                },
-                { label: 'Triage', value: s4.triageLevel ? TRIAGE_LABELS[s4.triageLevel] : null },
-                { label: 'Powód przyjęcia', value: s4.reason || null },
-              ],
-      });
-    }
-
-    return sections;
-  };
+  protected readonly summarySections = () =>
+    buildSummarySections({
+      s1: this.step1Value(),
+      s2: this.step2Value(),
+      s3: this.step3Value(),
+      s4: this.step4Value(),
+      mode: this.mode(),
+      locale: this.locale,
+      wardName: (id) => this.wardService.nameOf(id),
+      staffName: (id) => this.staffService.nameOf(id),
+    });
 
   protected submit(): void {
     if (this.duplicatePatient()) return;
     this.submitting.set(true);
 
-    const s1 = this.step1.getRawValue();
-    const s2 = this.step2.getRawValue();
-    const s3 = this.step3.getRawValue();
     const s4 = this.step4.getRawValue();
-
-    const birthDate = s1.birthDate ? toIsoDate(s1.birthDate) : '';
-
-    const status: AdmissionStatus =
-      this.mode() === 'edit'
-        ? (this.originalPatient?.status ?? 'registered')
-        : s4.admissionType === 'outpatient'
-          ? 'outpatient'
-          : 'registered';
-
-    const draft: PatientDraft = {
-      pesel: s1.noPesel ? null : s1.pesel || null,
-      noPeselReason: s1.noPesel ? (s1.noPeselReason ?? undefined) : undefined,
-      identityDocument:
-        s1.noPesel && s1.documentType
-          ? { type: s1.documentType, number: s1.documentNumber }
-          : undefined,
-      firstName: s2.firstName,
-      secondName: s2.secondName || undefined,
-      lastName: s2.lastName,
-      birthDate,
-      gender: s1.gender,
-      phone: s2.phone || undefined,
-      email: s2.email || undefined,
-      address: {
-        street: s2.street,
-        buildingNumber: s2.buildingNumber,
-        apartmentNumber: s2.apartmentNumber || undefined,
-        postalCode: s2.postalCode,
-        city: s2.city,
-        country: s2.country,
-      },
-      emergencyContact: s3.contactFullName
-        ? {
-            fullName: s3.contactFullName,
-            relation: s3.contactRelation,
-            phone: s3.contactPhone,
-            isLegalGuardian: s3.isLegalGuardian,
-          }
-        : undefined,
-      insurance: {
-        status: s3.insuranceStatus,
-        nfzBranch: s3.nfzBranch,
-        payer: s3.insurancePayer,
-        ewusVerifiedAt: s3.ewusVerifiedAt ?? undefined,
-      },
-      bloodType: (s3.bloodType as PatientDraft['bloodType']) ?? undefined,
-      status,
-      currentAdmission: this.originalPatient?.currentAdmission,
-      flags: this.originalPatient?.flags ?? [],
-    };
+    const draft = buildPatientDraft({
+      s1: this.step1.getRawValue(),
+      s2: this.step2.getRawValue(),
+      s3: this.step3.getRawValue(),
+      s4,
+      mode: this.mode(),
+      original: this.originalPatient,
+    });
 
     if (this.mode() === 'edit') {
       const id = this.patientId();
@@ -553,13 +246,7 @@ export class PatientRegistrationPage implements HasUnsavedChanges {
           this.messageService.add({ severity: 'success', summary: 'Dane pacjenta zaktualizowane' });
           this.router.navigate(['/patients', id, 'overview']);
         },
-        error: () => {
-          this.submitting.set(false);
-          this.messageService.add({
-            severity: 'error',
-            summary: 'Nie udało się zapisać zmian',
-          });
-        },
+        error: () => this.fail('Nie udało się zapisać zmian'),
       });
       return;
     }
@@ -569,21 +256,11 @@ export class PatientRegistrationPage implements HasUnsavedChanges {
     this.patientService
       .createPatient(draft)
       .pipe(
-        switchMap((patient) => {
-          if (!needsAdmission) return of(patient);
-          const admission: Admission = {
-            admissionType: s4.admissionType,
-            admittedAt: s4.admittedAt.toISOString(),
-            wardId: s4.wardId,
-            room: s4.room || undefined,
-            bed: s4.bed || undefined,
-            attendingPhysicianId: s4.attendingPhysicianId,
-            triageLevel: s4.triageLevel ?? undefined,
-            reason: s4.reason,
-            referralNumber: s4.referralNumber || undefined,
-          };
-          return this.patientService.admitPatient(patient.id, admission);
-        }),
+        switchMap((patient) =>
+          needsAdmission
+            ? this.patientService.admitPatient(patient.id, buildAdmission(s4))
+            : of(patient),
+        ),
       )
       .subscribe({
         next: (patient) => {
@@ -596,14 +273,13 @@ export class PatientRegistrationPage implements HasUnsavedChanges {
           });
           this.router.navigate(['/patients', patient.id, 'overview']);
         },
-        error: () => {
-          this.submitting.set(false);
-          this.messageService.add({
-            severity: 'error',
-            summary: 'Nie udało się zarejestrować pacjenta',
-          });
-        },
+        error: () => this.fail('Nie udało się zarejestrować pacjenta'),
       });
+  }
+
+  private fail(summary: string): void {
+    this.submitting.set(false);
+    this.messageService.add({ severity: 'error', summary });
   }
 
   protected cancel(): void {
@@ -611,59 +287,6 @@ export class PatientRegistrationPage implements HasUnsavedChanges {
       this.router.navigate(['/patients', this.patientId(), 'overview']);
     } else {
       this.router.navigate(['/patients']);
-    }
-  }
-
-  private prefill(patient: Patient): void {
-    this.step1.reset({
-      noPesel: !patient.pesel,
-      pesel: patient.pesel ?? '',
-      birthDate: fromIsoDate(patient.birthDate),
-      gender: patient.gender,
-      noPeselReason: patient.noPeselReason ?? null,
-      documentType: patient.identityDocument?.type ?? null,
-      documentNumber: patient.identityDocument?.number ?? '',
-    });
-
-    this.step2.reset({
-      firstName: patient.firstName,
-      secondName: patient.secondName ?? '',
-      lastName: patient.lastName,
-      phone: patient.phone ?? '',
-      email: patient.email ?? '',
-      street: patient.address.street,
-      buildingNumber: patient.address.buildingNumber,
-      apartmentNumber: patient.address.apartmentNumber ?? '',
-      postalCode: patient.address.postalCode,
-      city: patient.address.city,
-      country: patient.address.country,
-    });
-
-    this.step3.reset({
-      insuranceStatus: patient.insurance.status,
-      insurancePayer: patient.insurance.payer,
-      nfzBranch: patient.insurance.nfzBranch,
-      ewusVerifiedAt: patient.insurance.ewusVerifiedAt ?? null,
-      contactFullName: patient.emergencyContact?.fullName ?? '',
-      contactRelation: patient.emergencyContact?.relation ?? '',
-      contactPhone: patient.emergencyContact?.phone ?? '',
-      isLegalGuardian: patient.emergencyContact?.isLegalGuardian ?? false,
-      bloodType: patient.bloodType ?? null,
-    });
-
-    if (patient.currentAdmission) {
-      const a = patient.currentAdmission;
-      this.step4.reset({
-        admissionType: a.admissionType,
-        wardId: a.wardId,
-        room: a.room ?? '',
-        bed: a.bed ?? '',
-        attendingPhysicianId: a.attendingPhysicianId,
-        triageLevel: a.triageLevel ?? null,
-        reason: a.reason,
-        referralNumber: a.referralNumber ?? '',
-        admittedAt: new Date(a.admittedAt),
-      });
     }
   }
 

@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import type { Observable } from 'rxjs';
 import { MOCK_LATENCY_MS } from '../config/mock-api.config';
 import { PRESCRIPTIONS } from '../mock-data/prescriptions.mock';
-import type { ID, Prescription, PrescriptionDraft, PrescriptionItem } from '../models';
+import type { ActiveMedication, ID, Prescription, PrescriptionDraft } from '../models';
 import { mockError, mockResponse, nextId } from '../utils/mock-response';
 
 function randomAccessCode(): string {
@@ -37,8 +37,8 @@ export class PrescriptionService {
     return mockResponse(found, this.latency);
   }
 
-  /** Items from every non-expired, non-cancelled prescription of the patient. */
-  getActiveMedications(pid: ID): Observable<PrescriptionItem[]> {
+  /** Items from every non-expired, non-cancelled prescription of the patient, with prescription id and start date. */
+  getActiveMedications(pid: ID): Observable<ActiveMedication[]> {
     const today = new Date().toISOString().slice(0, 10);
     const items = this.prescriptions
       .filter(
@@ -47,7 +47,9 @@ export class PrescriptionService {
           (p.status === 'issued' || p.status === 'partially_dispensed') &&
           p.validUntil >= today,
       )
-      .flatMap((p) => p.items);
+      .flatMap((p) =>
+        p.items.map((item) => ({ ...item, prescriptionId: p.id, date: p.validFrom })),
+      );
     return mockResponse(items, this.latency);
   }
 

@@ -6,9 +6,9 @@ import { switchMap } from 'rxjs';
 import { MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { Tab, TabList, TabPanel, TabPanels, Tabs } from 'primeng/tabs';
-import { TableModule } from 'primeng/table';
 import { Tag } from 'primeng/tag';
 import { Tooltip } from 'primeng/tooltip';
+import { DataTable } from '../../components/data-table/data-table';
 import { PageHeader } from '../../components/page-header/page-header';
 import { EmptyState } from '../../components/empty-state/empty-state';
 import { StatusTag } from '../../components/status-tag/status-tag';
@@ -19,7 +19,7 @@ import { LabResultService } from '../../services/lab-result.service';
 import { ImagingResultService } from '../../services/imaging-result.service';
 import { ReportDownloadService } from '../../services/report-download.service';
 import { PatientContextService } from '../../services/patient-context.service';
-import type { ImagingResult, LabResult, SelectOption } from '../../models';
+import type { ImagingResult, LabResult, SelectOption, TableColumn } from '../../models';
 
 @Component({
   selector: 'app-patient-results-page',
@@ -31,7 +31,7 @@ import type { ImagingResult, LabResult, SelectOption } from '../../models';
     Tab,
     TabPanels,
     TabPanel,
-    TableModule,
+    DataTable,
     StatusTag,
     Tag,
     LabResultObservations,
@@ -74,19 +74,22 @@ export class PatientResultsPage {
   protected readonly abnormalCount = (result: LabResult): number =>
     result.observations.filter((o) => o.flag !== 'N').length;
 
-  protected readonly expandedLabRows = signal<Record<string, boolean>>({});
+  protected readonly labColumns: TableColumn<LabResult>[] = [
+    { field: 'collectedAt', header: 'Data pobrania' },
+    { field: 'testName', header: 'Badanie' },
+    { field: 'category', header: 'Kategoria' },
+    { field: 'status', header: 'Status' },
+    { field: 'observations', header: 'Nieprawidłowe' },
+  ];
 
-  protected onLabRowExpand(result: LabResult): void {
-    this.expandedLabRows.update((rows) => ({ ...rows, [result.id]: true }));
-  }
-
-  protected onLabRowCollapse(result: LabResult): void {
-    this.expandedLabRows.update((rows) => {
-      const rest = { ...rows };
-      delete rest[result.id];
-      return rest;
-    });
-  }
+  protected readonly imagingColumns: TableColumn<ImagingResult>[] = [
+    { field: 'performedAt', header: 'Data' },
+    { field: 'modality', header: 'Modalność' },
+    { field: 'examName', header: 'Badanie' },
+    { field: 'bodyRegion', header: 'Okolica' },
+    { field: 'status', header: 'Status' },
+    { field: 'critical', header: 'Krytyczny' },
+  ];
 
   protected readonly trendableAnalytes = signal<SelectOption[]>([]);
 

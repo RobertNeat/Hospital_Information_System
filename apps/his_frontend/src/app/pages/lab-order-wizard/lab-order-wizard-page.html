@@ -1,18 +1,19 @@
-<div class="his-page">
-  <app-page-header title="Nowe zlecenie laboratoryjne" />
+<div id="lab-order-wizard-page" class="his-page">
+  <app-page-header id="lab-order-wizard-app-page-header" title="Nowe zlecenie laboratoryjne" />
 
-  <p-stepper [value]="1" [linear]="true">
-    <p-step-list>
-      <p-step [value]="1">Wybór badań</p-step>
-      <p-step [value]="2">Materiał i pilność</p-step>
-      <p-step [value]="3">Informacje kliniczne</p-step>
-      <p-step [value]="4">Podsumowanie</p-step>
+  <p-stepper id="lab-order-wizard-p-stepper" [value]="1" [linear]="true">
+    <p-step-list id="lab-order-wizard-p-step-list">
+      <p-step id="lab-order-wizard-p-step" [value]="1">Wybór badań</p-step>
+      <p-step id="lab-order-wizard-p-step-2" [value]="2">Materiał i pilność</p-step>
+      <p-step id="lab-order-wizard-p-step-3" [value]="3">Informacje kliniczne</p-step>
+      <p-step id="lab-order-wizard-p-step-4" [value]="4">Podsumowanie</p-step>
     </p-step-list>
-    <p-step-panels>
-      <p-step-panel [value]="1">
+    <p-step-panels id="lab-order-wizard-p-step-panels">
+      <p-step-panel id="lab-order-wizard-p-step-panel" [value]="1">
         <ng-template #content let-activateCallback="activateCallback">
-          <form [formGroup]="step1Form" class="his-card">
+          <form id="lab-order-wizard-card" [formGroup]="step1Form" class="his-card">
             <app-catalog-picker
+              id="lab-order-wizard-app-catalog-picker"
               [items]="catalog()"
               [panels]="panels()"
               [selectedCodes]="selectedCodes()"
@@ -21,10 +22,15 @@
             @if (
               step1Form.controls.selectedCodes.touched && step1Form.controls.selectedCodes.invalid
             ) {
-              <p-message severity="warn" text="Wybierz co najmniej jedno badanie." />
+              <p-message
+                id="lab-order-wizard-p-message"
+                severity="warn"
+                text="Wybierz co najmniej jedno badanie."
+              />
             }
           </form>
           <app-wizard-step-footer
+            id="lab-order-wizard-app-wizard-step-footer"
             [first]="true"
             (next)="advanceFromStep1(activateCallback)"
             (cancelled)="cancel()"
@@ -32,13 +38,17 @@
         </ng-template>
       </p-step-panel>
 
-      <p-step-panel [value]="2">
+      <p-step-panel id="lab-order-wizard-p-step-panel-2" [value]="2">
         <ng-template #content let-activateCallback="activateCallback">
-          <form [formGroup]="step2Form" class="his-card his-form-grid">
-            <div class="his-lab-wizard__specimens">
-              @for (test of selectedTests(); track test.code) {
-                <app-form-field [label]="test.name">
+          <form id="lab-order-wizard-card-2" [formGroup]="step2Form" class="his-card his-form-grid">
+            <div id="lab-order-wizard-lab-wizard-specimens" class="his-lab-wizard__specimens">
+              @for (test of selectedTests(); track test.code; let idx0 = $index) {
+                <app-form-field
+                  [id]="'lab-order-wizard-app-form-field-' + idx0"
+                  [label]="test.name"
+                >
                   <p-select
+                    [id]="'lab-order-wizard-p-select-' + idx0"
                     [options]="test.specimenTypes"
                     [formControl]="specimenForm.controls[test.code]"
                   >
@@ -49,8 +59,13 @@
               }
             </div>
 
-            <app-form-field label="Pilność" [required]="true">
+            <app-form-field
+              id="lab-order-wizard-app-form-field-2"
+              label="Pilność"
+              [required]="true"
+            >
               <p-selectbutton
+                id="lab-order-wizard-urgency"
                 [options]="urgencyOptions"
                 formControlName="urgency"
                 optionLabel="label"
@@ -59,24 +74,33 @@
             </app-form-field>
             @if (step2Form.controls.urgency.value === 'stat') {
               <p-message
+                id="lab-order-wizard-p-message-2"
                 severity="warn"
                 text="Zlecenie CITO — wynik będzie realizowany w trybie natychmiastowym."
               />
             }
 
-            <app-form-field label="Na czczo">
+            <app-form-field id="lab-order-wizard-app-form-field-3" label="Na czczo">
               <p-toggleswitch
+                id="lab-order-wizard-fasting"
                 formControlName="fasting"
                 [disabled]="anyFastingRequired()"
                 (onChange)="onFastingLockCheck()"
               />
               @if (anyFastingRequired()) {
-                <span class="his-muted">Wymagane przez co najmniej jedno z wybranych badań.</span>
+                <span id="lab-order-wizard-muted" class="his-muted"
+                  >Wymagane przez co najmniej jedno z wybranych badań.</span
+                >
               }
             </app-form-field>
 
-            <app-form-field label="Planowany termin pobrania" [required]="true">
+            <app-form-field
+              id="lab-order-wizard-app-form-field-4"
+              label="Planowany termin pobrania"
+              [required]="true"
+            >
               <p-datepicker
+                id="lab-order-wizard-planned-collection-at"
                 formControlName="plannedCollectionAt"
                 [showTime]="true"
                 [minDate]="minCollectionDate"
@@ -85,6 +109,7 @@
             </app-form-field>
           </form>
           <app-wizard-step-footer
+            id="lab-order-wizard-app-wizard-step-footer-2"
             (back)="activateCallback(1)"
             (next)="advanceFromStep2(activateCallback)"
             (cancelled)="cancel()"
@@ -92,11 +117,12 @@
         </ng-template>
       </p-step-panel>
 
-      <p-step-panel [value]="3">
+      <p-step-panel id="lab-order-wizard-p-step-panel-3" [value]="3">
         <ng-template #content let-activateCallback="activateCallback">
-          <form [formGroup]="step3Form" class="his-card his-form-grid">
-            <app-form-field label="Rozpoznanie">
+          <form id="lab-order-wizard-card-3" [formGroup]="step3Form" class="his-card his-form-grid">
+            <app-form-field id="lab-order-wizard-app-form-field-5" label="Rozpoznanie">
               <p-select
+                id="lab-order-wizard-diagnosis-code"
                 [options]="diagnosisOptions()"
                 formControlName="diagnosisCode"
                 optionLabel="label"
@@ -108,18 +134,30 @@
             </app-form-field>
 
             <app-form-field
+              id="lab-order-wizard-app-form-field-6"
               label="Informacje kliniczne"
               [required]="true"
               [control]="step3Form.controls.clinicalInfo"
             >
-              <textarea pTextarea rows="3" formControlName="clinicalInfo"></textarea>
+              <textarea
+                id="lab-order-wizard-clinical-info"
+                pTextarea
+                rows="3"
+                formControlName="clinicalInfo"
+              ></textarea>
             </app-form-field>
 
-            <app-form-field label="Uwagi dla laboratorium">
-              <textarea pTextarea rows="2" formControlName="notes"></textarea>
+            <app-form-field id="lab-order-wizard-app-form-field-7" label="Uwagi dla laboratorium">
+              <textarea
+                id="lab-order-wizard-notes"
+                pTextarea
+                rows="2"
+                formControlName="notes"
+              ></textarea>
             </app-form-field>
           </form>
           <app-wizard-step-footer
+            id="lab-order-wizard-app-wizard-step-footer-3"
             (back)="activateCallback(2)"
             (next)="advanceFromStep3(activateCallback)"
             (cancelled)="cancel()"
@@ -127,13 +165,17 @@
         </ng-template>
       </p-step-panel>
 
-      <p-step-panel [value]="4">
+      <p-step-panel id="lab-order-wizard-p-step-panel-4" [value]="4">
         <ng-template #content let-activateCallback="activateCallback">
-          <div class="his-card">
-            <app-summary-list [items]="summaryItems()" />
-            <app-fhir-integration-note resource="ServiceRequest" />
+          <div id="lab-order-wizard-card-4" class="his-card">
+            <app-summary-list id="lab-order-wizard-app-summary-list" [items]="summaryItems()" />
+            <app-fhir-integration-note
+              id="lab-order-wizard-app-fhir-integration-note"
+              resource="ServiceRequest"
+            />
           </div>
           <app-wizard-step-footer
+            id="lab-order-wizard-app-wizard-step-footer-4"
             [last]="true"
             [busy]="submitting()"
             submitLabel="Wyślij zlecenie"

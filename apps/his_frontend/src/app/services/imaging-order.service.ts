@@ -12,6 +12,7 @@ import type {
   ImagingOrderDraft,
   ISODate,
   OrderStatus,
+  OrderUrgency,
   ScheduleSlot,
 } from '../models';
 import { mockError, mockResponse, nextId } from '../utils/mock-response';
@@ -32,10 +33,15 @@ export class ImagingOrderService {
     return mockResponse(generateSlots(modality, date), this.latency);
   }
 
-  getOrders(filter?: { patientId?: ID; status?: OrderStatus }): Observable<ImagingOrder[]> {
+  getOrders(filter?: {
+    patientId?: ID;
+    status?: OrderStatus;
+    urgency?: OrderUrgency;
+  }): Observable<ImagingOrder[]> {
     let result = this.orders;
     if (filter?.patientId) result = result.filter((o) => o.patientId === filter.patientId);
     if (filter?.status) result = result.filter((o) => o.status === filter.status);
+    if (filter?.urgency) result = result.filter((o) => o.urgency === filter.urgency);
     return mockResponse(result, this.latency);
   }
 

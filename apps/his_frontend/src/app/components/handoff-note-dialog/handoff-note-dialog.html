@@ -1,4 +1,5 @@
 <p-dialog
+  id="handoff-note-dialog-p-dialog"
   header="Nowe przekazanie dyżuru"
   [visible]="visible()"
   [modal]="true"
@@ -6,10 +7,20 @@
   (onHide)="onHide()"
   (visibleChange)="visibleChange.emit($event)"
 >
-  <form [formGroup]="form" class="his-handoff-dialog__form">
-    <div class="his-form-grid">
-      <app-form-field label="Oddział" [control]="form.controls.wardId" [required]="true">
+  <form
+    id="handoff-note-dialog-handoff-dialog-form"
+    [formGroup]="form"
+    class="his-handoff-dialog__form"
+  >
+    <div id="handoff-note-dialog-form-grid" class="his-form-grid">
+      <app-form-field
+        id="handoff-note-dialog-app-form-field"
+        label="Oddział"
+        [control]="form.controls.wardId"
+        [required]="true"
+      >
         <p-select
+          id="handoff-note-dialog-ward-id"
           formControlName="wardId"
           [options]="wards()"
           optionLabel="name"
@@ -18,8 +29,14 @@
         />
       </app-form-field>
 
-      <app-form-field label="Zmiana" [control]="form.controls.shift" [required]="true">
+      <app-form-field
+        id="handoff-note-dialog-app-form-field-2"
+        label="Zmiana"
+        [control]="form.controls.shift"
+        [required]="true"
+      >
         <p-selectbutton
+          id="handoff-note-dialog-shift"
           formControlName="shift"
           [options]="shiftOptions"
           optionLabel="label"
@@ -28,8 +45,14 @@
       </app-form-field>
     </div>
 
-    <app-form-field label="Odbiorca" [control]="form.controls.toId" [required]="true">
+    <app-form-field
+      id="handoff-note-dialog-app-form-field-3"
+      label="Odbiorca"
+      [control]="form.controls.toId"
+      [required]="true"
+    >
       <p-select
+        id="handoff-note-dialog-to-id"
         formControlName="toId"
         [options]="recipients()"
         optionLabel="lastName"
@@ -45,14 +68,24 @@
       </p-select>
     </app-form-field>
 
-    <app-form-field label="Uwagi ogólne">
-      <textarea pTextarea rows="2" formControlName="generalNotes"></textarea>
+    <app-form-field id="handoff-note-dialog-app-form-field-4" label="Uwagi ogólne">
+      <textarea
+        id="handoff-note-dialog-general-notes"
+        pTextarea
+        rows="2"
+        formControlName="generalNotes"
+      ></textarea>
     </app-form-field>
 
-    <div class="his-handoff-dialog__patients">
-      <div class="his-toolbar">
-        <span class="his-handoff-dialog__patients-title">Pacjenci (SBAR)</span>
+    <div id="handoff-note-dialog-handoff-dialog-patients" class="his-handoff-dialog__patients">
+      <div id="handoff-note-dialog-toolbar" class="his-toolbar">
+        <span
+          id="handoff-note-dialog-handoff-dialog-patients-title"
+          class="his-handoff-dialog__patients-title"
+          >Pacjenci (SBAR)</span
+        >
         <p-button
+          id="handoff-note-dialog-p-button"
           label="Dodaj pacjenta"
           icon="pi pi-plus"
           size="small"
@@ -61,48 +94,111 @@
         />
       </div>
 
-      @for (group of patientNotesArray.controls; track group; let i = $index) {
-        <div class="his-card his-handoff-dialog__patient-card" [formArrayName]="'patientNotes'">
-          <div [formGroupName]="i" class="his-handoff-dialog__patient-inner">
-            <div class="his-toolbar">
+      @for (group of patientNotesArray.controls; track group; let i = $index; let idx0 = $index) {
+        <div
+          [id]="'handoff-note-dialog-card-' + idx0"
+          class="his-card his-handoff-dialog__patient-card"
+          [formArrayName]="'patientNotes'"
+        >
+          <div
+            [id]="'handoff-note-dialog-handoff-dialog-patient-inner-' + idx0"
+            [formGroupName]="i"
+            class="his-handoff-dialog__patient-inner"
+          >
+            <div [id]="'handoff-note-dialog-toolbar-2-' + idx0" class="his-toolbar">
               @if (patientEntries()[i]; as patient) {
-                <span>{{ patient.lastName }} {{ patient.firstName }}</span>
+                <span [id]="'handoff-note-dialog-span-' + idx0"
+                  >{{ patient.lastName }} {{ patient.firstName }}</span
+                >
               } @else {
-                <app-patient-search (patientSelected)="onPatientSelected(i, $event)" />
+                <app-patient-search
+                  [id]="'handoff-note-dialog-app-patient-search-' + idx0"
+                  (patientSelected)="onPatientSelected(i, $event)"
+                />
               }
               <button
+                [id]="'handoff-note-dialog-handoff-dialog-remove-' + idx0"
                 type="button"
                 class="his-handoff-dialog__remove"
                 aria-label="Usuń pacjenta z przekazania"
                 pTooltip="Usuń pacjenta z przekazania"
                 (click)="removePatientEntry(i)"
               >
-                <i class="pi pi-trash"></i>
+                <i [id]="'handoff-note-dialog-pi-' + idx0" class="pi pi-trash"></i>
               </button>
             </div>
 
-            <app-form-field label="Sytuacja (S)" [required]="true">
-              <textarea pTextarea rows="2" formControlName="situation"></textarea>
+            <app-form-field
+              [id]="'handoff-note-dialog-app-form-field-5-' + idx0"
+              label="Sytuacja (S)"
+              [required]="true"
+            >
+              <textarea
+                [id]="'handoff-note-dialog-situation-' + idx0"
+                pTextarea
+                rows="2"
+                formControlName="situation"
+              ></textarea>
             </app-form-field>
-            <app-form-field label="Tło (B)" [required]="true">
-              <textarea pTextarea rows="2" formControlName="background"></textarea>
+            <app-form-field
+              [id]="'handoff-note-dialog-app-form-field-6-' + idx0"
+              label="Tło (B)"
+              [required]="true"
+            >
+              <textarea
+                [id]="'handoff-note-dialog-background-' + idx0"
+                pTextarea
+                rows="2"
+                formControlName="background"
+              ></textarea>
             </app-form-field>
-            <app-form-field label="Ocena (A)" [required]="true">
-              <textarea pTextarea rows="2" formControlName="assessment"></textarea>
+            <app-form-field
+              [id]="'handoff-note-dialog-app-form-field-7-' + idx0"
+              label="Ocena (A)"
+              [required]="true"
+            >
+              <textarea
+                [id]="'handoff-note-dialog-assessment-' + idx0"
+                pTextarea
+                rows="2"
+                formControlName="assessment"
+              ></textarea>
             </app-form-field>
-            <app-form-field label="Zalecenia (R)" [required]="true">
-              <textarea pTextarea rows="2" formControlName="recommendation"></textarea>
+            <app-form-field
+              [id]="'handoff-note-dialog-app-form-field-8-' + idx0"
+              label="Zalecenia (R)"
+              [required]="true"
+            >
+              <textarea
+                [id]="'handoff-note-dialog-recommendation-' + idx0"
+                pTextarea
+                rows="2"
+                formControlName="recommendation"
+              ></textarea>
             </app-form-field>
           </div>
         </div>
       } @empty {
-        <p class="his-muted">Dodaj co najmniej jednego pacjenta do przekazania.</p>
+        <p id="handoff-note-dialog-muted" class="his-muted">
+          Dodaj co najmniej jednego pacjenta do przekazania.
+        </p>
       }
     </div>
   </form>
 
   <ng-template #footer>
-    <p-button label="Anuluj" severity="secondary" text (onClick)="onHide()" />
-    <p-button label="Zapisz przekazanie" icon="pi pi-check" (onClick)="submit()" />
+    <p-button
+      id="handoff-note-dialog-p-button-2"
+      label="Anuluj"
+      severity="secondary"
+      text
+      (onClick)="onHide()"
+    />
+    <p-button
+      id="handoff-note-dialog-p-button-3"
+      label="Zapisz przekazanie"
+      icon="pi pi-check"
+      (onClick)="submit()"
+    />
   </ng-template>
 </p-dialog>

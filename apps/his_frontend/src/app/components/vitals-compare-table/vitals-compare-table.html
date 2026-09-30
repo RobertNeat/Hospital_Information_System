@@ -1,39 +1,58 @@
-<table class="vitals-compare-table">
-  <thead>
-    <tr>
-      <th>Parametr</th>
-      <th>Wartość A</th>
-      <th>Wartość B</th>
-      <th>Δ</th>
-      <th>Kierunek</th>
+<table id="vitals-compare-table" class="vitals-compare-table">
+  <thead id="vitals-compare-table-thead">
+    <tr id="vitals-compare-table-tr">
+      <th id="vitals-compare-table-th">Parametr</th>
+      <th id="vitals-compare-table-th-2">Wartość A</th>
+      <th id="vitals-compare-table-th-3">Wartość B</th>
+      <th id="vitals-compare-table-th-4">Δ</th>
+      <th id="vitals-compare-table-th-5">Kierunek</th>
     </tr>
   </thead>
-  <tbody>
-    @for (row of rows(); track row.type) {
-      <tr>
-        <td>{{ row.label }}</td>
-        <td>{{ row.valueA ?? '—' }} {{ row.valueA !== undefined ? row.unit : '' }}</td>
-        <td>{{ row.valueB ?? '—' }} {{ row.valueB !== undefined ? row.unit : '' }}</td>
-        <td>
+  <tbody id="vitals-compare-table-tbody">
+    @for (row of rows(); track row.type; let idx0 = $index) {
+      <tr [id]="'vitals-compare-table-tr-2-' + idx0">
+        <td [id]="'vitals-compare-table-td-' + idx0">{{ row.label }}</td>
+        <td [id]="'vitals-compare-table-td-2-' + idx0">
+          {{ row.valueA ?? '—' }} {{ row.valueA !== undefined ? row.unit : '' }}
+        </td>
+        <td [id]="'vitals-compare-table-td-3-' + idx0">
+          {{ row.valueB ?? '—' }} {{ row.valueB !== undefined ? row.unit : '' }}
+        </td>
+        <td [id]="'vitals-compare-table-td-4-' + idx0">
           @if (row.delta !== undefined) {
             {{ row.delta > 0 ? '+' : '' }}{{ row.delta }} {{ row.unit }}
           } @else {
             —
           }
         </td>
-        <td>
+        <td [id]="'vitals-compare-table-td-5-' + idx0">
           @switch (row.arrow) {
             @case ('up') {
-              <p-tag [severity]="row.arrowSeverity" icon="pi pi-arrow-up" value="Wzrost" />
+              <p-tag
+                [id]="'vitals-compare-table-p-tag-' + idx0"
+                [severity]="row.arrowSeverity"
+                icon="pi pi-arrow-up"
+                value="Wzrost"
+              />
             }
             @case ('down') {
-              <p-tag [severity]="row.arrowSeverity" icon="pi pi-arrow-down" value="Spadek" />
+              <p-tag
+                [id]="'vitals-compare-table-p-tag-2-' + idx0"
+                [severity]="row.arrowSeverity"
+                icon="pi pi-arrow-down"
+                value="Spadek"
+              />
             }
             @case ('flat') {
-              <p-tag severity="secondary" icon="pi pi-minus" value="Bez zmian" />
+              <p-tag
+                [id]="'vitals-compare-table-p-tag-3-' + idx0"
+                severity="secondary"
+                icon="pi pi-minus"
+                value="Bez zmian"
+              />
             }
             @default {
-              <span class="his-muted">—</span>
+              <span [id]="'vitals-compare-table-muted-' + idx0" class="his-muted">—</span>
             }
           }
         </td>

@@ -1,0 +1,101 @@
+<form id="admission-step-card" [formGroup]="form()" class="his-card his-form-grid">
+  <div id="admission-step-registration-full-row" class="his-registration__full-row">
+    <p-selectbutton
+      id="admission-step-admission-type"
+      formControlName="admissionType"
+      [options]="admissionTypeOptions"
+      optionLabel="label"
+      optionValue="value"
+      [allowEmpty]="false"
+    />
+  </div>
+
+  @if (!ambulatoryOnly()) {
+    <app-form-field
+      id="admission-step-app-form-field"
+      label="Oddział"
+      for="wardId"
+      [required]="true"
+      [control]="form().controls.wardId"
+    >
+      <p-select
+        id="admission-step-ward-id"
+        inputId="wardId"
+        formControlName="wardId"
+        [options]="wards()"
+        optionLabel="name"
+        optionValue="id"
+      />
+    </app-form-field>
+    <app-form-field id="admission-step-app-form-field-2" label="Sala" for="room">
+      <input pInputText id="room" formControlName="room" />
+    </app-form-field>
+    <app-form-field id="admission-step-app-form-field-3" label="Łóżko" for="bed">
+      <input pInputText id="bed" formControlName="bed" />
+    </app-form-field>
+    <app-form-field
+      id="admission-step-app-form-field-4"
+      label="Lekarz prowadzący"
+      for="attendingPhysicianId"
+      [required]="true"
+      [control]="form().controls.attendingPhysicianId"
+    >
+      <p-select
+        id="admission-step-attending-physician-id"
+        inputId="attendingPhysicianId"
+        formControlName="attendingPhysicianId"
+        [options]="doctors()"
+        optionLabel="lastName"
+        optionValue="id"
+      />
+    </app-form-field>
+    <app-form-field
+      id="admission-step-app-form-field-5"
+      label="Poziom triage"
+      for="triageLevel"
+      [required]="form().controls.admissionType.value === 'emergency'"
+      [control]="form().controls.triageLevel"
+    >
+      <p-select
+        id="admission-step-triage-level"
+        inputId="triageLevel"
+        formControlName="triageLevel"
+        [options]="triageOptions"
+        optionLabel="label"
+        optionValue="value"
+        [showClear]="true"
+      />
+    </app-form-field>
+    <div id="admission-step-registration-full-row-2" class="his-registration__full-row">
+      <app-form-field
+        id="admission-step-app-form-field-6"
+        label="Powód przyjęcia"
+        for="reason"
+        [required]="true"
+        [control]="form().controls.reason"
+      >
+        <textarea pTextarea id="reason" formControlName="reason" rows="3"></textarea>
+      </app-form-field>
+    </div>
+    <app-form-field
+      id="admission-step-app-form-field-7"
+      label="Nr skierowania"
+      for="referralNumber"
+    >
+      <input pInputText id="referralNumber" formControlName="referralNumber" />
+    </app-form-field>
+    <app-form-field
+      id="admission-step-app-form-field-8"
+      label="Data i godzina przyjęcia"
+      for="admittedAt"
+    >
+      <p-datepicker
+        id="admission-step-admitted-at"
+        inputId="admittedAt"
+        formControlName="admittedAt"
+        [showTime]="true"
+        dateFormat="dd.mm.yy"
+      />
+    </app-form-field>
+  }
+</form>

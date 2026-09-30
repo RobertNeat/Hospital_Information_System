@@ -23,6 +23,12 @@ describe('EhrService', () => {
     expect(result.some((a) => a.substance === 'Penicylina')).toBe(true);
   });
 
+  it('getContraindications returns seeded entries filtered by patientId', async () => {
+    const result = await firstValueFrom(service.getContraindications('pat-001'));
+    expect(result.length).toBeGreaterThan(0);
+    expect(result.every((c) => c.patientId === 'pat-001')).toBe(true);
+  });
+
   it('addNote persists a new clinical note with a generated id and createdAt', async () => {
     const before = await firstValueFrom(service.getNotes('pat-003'));
     const note = await firstValueFrom(

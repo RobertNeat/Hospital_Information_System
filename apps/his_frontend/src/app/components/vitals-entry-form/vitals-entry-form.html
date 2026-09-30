@@ -1,11 +1,18 @@
-<form [formGroup]="form" class="his-form-grid vitals-entry-form" (ngSubmit)="submit()">
+<form
+  id="vitals-entry-form-form-grid"
+  [formGroup]="form"
+  class="his-form-grid vitals-entry-form"
+  (ngSubmit)="submit()"
+>
   <app-form-field
+    id="vitals-entry-form-app-form-field"
     label="RR skurczowe"
     for="systolic"
     [control]="form.controls.systolic"
     hint="mmHg"
   >
     <p-inputnumber
+      id="vitals-entry-form-systolic"
       inputId="systolic"
       formControlName="systolic"
       [min]="thresholds.systolic.min"
@@ -15,6 +22,7 @@
     />
     @if (fieldAnomaly('systolic'); as a) {
       <p-tag
+        id="vitals-entry-form-hint"
         class="vitals-entry-form__hint"
         [severity]="a.severity === 'critical' ? 'danger' : 'warn'"
         [value]="a.severity === 'critical' ? 'Krytyczne' : 'Odchylenie'"
@@ -23,12 +31,14 @@
   </app-form-field>
 
   <app-form-field
+    id="vitals-entry-form-app-form-field-2"
     label="RR rozkurczowe"
     for="diastolic"
     [control]="form.controls.diastolic"
     hint="mmHg"
   >
     <p-inputnumber
+      id="vitals-entry-form-diastolic"
       inputId="diastolic"
       formControlName="diastolic"
       [min]="thresholds.diastolic.min"
@@ -38,6 +48,7 @@
     />
     @if (fieldAnomaly('diastolic'); as a) {
       <p-tag
+        id="vitals-entry-form-hint-2"
         class="vitals-entry-form__hint"
         [severity]="a.severity === 'critical' ? 'danger' : 'warn'"
         [value]="a.severity === 'critical' ? 'Krytyczne' : 'Odchylenie'"
@@ -45,8 +56,15 @@
     }
   </app-form-field>
 
-  <app-form-field label="Tętno" for="heartRate" [control]="form.controls.heartRate" hint="/min">
+  <app-form-field
+    id="vitals-entry-form-app-form-field-3"
+    label="Tętno"
+    for="heartRate"
+    [control]="form.controls.heartRate"
+    hint="/min"
+  >
     <p-inputnumber
+      id="vitals-entry-form-heart-rate"
       inputId="heartRate"
       formControlName="heartRate"
       [min]="thresholds.heartRate.min"
@@ -56,6 +74,7 @@
     />
     @if (fieldAnomaly('heartRate'); as a) {
       <p-tag
+        id="vitals-entry-form-hint-3"
         class="vitals-entry-form__hint"
         [severity]="a.severity === 'critical' ? 'danger' : 'warn'"
         [value]="a.severity === 'critical' ? 'Krytyczne' : 'Odchylenie'"
@@ -64,12 +83,14 @@
   </app-form-field>
 
   <app-form-field
+    id="vitals-entry-form-app-form-field-4"
     label="Temperatura"
     for="temperature"
     [control]="form.controls.temperature"
     hint="°C"
   >
     <p-inputnumber
+      id="vitals-entry-form-temperature"
       inputId="temperature"
       formControlName="temperature"
       [minFractionDigits]="1"
@@ -81,6 +102,7 @@
     />
     @if (fieldAnomaly('temperature'); as a) {
       <p-tag
+        id="vitals-entry-form-hint-4"
         class="vitals-entry-form__hint"
         [severity]="a.severity === 'critical' ? 'danger' : 'warn'"
         [value]="a.severity === 'critical' ? 'Krytyczne' : 'Odchylenie'"
@@ -88,8 +110,15 @@
     }
   </app-form-field>
 
-  <app-form-field label="SpO₂" for="spo2" [control]="form.controls.spo2" hint="%">
+  <app-form-field
+    id="vitals-entry-form-app-form-field-5"
+    label="SpO₂"
+    for="spo2"
+    [control]="form.controls.spo2"
+    hint="%"
+  >
     <p-inputnumber
+      id="vitals-entry-form-spo2"
       inputId="spo2"
       formControlName="spo2"
       [min]="thresholds.spo2.min"
@@ -99,6 +128,7 @@
     />
     @if (fieldAnomaly('spo2'); as a) {
       <p-tag
+        id="vitals-entry-form-hint-5"
         class="vitals-entry-form__hint"
         [severity]="a.severity === 'critical' ? 'danger' : 'warn'"
         [value]="a.severity === 'critical' ? 'Krytyczne' : 'Odchylenie'"
@@ -107,12 +137,14 @@
   </app-form-field>
 
   <app-form-field
+    id="vitals-entry-form-app-form-field-6"
     label="Oddechy"
     for="respiratoryRate"
     [control]="form.controls.respiratoryRate"
     hint="/min"
   >
     <p-inputnumber
+      id="vitals-entry-form-respiratory-rate"
       inputId="respiratoryRate"
       formControlName="respiratoryRate"
       [min]="thresholds.respiratoryRate.min"
@@ -122,6 +154,7 @@
     />
     @if (fieldAnomaly('respiratoryRate'); as a) {
       <p-tag
+        id="vitals-entry-form-hint-6"
         class="vitals-entry-form__hint"
         [severity]="a.severity === 'critical' ? 'danger' : 'warn'"
         [value]="a.severity === 'critical' ? 'Krytyczne' : 'Odchylenie'"
@@ -129,8 +162,15 @@
     }
   </app-form-field>
 
-  <app-form-field label="Ból" for="painScore" [control]="form.controls.painScore" hint="skala 0-10">
+  <app-form-field
+    id="vitals-entry-form-app-form-field-7"
+    label="Ból"
+    for="painScore"
+    [control]="form.controls.painScore"
+    hint="skala 0-10"
+  >
     <p-inputnumber
+      id="vitals-entry-form-pain-score"
       inputId="painScore"
       formControlName="painScore"
       [min]="0"
@@ -140,12 +180,14 @@
   </app-form-field>
 
   <app-form-field
+    id="vitals-entry-form-app-form-field-8"
     label="Kontekst pomiaru"
     for="context"
     [control]="form.controls.context"
     [required]="true"
   >
     <p-select
+      id="vitals-entry-form-context"
       inputId="context"
       formControlName="context"
       [options]="contextOptions"
@@ -156,6 +198,7 @@
   </app-form-field>
 
   <app-form-field
+    id="vitals-entry-form-notes"
     label="Uwagi"
     for="notes"
     [control]="form.controls.notes"
@@ -164,7 +207,13 @@
     <textarea pTextarea id="notes" formControlName="notes" rows="2" [fluid]="true"></textarea>
   </app-form-field>
 
-  <div class="vitals-entry-form__actions">
-    <p-button type="submit" label="Zapisz pomiar" icon="pi pi-check" [loading]="saving()" />
+  <div id="vitals-entry-form-actions" class="vitals-entry-form__actions">
+    <p-button
+      id="vitals-entry-form-p-button"
+      type="submit"
+      label="Zapisz pomiar"
+      icon="pi pi-check"
+      [loading]="saving()"
+    />
   </div>
 </form>

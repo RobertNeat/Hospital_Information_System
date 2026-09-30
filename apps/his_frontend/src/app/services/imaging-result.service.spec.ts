@@ -26,4 +26,14 @@ describe('ImagingResultService', () => {
     expect(results.every((r) => r.critical)).toBe(true);
     expect(results.length).toBeGreaterThan(0);
   });
+
+  it('getRecent("abnormal") narrows to flagged results, "all" returns everything', async () => {
+    const [all, abnormal] = await Promise.all([
+      firstValueFrom(service.getRecent('all')),
+      firstValueFrom(service.getRecent('abnormal')),
+    ]);
+    expect(abnormal.length).toBeGreaterThan(0);
+    expect(abnormal.length).toBeLessThan(all.length);
+    expect(abnormal.every((r) => r.critical)).toBe(true);
+  });
 });

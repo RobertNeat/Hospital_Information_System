@@ -1,0 +1,99 @@
+<form id="insurance-step-card" [formGroup]="form()" class="his-card his-form-grid">
+  <app-form-field
+    id="insurance-step-app-form-field"
+    label="Status ubezpieczenia"
+    for="insuranceStatus"
+  >
+    <p-select
+      id="insurance-step-insurance-status"
+      inputId="insuranceStatus"
+      formControlName="insuranceStatus"
+      [options]="[
+        { label: 'Aktywne', value: 'active' },
+        { label: 'Nieaktywne', value: 'inactive' },
+        { label: 'Nieznane', value: 'unknown' },
+      ]"
+      optionLabel="label"
+      optionValue="value"
+    />
+  </app-form-field>
+  <app-form-field id="insurance-step-app-form-field-2" label="Płatnik" for="insurancePayer">
+    <p-select
+      id="insurance-step-insurance-payer"
+      inputId="insurancePayer"
+      formControlName="insurancePayer"
+      [options]="insurancePayerOptions"
+      optionLabel="label"
+      optionValue="value"
+    />
+  </app-form-field>
+  <app-form-field id="insurance-step-app-form-field-3" label="Oddział NFZ" for="nfzBranch">
+    <p-select
+      id="insurance-step-nfz-branch"
+      inputId="nfzBranch"
+      formControlName="nfzBranch"
+      [options]="nfzBranchOptions"
+      optionLabel="label"
+      optionValue="value"
+      [filter]="true"
+    />
+  </app-form-field>
+  <div id="insurance-step-registration-ewus" class="his-registration__ewus">
+    <p-button
+      id="insurance-step-p-button"
+      label="Weryfikuj eWUŚ (demo)"
+      icon="pi pi-clipboard"
+      severity="secondary"
+      [outlined]="true"
+      type="button"
+      (onClick)="verifyEwus.emit()"
+    />
+    @if (form().controls.ewusVerifiedAt.value; as verifiedAt) {
+      <span id="insurance-step-muted" class="his-muted"
+        >Zweryfikowano: {{ verifiedAt | date: 'dd.MM.yyyy HH:mm' }}</span
+      >
+    }
+  </div>
+
+  <div
+    id="insurance-step-registration-full-row"
+    class="his-registration__full-row his-registration__subheading"
+  >
+    Osoba kontaktowa / opiekun prawny
+    @if (guardianRequired()) {
+      <span id="insurance-step-muted-2" class="his-muted">(wymagane — pacjent niepełnoletni)</span>
+    }
+  </div>
+
+  <app-form-field
+    id="insurance-step-app-form-field-4"
+    label="Imię i nazwisko"
+    for="contactFullName"
+    [required]="guardianRequired()"
+    [control]="form().controls.contactFullName"
+  >
+    <input pInputText id="contactFullName" formControlName="contactFullName" />
+  </app-form-field>
+  <app-form-field id="insurance-step-app-form-field-5" label="Relacja" for="contactRelation">
+    <input pInputText id="contactRelation" formControlName="contactRelation" />
+  </app-form-field>
+  <app-form-field id="insurance-step-app-form-field-6" label="Telefon" for="contactPhone">
+    <input pInputText id="contactPhone" formControlName="contactPhone" />
+  </app-form-field>
+  <label id="insurance-step-registration-toggle" class="his-registration__toggle">
+    <p-toggleswitch id="insurance-step-is-legal-guardian" formControlName="isLegalGuardian" />
+    Opiekun prawny
+  </label>
+
+  <app-form-field id="insurance-step-app-form-field-7" label="Grupa krwi" for="bloodType">
+    <p-select
+      id="insurance-step-blood-type"
+      inputId="bloodType"
+      formControlName="bloodType"
+      [options]="bloodTypeOptions"
+      optionLabel="label"
+      optionValue="value"
+      [showClear]="true"
+    />
+  </app-form-field>
+</form>

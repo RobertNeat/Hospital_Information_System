@@ -1,6 +1,16 @@
-<div class="his-trend-chart-card his-card">
-  <div class="his-trend-chart-card__title">{{ title() }}</div>
-  <div class="his-trend-chart-card__canvas" [style.height.px]="height()">
-    <canvas baseChart type="line" [data]="chartData()" [options]="chartOptions()"></canvas>
+<div id="trend-chart-card" class="his-trend-chart-card his-card">
+  <div id="trend-chart-card-title" class="his-trend-chart-card__title">{{ title() }}</div>
+  <div
+    id="trend-chart-card-canvas"
+    class="his-trend-chart-card__canvas"
+    [style.height.px]="height()"
+  >
+    <canvas
+      id="trend-chart-card-canvas-2"
+      baseChart
+      type="line"
+      [data]="chartData()"
+      [options]="chartOptions()"
+    ></canvas>
   </div>
 </div>

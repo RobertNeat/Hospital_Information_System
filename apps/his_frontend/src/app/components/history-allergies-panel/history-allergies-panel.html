@@ -1,0 +1,106 @@
+@if (lifeThreatening().length) {
+  <p-message
+    id="history-allergies-panel-allergy-alert"
+    class="his-allergy-alert"
+    severity="error"
+    [closable]="false"
+  >
+    Pacjent posiada alergie zagrażające życiu:
+    {{ lifeThreatening().length }}
+    @for (a of lifeThreatening(); track a.id; let idx0 = $index) {
+      — {{ a.substance }} ({{ a.reaction }})
+    }
+  </p-message>
+}
+
+<div id="history-allergies-panel-grid-2" class="his-grid-2">
+  <div id="history-allergies-panel-section-2" class="his-section">
+    <app-section-header
+      id="history-allergies-panel-app-section-header-2"
+      title="Alergie"
+      icon="pi pi-exclamation-triangle"
+      variant="danger"
+    />
+    @if (allergies().length) {
+      <table id="history-allergies-panel-summary-table" class="his-summary-table">
+        <thead id="history-allergies-panel-thead">
+          <tr id="history-allergies-panel-tr">
+            <th id="history-allergies-panel-th">Substancja</th>
+            <th id="history-allergies-panel-th-2">Kategoria</th>
+            <th id="history-allergies-panel-th-3">Reakcja</th>
+            <th id="history-allergies-panel-th-4">Nasilenie</th>
+            <th id="history-allergies-panel-th-5">Status</th>
+          </tr>
+        </thead>
+        <tbody id="history-allergies-panel-tbody">
+          @for (a of allergies(); track a.id; let idx0 = $index) {
+            <tr [id]="'history-allergies-panel-tr-2-' + idx0">
+              <td [id]="'history-allergies-panel-td-' + idx0">{{ a.substance }}</td>
+              <td [id]="'history-allergies-panel-td-2-' + idx0">
+                {{ a.category | label: 'allergyCategory' }}
+              </td>
+              <td [id]="'history-allergies-panel-td-3-' + idx0">{{ a.reaction }}</td>
+              <td [id]="'history-allergies-panel-td-4-' + idx0">
+                <app-status-tag
+                  [id]="'history-allergies-panel-app-status-tag-3-' + idx0"
+                  kind="allergySeverity"
+                  [value]="a.severity"
+                />
+              </td>
+              <td [id]="'history-allergies-panel-td-5-' + idx0">
+                <app-status-tag
+                  [id]="'history-allergies-panel-app-status-tag-4-' + idx0"
+                  kind="allergyStatus"
+                  [value]="a.status"
+                />
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    } @else {
+      <app-empty-state
+        id="history-allergies-panel-app-empty-state-6"
+        icon="pi pi-exclamation-triangle"
+        title="Brak alergii"
+      />
+    }
+  </div>
+
+  <div id="history-allergies-panel-section-3" class="his-section">
+    <app-section-header
+      id="history-allergies-panel-app-section-header-3"
+      title="Przeciwwskazania"
+      icon="pi pi-exclamation-triangle"
+      variant="warn"
+    />
+    @if (contraindications().length) {
+      <table id="history-allergies-panel-summary-table-2" class="his-summary-table">
+        <thead id="history-allergies-panel-thead-2">
+          <tr id="history-allergies-panel-tr-3">
+            <th id="history-allergies-panel-th-6">Opis</th>
+            <th id="history-allergies-panel-th-7">Powód</th>
+            <th id="history-allergies-panel-th-8">Data</th>
+          </tr>
+        </thead>
+        <tbody id="history-allergies-panel-tbody-2">
+          @for (c of contraindications(); track c.id; let idx0 = $index) {
+            <tr [id]="'history-allergies-panel-tr-4-' + idx0">
+              <td [id]="'history-allergies-panel-td-6-' + idx0">{{ c.description }}</td>
+              <td [id]="'history-allergies-panel-td-7-' + idx0">{{ c.reason }}</td>
+              <td [id]="'history-allergies-panel-td-8-' + idx0">
+                {{ c.recordedAt | date: 'dd.MM.yyyy' }}
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    } @else {
+      <app-empty-state
+        id="history-allergies-panel-app-empty-state-7"
+        icon="pi pi-exclamation-triangle"
+        title="Brak przeciwwskazań"
+      />
+    }
+  </div>
+</div>

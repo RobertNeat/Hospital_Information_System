@@ -1,8 +1,8 @@
-<div class="his-form-field">
-  <label [attr.for]="for()">
+<div id="form-field" class="his-form-field">
+  <label id="form-field-label" [attr.for]="for()">
     {{ label() }}
     @if (required()) {
-      <span class="his-form-field__required">*</span>
+      <span id="form-field-required" class="his-form-field__required">*</span>
     }
   </label>
   <ng-content />

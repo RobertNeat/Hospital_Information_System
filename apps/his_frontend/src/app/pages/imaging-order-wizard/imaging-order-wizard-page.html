@@ -1,20 +1,32 @@
-<div class="his-page">
-  <app-page-header title="Nowe zlecenie badania obrazowego" />
+<div id="imaging-order-wizard-page" class="his-page">
+  <app-page-header
+    id="imaging-order-wizard-app-page-header"
+    title="Nowe zlecenie badania obrazowego"
+  />
 
-  <p-stepper [value]="1" [linear]="true">
-    <p-step-list>
-      <p-step [value]="1">Rodzaj badania</p-step>
-      <p-step [value]="2">Wskazania kliniczne</p-step>
-      <p-step [value]="3">Bezpieczeństwo pacjenta</p-step>
-      <p-step [value]="4">Termin badania</p-step>
-      <p-step [value]="5">Podsumowanie</p-step>
+  <p-stepper id="imaging-order-wizard-p-stepper" [value]="1" [linear]="true">
+    <p-step-list id="imaging-order-wizard-p-step-list">
+      <p-step id="imaging-order-wizard-p-step" [value]="1">Rodzaj badania</p-step>
+      <p-step id="imaging-order-wizard-p-step-2" [value]="2">Wskazania kliniczne</p-step>
+      <p-step id="imaging-order-wizard-p-step-3" [value]="3">Bezpieczeństwo pacjenta</p-step>
+      <p-step id="imaging-order-wizard-p-step-4" [value]="4">Termin badania</p-step>
+      <p-step id="imaging-order-wizard-p-step-5" [value]="5">Podsumowanie</p-step>
     </p-step-list>
-    <p-step-panels>
-      <p-step-panel [value]="1">
+    <p-step-panels id="imaging-order-wizard-p-step-panels">
+      <p-step-panel id="imaging-order-wizard-p-step-panel" [value]="1">
         <ng-template #content let-activateCallback="activateCallback">
-          <form [formGroup]="step1Form" class="his-card his-form-grid">
-            <app-form-field label="Modalność" [required]="true">
+          <form
+            id="imaging-order-wizard-card"
+            [formGroup]="step1Form"
+            class="his-card his-form-grid"
+          >
+            <app-form-field
+              id="imaging-order-wizard-app-form-field"
+              label="Modalność"
+              [required]="true"
+            >
               <p-selectbutton
+                id="imaging-order-wizard-modality"
                 [options]="modalityOptions"
                 formControlName="modality"
                 optionLabel="label"
@@ -22,8 +34,13 @@
               />
             </app-form-field>
 
-            <app-form-field label="Badanie" [required]="true">
+            <app-form-field
+              id="imaging-order-wizard-app-form-field-2"
+              label="Badanie"
+              [required]="true"
+            >
               <p-select
+                id="imaging-order-wizard-exam-code"
                 [options]="examsForModality()"
                 formControlName="examCode"
                 optionLabel="name"
@@ -34,8 +51,13 @@
             </app-form-field>
 
             @if (selectedExam()?.requiresLaterality) {
-              <app-form-field label="Strona" [required]="true">
+              <app-form-field
+                id="imaging-order-wizard-app-form-field-3"
+                label="Strona"
+                [required]="true"
+              >
                 <p-selectbutton
+                  id="imaging-order-wizard-laterality"
                   [options]="lateralityOptions"
                   formControlName="laterality"
                   optionLabel="label"
@@ -44,14 +66,16 @@
               </app-form-field>
             }
 
-            <app-form-field label="Z kontrastem">
+            <app-form-field id="imaging-order-wizard-app-form-field-4" label="Z kontrastem">
               <p-toggleswitch
+                id="imaging-order-wizard-contrast"
                 formControlName="contrast"
                 [disabled]="!selectedExam()?.contrastPossible"
               />
             </app-form-field>
           </form>
           <app-wizard-step-footer
+            id="imaging-order-wizard-app-wizard-step-footer"
             [first]="true"
             (next)="advanceFromStep1(activateCallback)"
             (cancelled)="cancel()"
@@ -59,23 +83,39 @@
         </ng-template>
       </p-step-panel>
 
-      <p-step-panel [value]="2">
+      <p-step-panel id="imaging-order-wizard-p-step-panel-2" [value]="2">
         <ng-template #content let-activateCallback="activateCallback">
-          <form [formGroup]="step2Form" class="his-card his-form-grid">
+          <form
+            id="imaging-order-wizard-card-2"
+            [formGroup]="step2Form"
+            class="his-card his-form-grid"
+          >
             <app-form-field
+              id="imaging-order-wizard-app-form-field-5"
               label="Wskazania kliniczne"
               [required]="true"
               [control]="step2Form.controls.clinicalIndication"
             >
-              <textarea pTextarea rows="3" formControlName="clinicalIndication"></textarea>
+              <textarea
+                id="imaging-order-wizard-clinical-indication"
+                pTextarea
+                rows="3"
+                formControlName="clinicalIndication"
+              ></textarea>
             </app-form-field>
 
-            <app-form-field label="Pytanie kliniczne">
-              <textarea pTextarea rows="2" formControlName="clinicalQuestion"></textarea>
+            <app-form-field id="imaging-order-wizard-app-form-field-6" label="Pytanie kliniczne">
+              <textarea
+                id="imaging-order-wizard-clinical-question"
+                pTextarea
+                rows="2"
+                formControlName="clinicalQuestion"
+              ></textarea>
             </app-form-field>
 
-            <app-form-field label="Rozpoznanie">
+            <app-form-field id="imaging-order-wizard-app-form-field-7" label="Rozpoznanie">
               <p-select
+                id="imaging-order-wizard-diagnosis-code"
                 [options]="diagnosisOptions()"
                 formControlName="diagnosisCode"
                 optionLabel="label"
@@ -86,8 +126,13 @@
               />
             </app-form-field>
 
-            <app-form-field label="Pilność" [required]="true">
+            <app-form-field
+              id="imaging-order-wizard-app-form-field-8"
+              label="Pilność"
+              [required]="true"
+            >
               <p-selectbutton
+                id="imaging-order-wizard-urgency"
                 [options]="urgencyOptions"
                 formControlName="urgency"
                 optionLabel="label"
@@ -96,6 +141,7 @@
             </app-form-field>
           </form>
           <app-wizard-step-footer
+            id="imaging-order-wizard-app-wizard-step-footer-2"
             (back)="activateCallback(1)"
             (next)="advanceFromStep2(activateCallback)"
             (cancelled)="cancel()"
@@ -103,78 +149,18 @@
         </ng-template>
       </p-step-panel>
 
-      <p-step-panel [value]="3">
+      <p-step-panel id="imaging-order-wizard-p-step-panel-3" [value]="3">
         <ng-template #content let-activateCallback="activateCallback">
-          <form [formGroup]="step3Form" class="his-card his-form-grid">
-            @if (needsPregnancyCheck()) {
-              <app-form-field label="Ciąża">
-                <p-selectbutton
-                  [options]="[
-                    { label: 'Nie', value: 'no' },
-                    { label: 'Tak', value: 'yes' },
-                    { label: 'Nie wiadomo', value: 'unknown' },
-                  ]"
-                  formControlName="pregnancy"
-                  optionLabel="label"
-                  optionValue="value"
-                />
-              </app-form-field>
-            }
-
-            @if (isMri()) {
-              <app-form-field label="Rozrusznik serca / implanty metalowe">
-                <p-checkbox [binary]="true" formControlName="pacemakerOrImplant" />
-              </app-form-field>
-              <app-form-field label="Metalowe odłamki w ciele">
-                <p-checkbox [binary]="true" formControlName="metalFragments" />
-              </app-form-field>
-              @if (
-                step3Form.controls.pacemakerOrImplant.value ||
-                step3Form.controls.metalFragments.value
-              ) {
-                <p-message
-                  severity="error"
-                  text="Obecność rozrusznika/implantu lub odłamków metalowych może uniemożliwić wykonanie badania RM. Skonsultuj się z radiologiem przed kontynuacją."
-                />
-              }
-              <app-form-field label="Klaustrofobia">
-                <p-checkbox [binary]="true" formControlName="claustrophobia" />
-              </app-form-field>
-            }
-
-            <app-form-field label="Uczulenie na środek kontrastowy">
-              <p-checkbox [binary]="true" formControlName="contrastAllergy" />
-            </app-form-field>
-
-            @if (latestCreatinineEgfr(); as lab) {
-              <p class="his-muted">
-                Ostatnia kreatynina/eGFR:
-                {{ lab.creatinine ?? '—' }} mg/dL / {{ lab.egfr ?? '—' }} mL/min/1.73m2 ({{
-                  lab.collectedAt | date: 'dd.MM.yyyy'
-                }})
-              </p>
-            } @else {
-              <p class="his-muted">Brak wyniku kreatyniny/eGFR.</p>
-            }
-
-            @if (egfrBlocksContrast()) {
-              <p-message
-                severity="warn"
-                text="eGFR poniżej 30 mL/min/1.73m2 przy badaniu z kontrastem — wymagane świadome potwierdzenie."
-              />
-              <app-form-field label="Potwierdzam ryzyko związane z podaniem kontrastu">
-                <p-checkbox [binary]="true" formControlName="egfrConfirmed" />
-              </app-form-field>
-            }
-
-            <app-form-field
-              label="Potwierdzam weryfikację bezpieczeństwa pacjenta"
-              [required]="true"
-            >
-              <p-checkbox [binary]="true" formControlName="confirmed" />
-            </app-form-field>
-          </form>
+          <app-imaging-safety-form
+            id="imaging-order-wizard-safety-form"
+            [form]="step3Form"
+            [needsPregnancyCheck]="needsPregnancyCheck()"
+            [isMri]="isMri()"
+            [egfrBlocksContrast]="egfrBlocksContrast()"
+            [latestCreatinineEgfr]="latestCreatinineEgfr()"
+          />
           <app-wizard-step-footer
+            id="imaging-order-wizard-app-wizard-step-footer-3"
             (back)="activateCallback(2)"
             (next)="advanceFromStep3(activateCallback)"
             (cancelled)="cancel()"
@@ -182,12 +168,17 @@
         </ng-template>
       </p-step-panel>
 
-      <p-step-panel [value]="4">
+      <p-step-panel id="imaging-order-wizard-p-step-panel-4" [value]="4">
         <ng-template #content let-activateCallback="activateCallback">
-          <form [formGroup]="step4Form" class="his-card his-form-grid">
+          <form
+            id="imaging-order-wizard-card-4"
+            [formGroup]="step4Form"
+            class="his-card his-form-grid"
+          >
             @if (isCito()) {
-              <div class="his-toolbar">
+              <div id="imaging-order-wizard-toolbar" class="his-toolbar">
                 <button
+                  id="imaging-order-wizard-button"
                   type="button"
                   pButton
                   label="Najbliższy wolny termin"
@@ -195,6 +186,7 @@
                   (click)="findNearestSlot()"
                 ></button>
                 <button
+                  id="imaging-order-wizard-p-button-outlined"
                   type="button"
                   pButton
                   class="p-button-outlined"
@@ -205,8 +197,9 @@
               </div>
             }
 
-            <app-form-field label="Data badania">
+            <app-form-field id="imaging-order-wizard-app-form-field-16" label="Data badania">
               <p-datepicker
+                id="imaging-order-wizard-date"
                 formControlName="date"
                 dateFormat="dd.mm.yy"
                 [minDate]="step4Form.controls.date.value"
@@ -215,6 +208,7 @@
 
             @if (!step4Form.controls.immediate.value && step1Form.controls.modality.value) {
               <app-slot-picker
+                id="imaging-order-wizard-app-slot-picker"
                 [modality]="step1Form.controls.modality.value!"
                 [date]="slotDateIso()"
                 [selectedSlotId]="step4Form.controls.slotId.value"
@@ -223,6 +217,7 @@
             }
           </form>
           <app-wizard-step-footer
+            id="imaging-order-wizard-app-wizard-step-footer-4"
             (back)="activateCallback(3)"
             (next)="advanceFromStep4(activateCallback)"
             (cancelled)="cancel()"
@@ -230,13 +225,17 @@
         </ng-template>
       </p-step-panel>
 
-      <p-step-panel [value]="5">
+      <p-step-panel id="imaging-order-wizard-p-step-panel-5" [value]="5">
         <ng-template #content let-activateCallback="activateCallback">
-          <div class="his-card">
-            <app-summary-list [items]="summaryItems()" />
-            <app-fhir-integration-note resource="ServiceRequest" />
+          <div id="imaging-order-wizard-card-5" class="his-card">
+            <app-summary-list id="imaging-order-wizard-app-summary-list" [items]="summaryItems()" />
+            <app-fhir-integration-note
+              id="imaging-order-wizard-app-fhir-integration-note"
+              resource="ServiceRequest"
+            />
           </div>
           <app-wizard-step-footer
+            id="imaging-order-wizard-app-wizard-step-footer-5"
             [last]="true"
             [busy]="submitting()"
             submitLabel="Wyślij zlecenie"

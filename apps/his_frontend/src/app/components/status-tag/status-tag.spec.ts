@@ -20,4 +20,16 @@ describe('StatusTag', () => {
     const tag = fixture.nativeElement.querySelector('p-tag');
     expect(tag).toBeTruthy();
   });
+
+  it.each([
+    ['diagnosisStatus', 'resolved', 'Ustąpiło'],
+    ['encounterStatus', 'in_progress', 'W trakcie'],
+    ['allergyStatus', 'inactive', 'Nieaktywna'],
+  ] as const)('renders %s "%s" as "%s"', async (kind, value, label) => {
+    const fixture = TestBed.createComponent(StatusTag);
+    fixture.componentRef.setInput('kind', kind);
+    fixture.componentRef.setInput('value', value);
+    await fixture.whenStable();
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain(label);
+  });
 });

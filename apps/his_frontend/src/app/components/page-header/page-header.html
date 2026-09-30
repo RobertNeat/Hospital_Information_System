@@ -1,14 +1,14 @@
-<div class="his-page-header">
-  <div class="his-page-header__title-row">
+<div id="page-header" class="his-page-header">
+  <div id="page-header-title-row" class="his-page-header__title-row">
     @if (icon()) {
-      <i [class]="icon()"></i>
+      <i id="page-header-i" [class]="icon()"></i>
     }
-    <h1>{{ title() }}</h1>
+    <h1 id="page-header-h1">{{ title() }}</h1>
   </div>
   @if (subtitle()) {
-    <p class="his-muted">{{ subtitle() }}</p>
+    <p id="page-header-muted" class="his-muted">{{ subtitle() }}</p>
   }
-  <div class="his-page-header__actions">
+  <div id="page-header-actions" class="his-page-header__actions">
     <ng-content select="[actions]" />
   </div>
 </div>

@@ -1,11 +1,16 @@
-<div class="his-page">
-  <app-page-header title="Pacjenci" icon="pi pi-users">
-    <div actions>
-      <p-button label="Zarejestruj pacjenta" icon="pi pi-user-plus" (onClick)="goToRegister()" />
+<div id="patient-list-page" class="his-page">
+  <app-page-header id="patient-list-app-page-header" title="Pacjenci" icon="pi pi-users">
+    <div id="patient-list-div" actions>
+      <p-button
+        id="patient-list-p-button"
+        label="Zarejestruj pacjenta"
+        icon="pi pi-user-plus"
+        (onClick)="goToRegister()"
+      />
     </div>
   </app-page-header>
 
-  <div class="his-card">
+  <div id="patient-list-card" class="his-card">
     <app-data-table
       id="patient-list-table"
       [rows]="rows()"
@@ -17,7 +22,7 @@
       (rowSelect)="openChart($event)"
     >
       <ng-template #toolbar>
-        <div class="his-patient-list__filters">
+        <div id="patient-list-filters" class="his-patient-list__filters">
           <input
             pInputText
             id="patient-list-search"
@@ -28,6 +33,7 @@
             (input)="onSearchInput($any($event.target).value)"
           />
           <p-select
+            id="patient-list-p-select"
             [options]="statusOptions"
             optionLabel="label"
             optionValue="value"
@@ -36,6 +42,7 @@
             placeholder="Status"
           />
           <p-select
+            id="patient-list-p-select-2"
             [options]="wardOptions()"
             optionLabel="label"
             optionValue="value"
@@ -64,7 +71,11 @@
             {{ row.wardName ?? '—' }}{{ row.bed ? ' / ' + row.bed : '' }}
           }
           @case ('status') {
-            <app-status-tag kind="admissionStatus" [value]="row.status" />
+            <app-status-tag
+              [id]="'patient-list-app-status-tag-' + row.id"
+              kind="admissionStatus"
+              [value]="row.status"
+            />
           }
           @case ('flags') {
             {{ flagLabels(row) || '—' }}
@@ -76,8 +87,9 @@
       </ng-template>
 
       <ng-template #rowActions let-row>
-        <div class="his-patient-list__actions">
+        <div [id]="'patient-list-actions-' + row.id" class="his-patient-list__actions">
           <p-button
+            [id]="'patient-list-p-button-2-' + row.id"
             icon="pi pi-eye"
             [text]="true"
             ariaLabel="Otwórz kartę pacjenta"
@@ -85,6 +97,7 @@
             (onClick)="openChart(row)"
           />
           <p-button
+            [id]="'patient-list-p-button-3-' + row.id"
             icon="pi pi-file-edit"
             [text]="true"
             ariaLabel="Edytuj dane pacjenta"
@@ -92,6 +105,7 @@
             (onClick)="editPatient(row, $event)"
           />
           <p-button
+            [id]="'patient-list-p-button-4-' + row.id"
             icon="pi pi-eye-dropper"
             [text]="true"
             ariaLabel="Nowe zlecenie laboratoryjne"
@@ -99,6 +113,7 @@
             (onClick)="newLabOrder(row, $event)"
           />
           <p-button
+            [id]="'patient-list-p-button-5-' + row.id"
             icon="pi pi-inbox"
             [text]="true"
             ariaLabel="Nowa recepta"

@@ -1,0 +1,22 @@
+:host {
+  display: block;
+}
+
+.his-messages__handoff-title {
+  font-weight: 600;
+}
+
+.his-messages__sbar-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.his-messages__sbar-table th,
+.his-messages__sbar-table td {
+  border: 1px solid var(--p-surface-200);
+  padding: 0.4rem;
+  text-align: left;
+  vertical-align: top;
+}

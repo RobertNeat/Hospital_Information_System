@@ -1,11 +1,25 @@
 import { describe, expect, it } from 'vitest';
+import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { DataTable } from './data-table';
 import type { TableColumn } from '../../models';
 
-interface Row extends Record<string, unknown> {
+interface Row {
   id: string;
   name: string;
+}
+
+@Component({
+  imports: [DataTable],
+  template: `
+    <app-data-table [rows]="rows" [columns]="columns">
+      <ng-template #rowExpansion let-row>Szczegóły: {{ row.name }}</ng-template>
+    </app-data-table>
+  `,
+})
+class ExpandHost {
+  readonly rows: Row[] = [{ id: '1', name: 'Jan' }];
+  readonly columns: TableColumn<Row>[] = [{ field: 'name', header: 'Nazwa' }];
 }
 
 describe('DataTable', () => {
@@ -30,5 +44,15 @@ describe('DataTable', () => {
     await fixture.whenStable();
     const el = fixture.nativeElement as HTMLElement;
     expect(el.textContent).toContain('Brak danych');
+  });
+
+  it('renders an expand toggle and the expansion template when #rowExpansion is projected', async () => {
+    const fixture = TestBed.createComponent(ExpandHost);
+    await fixture.whenStable();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.textContent).not.toContain('Szczegóły: Jan');
+    el.querySelector<HTMLButtonElement>('.his-data-table__toggle')?.click();
+    await fixture.whenStable();
+    expect(el.textContent).toContain('Szczegóły: Jan');
   });
 });

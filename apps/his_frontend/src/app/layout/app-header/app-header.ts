@@ -1,6 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { Avatar } from 'primeng/avatar';
 import { BadgeDirective } from 'primeng/badge';
 import { Menu } from 'primeng/menu';
@@ -24,6 +23,7 @@ import { FullNamePipe } from '../../pipes/full-name.pipe';
 })
 export class AppHeader {
   protected readonly layout = inject(LayoutStateService);
+  private readonly router = inject(Router);
   protected readonly ctx = inject(PatientContextService);
   protected readonly staffService = inject(StaffService);
   protected readonly teamMessageService = inject(TeamMessageService);
@@ -34,11 +34,12 @@ export class AppHeader {
   protected readonly currentUser = this.staffService.currentUser;
   protected readonly unacknowledgedAlertCount = this.teamMessageService.unacknowledgedAlertCount;
 
-  protected readonly alerts = toSignal(this.teamMessageService.getAlerts({ acknowledged: false }), {
-    initialValue: [],
-  });
-
-  protected readonly latestAlerts = computed(() => this.alerts().slice(0, 5));
+  protected readonly latestAlerts = computed(() =>
+    this.teamMessageService
+      .alerts()
+      .filter((a) => !a.acknowledged)
+      .slice(0, 5),
+  );
 
   protected readonly userInitials = computed(() => {
     const u = this.currentUser();
@@ -62,5 +63,12 @@ export class AppHeader {
 
   protected clearPatientContext(): void {
     this.ctx.clear();
+    // Patient-scoped pages are meaningless without context -- leave them.
+    if (
+      this.router.url.startsWith('/patients/') &&
+      !this.router.url.startsWith('/patients/register')
+    ) {
+      void this.router.navigate(['/patients']);
+    }
   }
 }

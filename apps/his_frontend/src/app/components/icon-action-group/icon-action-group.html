@@ -1,6 +1,7 @@
-<div class="his-icon-action-group">
-  @for (a of actions(); track a.id) {
+<div id="icon-action-group" class="his-icon-action-group">
+  @for (a of actions(); track a.id; let idx0 = $index) {
     <p-button
+      [id]="'icon-action-group-p-button-' + idx0"
       [icon]="a.icon"
       [label]="showLabels() ? a.label : undefined"
       [severity]="a.severity ?? 'primary'"

@@ -37,3 +37,20 @@
   border: 0;
   border-radius: 0;
 }
+
+.his-data-table__expander {
+  width: 2.5rem;
+}
+
+.his-data-table__toggle {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0.35rem;
+  border-radius: var(--his-radius);
+  color: var(--his-navy-700);
+}
+
+.his-data-table__toggle:hover {
+  background: var(--p-surface-100);
+}

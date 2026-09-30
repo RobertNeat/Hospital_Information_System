@@ -1,59 +1,87 @@
-<div class="his-page">
-  <app-page-header title="Leki i recepty">
-    <div actions>
-      <p-button label="Nowa recepta" icon="pi pi-plus-circle" (onClick)="goToNewPrescription()" />
+<div id="patient-prescriptions-page" class="his-page">
+  <app-page-header id="patient-prescriptions-app-page-header" title="Leki i recepty">
+    <div id="patient-prescriptions-div" actions>
+      <p-button
+        id="patient-prescriptions-p-button"
+        label="Nowa recepta"
+        icon="pi pi-plus-circle"
+        (onClick)="goToNewPrescription()"
+      />
     </div>
   </app-page-header>
 
-  <div class="his-section">
-    <app-section-header title="Schemat leczenia (leki aktywne)" icon="pi pi-heart" />
+  <div id="patient-prescriptions-section" class="his-section">
+    <app-section-header
+      id="patient-prescriptions-app-section-header"
+      title="Schemat leczenia (leki aktywne)"
+      icon="pi pi-heart"
+    />
     @if (activeMedications().length === 0) {
       <app-empty-state
+        id="patient-prescriptions-app-empty-state"
         icon="pi pi-inbox"
         title="Brak aktywnych leków"
         message="Pacjent nie ma obecnie aktywnych recept."
       />
     } @else {
-      <p-table [value]="activeMedications()" size="small" [stripedRows]="true" dataKey="drugId">
+      <p-table
+        id="patient-prescriptions-p-table"
+        [value]="activeMedications()"
+        size="small"
+        [stripedRows]="true"
+        dataKey="drugId"
+      >
         <ng-template #header>
-          <tr>
-            <th>Lek</th>
-            <th>Dawka</th>
-            <th>Częstość</th>
-            <th>Droga podania</th>
-            <th>Pora dnia</th>
-            <th>Data zakończenia</th>
+          <tr id="patient-prescriptions-tr">
+            <th id="patient-prescriptions-th">Lek</th>
+            <th id="patient-prescriptions-th-2">Dawka</th>
+            <th id="patient-prescriptions-th-3">Częstość</th>
+            <th id="patient-prescriptions-th-4">Droga podania</th>
+            <th id="patient-prescriptions-th-5">Pora dnia</th>
+            <th id="patient-prescriptions-th-6">Data zakończenia</th>
           </tr>
         </ng-template>
         <ng-template #body let-row>
-          <tr>
-            <td>{{ row.drugName }} ({{ row.strength }})</td>
-            <td>{{ row.dose }}</td>
-            <td>{{ row.frequency | label: 'frequency' }}</td>
-            <td>{{ row.route | label: 'route' }}</td>
-            <td>{{ row.timesOfDay }}</td>
-            <td>{{ row.endDate | date: 'dd.MM.yyyy' }}</td>
+          <tr [id]="'patient-prescriptions-tr-2-' + row.id">
+            <td [id]="'patient-prescriptions-td-' + row.id">
+              {{ row.drugName }} ({{ row.strength }})
+            </td>
+            <td [id]="'patient-prescriptions-td-2-' + row.id">{{ row.dose }}</td>
+            <td [id]="'patient-prescriptions-td-3-' + row.id">
+              {{ row.frequency | label: 'frequency' }}
+            </td>
+            <td [id]="'patient-prescriptions-td-4-' + row.id">{{ row.route | label: 'route' }}</td>
+            <td [id]="'patient-prescriptions-td-5-' + row.id">{{ row.timesOfDay }}</td>
+            <td [id]="'patient-prescriptions-td-6-' + row.id">
+              {{ row.endDate | date: 'dd.MM.yyyy' }}
+            </td>
           </tr>
         </ng-template>
         <ng-template #emptymessage>
-          <tr>
-            <td colspan="6">Brak danych</td>
+          <tr id="patient-prescriptions-tr-3">
+            <td id="patient-prescriptions-td-7" colspan="6">Brak danych</td>
           </tr>
         </ng-template>
       </p-table>
     }
   </div>
 
-  <div class="his-section">
-    <app-section-header title="Wystawione recepty" icon="pi pi-file-edit" />
+  <div id="patient-prescriptions-section-2" class="his-section">
+    <app-section-header
+      id="patient-prescriptions-app-section-header-2"
+      title="Wystawione recepty"
+      icon="pi pi-file-edit"
+    />
     @if (!loading() && prescriptions().length === 0) {
       <app-empty-state
+        id="patient-prescriptions-app-empty-state-2"
         icon="pi pi-inbox"
         title="Brak recept"
         message="Dla tego pacjenta nie wystawiono jeszcze żadnej recepty."
       />
     } @else {
       <p-table
+        id="patient-prescriptions-p-table-2"
         [value]="prescriptions()"
         [loading]="loading()"
         size="small"
@@ -64,19 +92,20 @@
         (onRowCollapse)="onRowCollapse($event)"
       >
         <ng-template #header>
-          <tr>
-            <th style="width: 3rem"></th>
-            <th>Nr recepty</th>
-            <th>Data wystawienia</th>
-            <th>Ważna do</th>
-            <th>Status</th>
-            <th style="width: 6rem"></th>
+          <tr id="patient-prescriptions-tr-4">
+            <th id="patient-prescriptions-th-7" style="width: 3rem"></th>
+            <th id="patient-prescriptions-th-8">Nr recepty</th>
+            <th id="patient-prescriptions-th-9">Data wystawienia</th>
+            <th id="patient-prescriptions-th-10">Ważna do</th>
+            <th id="patient-prescriptions-th-11">Status</th>
+            <th id="patient-prescriptions-th-12" style="width: 6rem"></th>
           </tr>
         </ng-template>
         <ng-template #body let-prescription>
-          <tr>
-            <td>
+          <tr id="patient-prescriptions-tr-5">
+            <td id="patient-prescriptions-td-8">
               <p-button
+                id="patient-prescriptions-p-button-2"
                 [icon]="
                   expandedRows()[prescription.id] ? 'pi pi-chevron-down' : 'pi pi-chevron-right'
                 "
@@ -86,13 +115,24 @@
                 [pRowToggler]="prescription"
               />
             </td>
-            <td>{{ prescription.id }}</td>
-            <td>{{ prescription.issuedAt | date: 'dd.MM.yyyy HH:mm' }}</td>
-            <td>{{ prescription.validUntil | date: 'dd.MM.yyyy' }}</td>
-            <td><app-status-tag kind="prescriptionStatus" [value]="prescription.status" /></td>
-            <td>
+            <td id="patient-prescriptions-td-9">{{ prescription.id }}</td>
+            <td id="patient-prescriptions-td-10">
+              {{ prescription.issuedAt | date: 'dd.MM.yyyy HH:mm' }}
+            </td>
+            <td id="patient-prescriptions-td-11">
+              {{ prescription.validUntil | date: 'dd.MM.yyyy' }}
+            </td>
+            <td id="patient-prescriptions-td-12">
+              <app-status-tag
+                id="patient-prescriptions-app-status-tag"
+                kind="prescriptionStatus"
+                [value]="prescription.status"
+              />
+            </td>
+            <td id="patient-prescriptions-td-13">
               @if (canCancel(prescription)) {
                 <p-button
+                  id="patient-prescriptions-p-button-3"
                   icon="pi pi-times-circle"
                   severity="danger"
                   [text]="true"
@@ -105,28 +145,43 @@
           </tr>
         </ng-template>
         <ng-template #expandedrow let-prescription>
-          <tr>
-            <td colspan="6">
-              <table class="his-prescription-items-table">
-                <thead>
-                  <tr>
-                    <th>Lek</th>
-                    <th>Dawka</th>
-                    <th>Częstość</th>
-                    <th>Czas terapii</th>
-                    <th>Ilość</th>
-                    <th>Refundacja</th>
+          <tr id="patient-prescriptions-tr-6">
+            <td id="patient-prescriptions-td-14" colspan="6">
+              <table
+                id="patient-prescriptions-prescription-items-table"
+                class="his-prescription-items-table"
+              >
+                <thead id="patient-prescriptions-thead">
+                  <tr id="patient-prescriptions-tr-7">
+                    <th id="patient-prescriptions-th-13">Lek</th>
+                    <th id="patient-prescriptions-th-14">Dawka</th>
+                    <th id="patient-prescriptions-th-15">Częstość</th>
+                    <th id="patient-prescriptions-th-16">Czas terapii</th>
+                    <th id="patient-prescriptions-th-17">Ilość</th>
+                    <th id="patient-prescriptions-th-18">Refundacja</th>
                   </tr>
                 </thead>
-                <tbody>
-                  @for (item of itemsOf(prescription); track item.drugId) {
-                    <tr>
-                      <td>{{ item.drugName }} ({{ item.strength }})</td>
-                      <td>{{ item.dosage.dose }} {{ item.dosage.doseUnit }}</td>
-                      <td>{{ item.dosage.frequency | label: 'frequency' }}</td>
-                      <td>{{ item.dosage.durationDays }} dni</td>
-                      <td>{{ item.quantityPackages }} op.</td>
-                      <td>{{ item.reimbursement | label: 'reimbursement' }}</td>
+                <tbody id="patient-prescriptions-tbody">
+                  @for (item of itemsOf(prescription); track item.drugId; let idx0 = $index) {
+                    <tr [id]="'patient-prescriptions-tr-8-' + idx0">
+                      <td [id]="'patient-prescriptions-td-15-' + idx0">
+                        {{ item.drugName }} ({{ item.strength }})
+                      </td>
+                      <td [id]="'patient-prescriptions-td-16-' + idx0">
+                        {{ item.dosage.dose }} {{ item.dosage.doseUnit }}
+                      </td>
+                      <td [id]="'patient-prescriptions-td-17-' + idx0">
+                        {{ item.dosage.frequency | label: 'frequency' }}
+                      </td>
+                      <td [id]="'patient-prescriptions-td-18-' + idx0">
+                        {{ item.dosage.durationDays }} dni
+                      </td>
+                      <td [id]="'patient-prescriptions-td-19-' + idx0">
+                        {{ item.quantityPackages }} op.
+                      </td>
+                      <td [id]="'patient-prescriptions-td-20-' + idx0">
+                        {{ item.reimbursement | label: 'reimbursement' }}
+                      </td>
                     </tr>
                   }
                 </tbody>
@@ -135,8 +190,8 @@
           </tr>
         </ng-template>
         <ng-template #emptymessage>
-          <tr>
-            <td colspan="6">Brak danych</td>
+          <tr id="patient-prescriptions-tr-9">
+            <td id="patient-prescriptions-td-21" colspan="6">Brak danych</td>
           </tr>
         </ng-template>
       </p-table>

@@ -4,6 +4,7 @@ import type { Observable } from 'rxjs';
 import { MOCK_LATENCY_MS } from '../config/mock-api.config';
 import { ALLERGIES } from '../mock-data/allergies.mock';
 import { CLINICAL_NOTES } from '../mock-data/clinical-notes.mock';
+import { CONTRAINDICATIONS } from '../mock-data/contraindications.mock';
 import { DIAGNOSES, ICD10_DICTIONARY } from '../mock-data/diagnoses.mock';
 import { ENCOUNTERS } from '../mock-data/encounters.mock';
 import { EPISODES } from '../mock-data/episodes.mock';
@@ -33,7 +34,7 @@ export class EhrService {
   private readonly notes: ClinicalNote[] = structuredClone(CLINICAL_NOTES);
   private readonly diagnoses: Diagnosis[] = structuredClone(DIAGNOSES);
   private readonly allergies: Allergy[] = structuredClone(ALLERGIES);
-  private readonly contraindications: Contraindication[] = [];
+  private readonly contraindications: Contraindication[] = structuredClone(CONTRAINDICATIONS);
   private readonly treatments: Treatment[] = structuredClone(TREATMENTS);
   private noteSequence = this.notes.length;
 

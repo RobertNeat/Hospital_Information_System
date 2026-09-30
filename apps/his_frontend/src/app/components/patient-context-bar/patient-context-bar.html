@@ -1,17 +1,19 @@
-<div class="his-patient-bar his-card">
-  <div class="his-patient-bar__identity">
-    <div class="his-patient-bar__name">
+<div id="patient-context-bar-patient-bar" class="his-patient-bar his-card">
+  <div id="patient-context-bar-patient-bar-identity" class="his-patient-bar__identity">
+    <div id="patient-context-bar-patient-bar-name" class="his-patient-bar__name">
       {{ patient().lastName }} {{ patient().firstName }}
       @if (patient().secondName) {
         {{ patient().secondName }}
       }
     </div>
-    <div class="his-patient-bar__meta his-muted">
-      <span>{{ patient().pesel ?? 'brak PESEL' }}</span>
-      <span>{{ patient().birthDate | age }}, {{ genderLabel() }}</span>
-      <span>{{ patient().mrn }}</span>
+    <div id="patient-context-bar-patient-bar-meta" class="his-patient-bar__meta his-muted">
+      <span id="patient-context-bar-span">{{ patient().pesel ?? 'brak PESEL' }}</span>
+      <span id="patient-context-bar-span-2"
+        >{{ patient().birthDate | age }}, {{ genderLabel() }}</span
+      >
+      <span id="patient-context-bar-span-3">{{ patient().mrn }}</span>
       @if (wardName(); as w) {
-        <span
+        <span id="patient-context-bar-span-4"
           >{{ w }}
           @if (patient().currentAdmission?.room) {
             , sala {{ patient().currentAdmission?.room }}
@@ -22,43 +24,55 @@
         </span>
       }
       @if (patient().currentAdmission?.attendingPhysicianId; as physicianId) {
-        <span>Lekarz prowadzący: {{ physicianId | staffName }}</span>
+        <span id="patient-context-bar-span-5"
+          >Lekarz prowadzący: {{ physicianId | staffName }}</span
+        >
       }
     </div>
   </div>
 
-  <div class="his-patient-bar__badges">
+  <div id="patient-context-bar-patient-bar-badges" class="his-patient-bar__badges">
     @if (activeAllergies().length > 0) {
       <p-tag
+        id="patient-context-bar-p-tag"
         [value]="'Alergie: ' + activeAllergies().length"
         [severity]="worstAllergySeverity()"
         (click)="allergiesPopover.toggle($event)"
         style="cursor: pointer"
       />
-      <p-popover #allergiesPopover>
-        <ul class="his-patient-bar__allergy-list">
-          @for (a of activeAllergies(); track a.id) {
-            <li>{{ a.substance }} — {{ a.reaction }}</li>
+      <p-popover id="patient-context-bar-p-popover" #allergiesPopover>
+        <ul id="patient-context-bar-patient-bar-allergy-list" class="his-patient-bar__allergy-list">
+          @for (a of activeAllergies(); track a.id; let idx0 = $index) {
+            <li [id]="'patient-context-bar-li-' + idx0">{{ a.substance }} — {{ a.reaction }}</li>
           }
         </ul>
       </p-popover>
     }
     @if (patient().bloodType) {
-      <p-tag [value]="patient().bloodType!" severity="secondary" />
+      <p-tag id="patient-context-bar-p-tag-2" [value]="patient().bloodType!" severity="secondary" />
     }
     @if (patient().currentAdmission?.triageLevel; as triage) {
-      <p-tag [value]="'Triage: ' + triage" [severity]="triageSeverity()" />
+      <p-tag
+        id="patient-context-bar-p-tag-3"
+        [value]="'Triage: ' + triage"
+        [severity]="triageSeverity()"
+      />
     }
-    @for (flag of flagLabels(); track flag) {
-      <p-tag [value]="flag" severity="warn" />
+    @for (flag of flagLabels(); track flag; let idx0 = $index) {
+      <p-tag [id]="'patient-context-bar-p-tag-4-' + idx0" [value]="flag" severity="warn" />
     }
     @if (activeAlerts() > 0) {
-      <p-tag [value]="'Alerty: ' + activeAlerts()" severity="danger" />
+      <p-tag
+        id="patient-context-bar-p-tag-5"
+        [value]="'Alerty: ' + activeAlerts()"
+        severity="danger"
+      />
     }
   </div>
 
-  <div class="his-patient-bar__actions">
+  <div id="patient-context-bar-patient-bar-actions" class="his-patient-bar__actions">
     <p-button
+      id="patient-context-bar-p-button"
       icon="pi pi-eye-dropper"
       size="small"
       ariaLabel="Zlecenie laboratoryjne"
@@ -66,6 +80,7 @@
       (onClick)="emit('lab-order')"
     />
     <p-button
+      id="patient-context-bar-p-button-2"
       icon="pi pi-image"
       size="small"
       ariaLabel="Zlecenie obrazowe"
@@ -73,6 +88,7 @@
       (onClick)="emit('imaging-order')"
     />
     <p-button
+      id="patient-context-bar-p-button-3"
       icon="pi pi-file-edit"
       size="small"
       ariaLabel="Nowa recepta"
@@ -80,6 +96,7 @@
       (onClick)="emit('prescription')"
     />
     <p-button
+      id="patient-context-bar-p-button-4"
       icon="pi pi-heart"
       size="small"
       ariaLabel="Parametry życiowe"
@@ -87,6 +104,7 @@
       (onClick)="emit('vitals')"
     />
     <p-button
+      id="patient-context-bar-p-button-5"
       icon="pi pi-comments"
       size="small"
       ariaLabel="Wiadomość o pacjencie"
@@ -94,6 +112,7 @@
       (onClick)="emit('message')"
     />
     <p-button
+      id="patient-context-bar-p-button-6"
       icon="pi pi-pencil"
       size="small"
       severity="secondary"

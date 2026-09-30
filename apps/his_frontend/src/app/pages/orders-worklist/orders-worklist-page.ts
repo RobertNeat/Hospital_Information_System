@@ -77,10 +77,13 @@ export class OrdersWorklistPage {
   protected readonly urgencyFilter = signal<OrderUrgency | ''>('');
 
   private readonly ordersResource = rxResource({
-    stream: () =>
-      forkJoin({
-        lab: this.labOrderService.getOrders(),
-        imaging: this.imagingOrderService.getOrders(),
+    // '' (no filter) is a valid param; `undefined` would leave the resource idle.
+    params: () => this.urgencyFilter(),
+    stream: ({ params }) => {
+      const urgency = params || undefined;
+      return forkJoin({
+        lab: this.labOrderService.getOrders({ urgency }),
+        imaging: this.imagingOrderService.getOrders({ urgency }),
         patients: this.patientService.getPatients(),
       }).pipe(
         map(({ lab, imaging, patients }) => {
@@ -113,7 +116,8 @@ export class OrdersWorklistPage {
             b.orderedAt.localeCompare(a.orderedAt),
           );
         }),
-      ),
+      );
+    },
   });
 
   protected readonly loading = computed(() => this.ordersResource.isLoading());
@@ -122,11 +126,9 @@ export class OrdersWorklistPage {
     const all = this.ordersResource.value() ?? [];
     const typeFilter = this.type();
     const statusFilter = this.status();
-    const urgency = this.urgencyFilter();
     return all.filter((row) => {
       if (typeFilter && row.type !== typeFilter) return false;
       if (statusFilter && row.status !== statusFilter) return false;
-      if (urgency && row.urgency !== urgency) return false;
       return true;
     });
   });

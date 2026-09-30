@@ -3,7 +3,6 @@ import { ChangeDetectionStrategy, Component, computed, inject, input, signal } f
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MessageService, PrimeTemplate } from 'primeng/api';
-import { Message } from 'primeng/message';
 import { Select } from 'primeng/select';
 import { Tab, TabList, TabPanel, TabPanels, Tabs } from 'primeng/tabs';
 import { Timeline } from 'primeng/timeline';
@@ -15,6 +14,7 @@ import { EmptyState } from '../../components/empty-state/empty-state';
 import { PageHeader } from '../../components/page-header/page-header';
 import { SectionHeader } from '../../components/section-header/section-header';
 import { StatusTag } from '../../components/status-tag/status-tag';
+import { HistoryAllergiesPanel } from '../../components/history-allergies-panel/history-allergies-panel';
 import { EhrSummaryCards } from '../../components/ehr-summary-cards/ehr-summary-cards';
 import {
   ClinicalNoteDialog,
@@ -44,10 +44,6 @@ interface EpisodeGroup {
   encounters: Encounter[];
 }
 
-/** `app-data-table` requires `T extends Record<string, unknown>`; domain models don't declare an index signature. */
-type DiagnosisRow = Diagnosis & Record<string, unknown>;
-type TreatmentRow = Treatment & Record<string, unknown>;
-
 const VALID_TABS: HistoryTab[] = [
   'overview',
   'encounters',
@@ -74,7 +70,7 @@ const VALID_TABS: HistoryTab[] = [
     TabPanel,
     Timeline,
     PrimeTemplate,
-    Message,
+    HistoryAllergiesPanel,
     Select,
     Button,
     FormsModule,
@@ -141,11 +137,11 @@ export class PatientHistoryPage {
     () => this.ehrResource.value()?.episodes ?? [],
   );
   protected readonly notes = computed<ClinicalNote[]>(() => this.ehrResource.value()?.notes ?? []);
-  protected readonly diagnoses = computed<DiagnosisRow[]>(
-    () => (this.ehrResource.value()?.diagnoses ?? []) as DiagnosisRow[],
+  protected readonly diagnoses = computed<Diagnosis[]>(
+    () => this.ehrResource.value()?.diagnoses ?? [],
   );
-  protected readonly treatments = computed<TreatmentRow[]>(
-    () => (this.ehrResource.value()?.treatments ?? []) as TreatmentRow[],
+  protected readonly treatments = computed<Treatment[]>(
+    () => this.ehrResource.value()?.treatments ?? [],
   );
   protected readonly allergies = computed<Allergy[]>(
     () => this.ehrResource.value()?.allergies ?? [],
@@ -178,7 +174,7 @@ export class PatientHistoryPage {
     return groups;
   });
 
-  protected readonly diagnosisColumns: TableColumn<DiagnosisRow>[] = [
+  protected readonly diagnosisColumns: TableColumn<Diagnosis>[] = [
     { field: 'icdCode', header: 'Kod ICD-10', type: 'custom' },
     { field: 'icdName', header: 'Jednostka chorobowa', type: 'custom' },
     { field: 'type', header: 'Typ', type: 'custom' },
@@ -187,7 +183,7 @@ export class PatientHistoryPage {
     { field: 'diagnosedById', header: 'Lekarz', type: 'custom' },
   ];
 
-  protected readonly treatmentColumns: TableColumn<TreatmentRow>[] = [
+  protected readonly treatmentColumns: TableColumn<Treatment>[] = [
     { field: 'name', header: 'Nazwa', sortable: true },
     { field: 'type', header: 'Typ', type: 'custom' },
     { field: 'status', header: 'Status', type: 'custom' },

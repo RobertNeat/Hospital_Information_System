@@ -1,8 +1,13 @@
-<div class="his-page">
-  <app-page-header title="Recepty" subtitle="Recepty wystawione przez Ciebie" />
+<div id="prescriptions-list-page" class="his-page">
+  <app-page-header
+    id="prescriptions-list-app-page-header"
+    title="Recepty"
+    subtitle="Recepty wystawione przez Ciebie"
+  />
 
-  <div class="his-toolbar">
+  <div id="prescriptions-list-toolbar" class="his-toolbar">
     <p-select
+      id="prescriptions-list-p-select"
       [ngModel]="statusFilter()"
       (ngModelChange)="statusFilter.set($event)"
       [options]="statusOptions"
@@ -13,6 +18,7 @@
       ariaLabel="Filtruj według statusu"
     />
     <p-datepicker
+      id="prescriptions-list-p-datepicker"
       [ngModel]="dateFrom()"
       (ngModelChange)="dateFrom.set($event)"
       dateFormat="dd.mm.yy"
@@ -21,6 +27,7 @@
       ariaLabel="Data od"
     />
     <p-datepicker
+      id="prescriptions-list-p-datepicker-2"
       [ngModel]="dateTo()"
       (ngModelChange)="dateTo.set($event)"
       dateFormat="dd.mm.yy"
@@ -32,6 +39,7 @@
 
   @if (!loading() && filteredRows().length === 0) {
     <app-empty-state
+      id="prescriptions-list-app-empty-state"
       icon="pi pi-inbox"
       title="Brak recept"
       message="Nie znaleziono recept spełniających kryteria."

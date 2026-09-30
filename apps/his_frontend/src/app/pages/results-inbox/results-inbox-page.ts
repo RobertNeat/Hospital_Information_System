@@ -14,11 +14,9 @@ import { ImagingResultService } from '../../services/imaging-result.service';
 import { LabelPipe } from '../../pipes/label.pipe';
 import type { ImagingResult, LabResult, PatientSummary, TableColumn } from '../../models';
 
-type LabResultRow = LabResult &
-  Record<string, unknown> & { patient: PatientSummary; patientName: string };
+type LabResultRow = LabResult & { patient: PatientSummary; patientName: string };
 
-type ImagingResultRow = ImagingResult &
-  Record<string, unknown> & { patient: PatientSummary; patientName: string };
+type ImagingResultRow = ImagingResult & { patient: PatientSummary; patientName: string };
 
 const FILTER_OPTIONS = [
   { label: 'Wszystkie', value: 'all' as const },
@@ -74,13 +72,12 @@ export class ResultsInboxPage {
     })),
   );
 
-  // ImagingResultService.getRecent() only filters meaningfully for 'critical' -- it has
-  // no 'abnormal' concept distinct from 'critical' (service gap, see agent report).
-  // We fetch 'all' and filter client-side so 'abnormal' and 'critical' both narrow to
-  // the critical imaging results here.
-  private readonly imagingResults = toSignal(this.imagingResultService.getRecent('all'), {
-    initialValue: [] as (ImagingResult & { patient: PatientSummary })[],
-  });
+  private readonly imagingResults = toSignal(
+    toObservable(this.effectiveFilter).pipe(
+      switchMap((f) => this.imagingResultService.getRecent(f)),
+    ),
+    { initialValue: [] as (ImagingResult & { patient: PatientSummary })[] },
+  );
 
   protected readonly imagingColumns: TableColumn<ImagingResultRow>[] = [
     { field: 'patientName', header: 'Pacjent', sortable: true },
@@ -90,12 +87,12 @@ export class ResultsInboxPage {
     { field: 'bodyRegion', header: 'Okolica' },
   ];
 
-  protected readonly imagingRows = computed<ImagingResultRow[]>(() => {
-    const f = this.effectiveFilter();
-    return this.imagingResults()
-      .filter((r) => (f === 'all' ? true : r.critical))
-      .map((r) => ({ ...r, patientName: `${r.patient.lastName} ${r.patient.firstName}` }));
-  });
+  protected readonly imagingRows = computed<ImagingResultRow[]>(() =>
+    this.imagingResults().map((r) => ({
+      ...r,
+      patientName: `${r.patient.lastName} ${r.patient.firstName}`,
+    })),
+  );
 
   protected onFilterChange(value: 'all' | 'abnormal' | 'critical'): void {
     this.router.navigate([], { queryParams: { filter: value }, queryParamsHandling: 'merge' });

@@ -1,4 +1,5 @@
 <p-dialog
+  id="result-compare-dialog-p-dialog"
   header="Porównaj wyniki w czasie"
   [visible]="visible()"
   [modal]="true"
@@ -7,9 +8,10 @@
   (visibleChange)="visibleChange.emit($event)"
   (onHide)="onHide()"
 >
-  <div class="his-rcd">
-    <div class="his-rcd__filters">
+  <div id="result-compare-dialog-rcd" class="his-rcd">
+    <div id="result-compare-dialog-rcd-filters" class="his-rcd__filters">
       <p-select
+        id="result-compare-dialog-p-select"
         [options]="analyteOptions()"
         [ngModel]="analyteCode()"
         (ngModelChange)="onSelectAnalyte($event)"
@@ -19,6 +21,7 @@
         [style]="{ minWidth: '14rem' }"
       />
       <p-datepicker
+        id="result-compare-dialog-p-datepicker"
         [ngModel]="dateFrom()"
         (ngModelChange)="dateFrom.set($event)"
         placeholder="Data od"
@@ -26,6 +29,7 @@
         showIcon
       />
       <p-datepicker
+        id="result-compare-dialog-p-datepicker-2"
         [ngModel]="dateTo()"
         (ngModelChange)="dateTo.set($event)"
         placeholder="Data do"
@@ -36,33 +40,37 @@
 
     @if (trend(); as t) {
       <app-trend-chart-card
+        id="result-compare-dialog-app-trend-chart-card"
         [title]="t.analyteName"
         [unit]="t.unit"
         [series]="series()"
         [referenceRange]="referenceRange()"
       />
 
-      <table class="his-rcd__table">
-        <thead>
-          <tr>
-            <th>Data</th>
-            <th>Wynik</th>
-            <th>Δ</th>
-            <th>%</th>
+      <table id="result-compare-dialog-rcd-table" class="his-rcd__table">
+        <thead id="result-compare-dialog-thead">
+          <tr id="result-compare-dialog-tr">
+            <th id="result-compare-dialog-th">Data</th>
+            <th id="result-compare-dialog-th-2">Wynik</th>
+            <th id="result-compare-dialog-th-3">Δ</th>
+            <th id="result-compare-dialog-th-4">%</th>
           </tr>
         </thead>
-        <tbody>
-          @for (row of compareRows(); track row.at) {
-            <tr>
-              <td>{{ row.at | date: 'dd.MM.yyyy HH:mm' }}</td>
-              <td>{{ row.value }} {{ t.unit }}</td>
+        <tbody id="result-compare-dialog-tbody">
+          @for (row of compareRows(); track row.at; let idx0 = $index) {
+            <tr [id]="'result-compare-dialog-tr-2-' + idx0">
+              <td [id]="'result-compare-dialog-td-' + idx0">
+                {{ row.at | date: 'dd.MM.yyyy HH:mm' }}
+              </td>
+              <td [id]="'result-compare-dialog-td-2-' + idx0">{{ row.value }} {{ t.unit }}</td>
               <td
+                [id]="'result-compare-dialog-td-3-' + idx0"
                 [class.his-rcd__delta--up]="(row.delta ?? 0) > 0"
                 [class.his-rcd__delta--down]="(row.delta ?? 0) < 0"
               >
                 {{ row.delta === null ? '-' : (row.delta > 0 ? '+' : '') + row.delta.toFixed(1) }}
               </td>
-              <td>
+              <td [id]="'result-compare-dialog-td-4-' + idx0">
                 {{
                   row.deltaPercent === null
                     ? '-'
@@ -74,7 +82,9 @@
         </tbody>
       </table>
     } @else {
-      <p class="his-muted">Wybierz badanie, aby zobaczyć porównanie w czasie.</p>
+      <p id="result-compare-dialog-muted" class="his-muted">
+        Wybierz badanie, aby zobaczyć porównanie w czasie.
+      </p>
     }
   </div>
 </p-dialog>

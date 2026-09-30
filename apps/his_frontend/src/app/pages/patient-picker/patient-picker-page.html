@@ -1,21 +1,31 @@
-<div class="his-page">
-  <app-page-header title="Wybór pacjenta" subtitle="Wyszukaj pacjenta, aby przejść do jego karty" />
+<div id="patient-picker-page" class="his-page">
+  <app-page-header
+    id="patient-picker-app-page-header"
+    title="Wybór pacjenta"
+    subtitle="Wyszukaj pacjenta, aby przejść do jego karty"
+  />
 
-  <div class="his-card">
-    <app-patient-search (patientSelected)="goTo($event)" />
+  <div id="patient-picker-card" class="his-card">
+    <app-patient-search id="patient-picker-app-patient-search" (patientSelected)="goTo($event)" />
   </div>
 
-  <div class="his-card">
-    <h3>Ostatnio przeglądani pacjenci</h3>
+  <div id="patient-picker-card-2" class="his-card">
+    <h3 id="patient-picker-h3">Ostatnio przeglądani pacjenci</h3>
     @if (ctx.recentPatients().length === 0) {
-      <app-empty-state icon="pi pi-users" title="Brak ostatnio przeglądanych pacjentów" />
+      <app-empty-state
+        id="patient-picker-app-empty-state"
+        icon="pi pi-users"
+        title="Brak ostatnio przeglądanych pacjentów"
+      />
     } @else {
-      <ul class="his-patient-picker__recent">
-        @for (p of ctx.recentPatients(); track p.id) {
-          <li>
-            <button type="button" (click)="goTo(p)">
-              <span>{{ p | fullName }}</span>
-              <span class="his-muted">{{ p.pesel ?? 'brak PESEL' }} · {{ p.birthDate | age }}</span>
+      <ul id="patient-picker-recent" class="his-patient-picker__recent">
+        @for (p of ctx.recentPatients(); track p.id; let idx0 = $index) {
+          <li [id]="'patient-picker-li-' + idx0">
+            <button [id]="'patient-picker-button-' + idx0" type="button" (click)="goTo(p)">
+              <span [id]="'patient-picker-span-' + idx0">{{ p | fullName }}</span>
+              <span [id]="'patient-picker-muted-' + idx0" class="his-muted"
+                >{{ p.pesel ?? 'brak PESEL' }} · {{ p.birthDate | age }}</span
+              >
             </button>
           </li>
         }

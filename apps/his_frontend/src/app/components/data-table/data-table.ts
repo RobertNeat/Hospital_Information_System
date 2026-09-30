@@ -2,6 +2,7 @@ import { DatePipe, NgTemplateOutlet } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   contentChild,
   ElementRef,
   inject,
@@ -17,7 +18,7 @@ import { StatusTag } from '../status-tag/status-tag';
 
 /**
  * Dense `p-table` wrapper. Custom cell rendering is provided by projecting a
- * `<ng-template #cell let-row let-col="col">` and/or `<ng-template #rowActions let-row>`;
+ * `<ng-template #cell let-row let-col="col">`, `<ng-template #rowExpansion let-row>` (expandable rows) and/or `<ng-template #rowActions let-row>`;
  * a toolbar can be projected via `<ng-template #toolbar>`.
  */
 @Component({
@@ -28,7 +29,7 @@ import { StatusTag } from '../status-tag/status-tag';
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { 'data-component-id': 'data-table' },
 })
-export class DataTable<T extends Record<string, unknown>> {
+export class DataTable<T> {
   readonly rows = input.required<T[]>();
   readonly columns = input.required<TableColumn<T>[]>();
   readonly loading = input(false);
@@ -48,9 +49,19 @@ export class DataTable<T extends Record<string, unknown>> {
   readonly cellTemplate = contentChild<TemplateRef<unknown>>('cell');
   readonly rowActionsTemplate = contentChild<TemplateRef<unknown>>('rowActions');
   readonly toolbarTemplate = contentChild<TemplateRef<unknown>>('toolbar');
+  /** Optional `<ng-template #rowExpansion let-row>`; when present an expand toggle column is rendered. */
+  readonly rowExpansionTemplate = contentChild<TemplateRef<unknown>>('rowExpansion');
+
+  /** Number of cells in a body row (data columns + expand toggle + actions), for `colspan`. */
+  protected readonly columnSpan = computed(
+    () =>
+      this.columns().length +
+      (this.rowActionsTemplate() ? 1 : 0) +
+      (this.rowExpansionTemplate() ? 1 : 0),
+  );
 
   protected cellValue(row: T, col: TableColumn<T>): unknown {
-    return row[col.field as keyof T];
+    return (row as Record<string, unknown>)[col.field];
   }
 
   protected cellValueAsString(row: T, col: TableColumn<T>): string {

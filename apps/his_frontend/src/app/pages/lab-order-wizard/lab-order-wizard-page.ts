@@ -25,18 +25,14 @@ import { SummaryList, type SummaryItem } from '../../components/summary-list/sum
 import { WizardStepFooter } from '../../components/wizard-step-footer/wizard-step-footer';
 import { SPECIMEN_LABELS, URGENCY_OPTIONS } from '../../constants/labels';
 import type { HasUnsavedChanges } from '../../guards/unsaved-changes.guard';
-import type { Coding, LabTest, OrderUrgency, SpecimenType } from '../../models';
+import type { LabTest, OrderUrgency, SpecimenType } from '../../models';
 import { PatientContextService } from '../../services/patient-context.service';
 import { EhrService } from '../../services/ehr.service';
 import { LabOrderService } from '../../services/lab-order.service';
 import { StaffService } from '../../services/staff.service';
+import { buildDiagnosisOptions, type DiagnosisOption } from '../../utils/diagnosis-options';
+import { orderSubmitObserver, warnIncompleteOrder } from '../../utils/order-wizard';
 import { tryAdvance } from '../../utils/wizard';
-
-interface DiagnosisOption {
-  label: string;
-  value: string;
-  coding: Coding;
-}
 
 @Component({
   selector: 'app-lab-order-wizard-page',
@@ -111,24 +107,7 @@ export class LabOrderWizardPage implements HasUnsavedChanges {
 
   protected readonly diagnosisOptions = computed<DiagnosisOption[]>(() => {
     const data = this.diagnosesResource.value();
-    if (!data) return [];
-    const seen = new Set<string>();
-    const options: DiagnosisOption[] = [];
-    for (const d of data.diagnoses) {
-      if (seen.has(d.code.code)) continue;
-      seen.add(d.code.code);
-      options.push({
-        label: `${d.code.code} — ${d.code.display}`,
-        value: d.code.code,
-        coding: d.code,
-      });
-    }
-    for (const c of data.icd10) {
-      if (seen.has(c.code)) continue;
-      seen.add(c.code);
-      options.push({ label: `${c.code} — ${c.display}`, value: c.code, coding: c });
-    }
-    return options;
+    return data ? buildDiagnosisOptions(data.diagnoses, data.icd10) : [];
   });
 
   // ---- Step 1: Wybór badań ----
@@ -271,11 +250,7 @@ export class LabOrderWizardPage implements HasUnsavedChanges {
     this.step3Form.markAllAsTouched();
     this.step3Form.updateValueAndValidity();
     if (this.step3Form.invalid || !this.selectedTests().length) {
-      this.toast.add({
-        severity: 'warn',
-        summary: 'Uzupełnij wymagane pola',
-        detail: 'Sprawdź wszystkie kroki formularza przed wysłaniem zlecenia.',
-      });
+      warnIncompleteOrder(this.toast);
       return;
     }
 
@@ -299,25 +274,18 @@ export class LabOrderWizardPage implements HasUnsavedChanges {
         clinicalInfo: this.step3Form.controls.clinicalInfo.value,
         notes: this.step3Form.controls.notes.value || undefined,
       })
-      .subscribe({
-        next: () => {
-          this.submitting.set(false);
-          this.submitted.set(true);
-          const isCito = this.step2Form.controls.urgency.value === 'stat';
-          this.toast.add({
-            severity: 'success',
-            summary: isCito ? 'Zlecenie CITO wysłane' : 'Zlecenie wysłane',
-            detail: 'Zlecenie laboratoryjne zostało zapisane.',
-          });
-          void this.router.navigate(['/patients', this.patientId(), 'orders'], {
-            queryParams: { type: 'lab' },
-          });
-        },
-        error: () => {
-          this.submitting.set(false);
-          this.toast.add({ severity: 'error', summary: 'Nie udało się wysłać zlecenia' });
-        },
-      });
+      .subscribe(
+        orderSubmitObserver({
+          submitting: this.submitting,
+          submitted: this.submitted,
+          toast: this.toast,
+          router: this.router,
+          patientId: this.patientId(),
+          orderType: 'lab',
+          isCito: this.step2Form.controls.urgency.value === 'stat',
+          successDetail: 'Zlecenie laboratoryjne zostało zapisane.',
+        }),
+      );
   }
 
   protected cancel(): void {

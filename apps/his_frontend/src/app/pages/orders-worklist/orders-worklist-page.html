@@ -1,19 +1,30 @@
-<div class="his-page">
-  <app-page-header title="Zlecenia" />
+<div id="orders-worklist-page" class="his-page">
+  <app-page-header id="orders-worklist-app-page-header" title="Zlecenia" />
 
-  <div class="his-orders-worklist__stats">
-    <span class="his-orders-worklist__chip">Zlecone: {{ statCounts().ordered }}</span>
-    <span class="his-orders-worklist__chip">Zaplanowane: {{ statCounts().scheduled }}</span>
-    <span class="his-orders-worklist__chip"
+  <div id="orders-worklist-stats" class="his-orders-worklist__stats">
+    <span id="orders-worklist-chip" class="his-orders-worklist__chip"
+      >Zlecone: {{ statCounts().ordered }}</span
+    >
+    <span id="orders-worklist-chip-2" class="his-orders-worklist__chip"
+      >Zaplanowane: {{ statCounts().scheduled }}</span
+    >
+    <span id="orders-worklist-chip-3" class="his-orders-worklist__chip"
       >Pobrano materiał: {{ statCounts().specimen_collected }}</span
     >
-    <span class="his-orders-worklist__chip">W trakcie: {{ statCounts().in_progress }}</span>
-    <span class="his-orders-worklist__chip">Zakończone: {{ statCounts().completed }}</span>
-    <span class="his-orders-worklist__chip">Anulowane: {{ statCounts().cancelled }}</span>
+    <span id="orders-worklist-chip-4" class="his-orders-worklist__chip"
+      >W trakcie: {{ statCounts().in_progress }}</span
+    >
+    <span id="orders-worklist-chip-5" class="his-orders-worklist__chip"
+      >Zakończone: {{ statCounts().completed }}</span
+    >
+    <span id="orders-worklist-chip-6" class="his-orders-worklist__chip"
+      >Anulowane: {{ statCounts().cancelled }}</span
+    >
   </div>
 
-  <div class="his-toolbar his-orders-worklist__filters">
+  <div id="orders-worklist-toolbar" class="his-toolbar his-orders-worklist__filters">
     <p-select
+      id="orders-worklist-p-select"
       [options]="typeOptions"
       [ngModel]="type() ?? ''"
       (ngModelChange)="onTypeChange($event)"
@@ -22,6 +33,7 @@
       placeholder="Typ zlecenia"
     />
     <p-select
+      id="orders-worklist-p-select-2"
       [options]="statusOptions"
       [ngModel]="status() ?? ''"
       (ngModelChange)="onStatusChange($event)"
@@ -30,6 +42,7 @@
       placeholder="Status"
     />
     <p-select
+      id="orders-worklist-p-select-3"
       [options]="urgencyOptions"
       [ngModel]="urgencyFilter()"
       (ngModelChange)="urgencyFilter.set($event)"
@@ -53,10 +66,18 @@
           {{ row.type === 'lab' ? 'Laboratoryjne' : 'Obrazowe' }}
         }
         @case ('urgency') {
-          <app-status-tag kind="urgency" [value]="row.urgency" />
+          <app-status-tag
+            [id]="'orders-worklist-app-status-tag-' + row.id"
+            kind="urgency"
+            [value]="row.urgency"
+          />
         }
         @case ('status') {
-          <app-status-tag kind="orderStatus" [value]="row.status" />
+          <app-status-tag
+            [id]="'orders-worklist-app-status-tag-2-' + row.id"
+            kind="orderStatus"
+            [value]="row.status"
+          />
         }
         @case ('orderedAt') {
           {{ row.orderedAt | date: 'dd.MM.yyyy HH:mm' }}
@@ -68,6 +89,7 @@
     </ng-template>
     <ng-template #rowActions let-row>
       <p-select
+        [id]="'orders-worklist-p-select-4-' + row.id"
         [options]="nextStatusOptions(row)"
         [ngModel]="null"
         (onChange)="changeStatus(row, $event.value)"

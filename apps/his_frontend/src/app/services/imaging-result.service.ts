@@ -47,7 +47,9 @@ export class ImagingResultService {
     return mockResponse(this.results, this.latency).pipe(
       map((results) =>
         results
-          .filter((r) => (filter === 'critical' ? r.critical : true))
+          // ImagingResult has no per-finding severity: `critical` is its only abnormality
+          // flag, so 'abnormal' and 'critical' both narrow to flagged results.
+          .filter((r) => (filter === 'all' ? true : r.critical))
           .map((r) => {
             const patient = this.patients.find((p) => p.id === r.patientId);
             return { ...r, patient: patient ? toSummary(patient) : ({} as PatientSummary) };

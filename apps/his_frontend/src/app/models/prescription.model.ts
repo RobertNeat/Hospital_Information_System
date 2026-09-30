@@ -32,6 +32,13 @@ export interface PrescriptionItem {
   substitutionAllowed: boolean;
 }
 
+/** Item of an active prescription, tagged with its origin prescription. */
+export interface ActiveMedication extends PrescriptionItem {
+  prescriptionId: ID;
+  /** Prescription start date (`validFrom`). */
+  date: ISODate;
+}
+
 export type PrescriptionStatus =
   'issued' | 'partially_dispensed' | 'dispensed' | 'cancelled' | 'expired';
 

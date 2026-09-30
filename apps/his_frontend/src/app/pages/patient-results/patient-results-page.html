@@ -1,163 +1,171 @@
-<div class="his-page">
-  <app-page-header title="Wyniki badań" icon="pi pi-chart-bar" />
+<div id="patient-results-page" class="his-page">
+  <app-page-header
+    id="patient-results-app-page-header"
+    title="Wyniki badań"
+    icon="pi pi-chart-bar"
+  />
 
-  <p-tabs [value]="activeTab()" (valueChange)="onTabChange($event)">
-    <p-tablist>
-      <p-tab value="lab">Laboratoryjne</p-tab>
-      <p-tab value="imaging">Obrazowe</p-tab>
+  <p-tabs id="patient-results-p-tabs" [value]="activeTab()" (valueChange)="onTabChange($event)">
+    <p-tablist id="patient-results-p-tablist">
+      <p-tab id="patient-results-p-tab" value="lab">Laboratoryjne</p-tab>
+      <p-tab id="patient-results-p-tab-2" value="imaging">Obrazowe</p-tab>
     </p-tablist>
-    <p-tabpanels>
-      <p-tabpanel value="lab">
+    <p-tabpanels id="patient-results-p-tabpanels">
+      <p-tabpanel id="patient-results-p-tabpanel" value="lab">
         @if (lab().length === 0) {
-          <app-empty-state title="Brak wyników laboratoryjnych" />
+          <app-empty-state
+            id="patient-results-app-empty-state"
+            title="Brak wyników laboratoryjnych"
+          />
         } @else {
-          <p-table
-            [value]="lab()"
-            dataKey="id"
-            size="small"
-            [stripedRows]="true"
-            [rowHover]="true"
-            [expandedRowKeys]="expandedLabRows()"
-            (onRowExpand)="onLabRowExpand($event.data)"
-            (onRowCollapse)="onLabRowCollapse($event.data)"
+          <app-data-table
+            id="patient-results-lab-table"
+            [rows]="lab()"
+            [columns]="labColumns"
+            [paginator]="false"
           >
-            <ng-template #header>
-              <tr>
-                <th style="width: 2.5rem"></th>
-                <th>Data pobrania</th>
-                <th>Badanie</th>
-                <th>Kategoria</th>
-                <th>Status</th>
-                <th>Nieprawidłowe</th>
-                <th></th>
-              </tr>
-            </ng-template>
-            <ng-template #body let-result let-expanded="expanded">
-              <tr>
-                <td>
-                  <p-button
-                    [pRowToggler]="result"
-                    [text]="true"
-                    [rounded]="true"
-                    size="small"
-                    [icon]="expanded ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"
-                    ariaLabel="Rozwiń szczegóły wyniku"
+            <ng-template #cell let-row let-col="col">
+              @switch (col.field) {
+                @case ('collectedAt') {
+                  {{ row.collectedAt | date: 'dd.MM.yyyy HH:mm' }}
+                }
+                @case ('testName') {
+                  {{ row.testName }}
+                }
+                @case ('category') {
+                  {{ row.category | label: 'labCategory' }}
+                }
+                @case ('status') {
+                  <app-status-tag
+                    [id]="'patient-results-app-status-tag-' + row.id"
+                    kind="resultStatus"
+                    [value]="row.status"
                   />
-                </td>
-                <td>{{ result.collectedAt | date: 'dd.MM.yyyy HH:mm' }}</td>
-                <td>{{ result.testName }}</td>
-                <td>{{ result.category | label: 'labCategory' }}</td>
-                <td><app-status-tag kind="resultStatus" [value]="result.status" /></td>
-                <td>
-                  @if (abnormalCount(result) > 0) {
-                    <p-tag severity="danger" [value]="'' + abnormalCount(result)" />
+                }
+                @case ('observations') {
+                  @if (abnormalCount(row) > 0) {
+                    <p-tag
+                      [id]="'patient-results-p-tag-' + row.id"
+                      severity="danger"
+                      [value]="'' + abnormalCount(row)"
+                    />
                   } @else {
-                    <span class="his-muted">0</span>
+                    <span [id]="'patient-results-muted-' + row.id" class="his-muted">0</span>
                   }
-                </td>
-                <td class="his-data-table__actions">
-                  <p-button
-                    icon="pi pi-eye"
-                    [text]="true"
-                    size="small"
-                    ariaLabel="Szczegóły"
-                    pTooltip="Szczegóły"
-                    (onClick)="navigateLab(result)"
-                  />
-                  <p-button
-                    icon="pi pi-download"
-                    [text]="true"
-                    size="small"
-                    ariaLabel="Pobierz raport"
-                    pTooltip="Pobierz raport"
-                    (onClick)="downloadLabReport(result)"
-                  />
-                  <p-button
-                    icon="pi pi-chart-line"
-                    [text]="true"
-                    size="small"
-                    ariaLabel="Porównaj w czasie"
-                    pTooltip="Porównaj w czasie"
-                    (onClick)="openCompare()"
-                  />
-                </td>
-              </tr>
+                }
+              }
             </ng-template>
-            <ng-template #expandedrow let-result>
-              <tr>
-                <td></td>
-                <td colspan="6">
-                  <app-lab-result-observations [observations]="result.observations" />
-                </td>
-              </tr>
+            <ng-template #rowActions let-row>
+              <p-button
+                [id]="'patient-results-p-button-' + row.id"
+                icon="pi pi-eye"
+                [text]="true"
+                size="small"
+                ariaLabel="Szczegóły"
+                pTooltip="Szczegóły"
+                (onClick)="navigateLab(row)"
+              />
+              <p-button
+                [id]="'patient-results-p-button-2-' + row.id"
+                icon="pi pi-download"
+                [text]="true"
+                size="small"
+                ariaLabel="Pobierz raport"
+                pTooltip="Pobierz raport"
+                (onClick)="downloadLabReport(row)"
+              />
+              <p-button
+                [id]="'patient-results-p-button-3-' + row.id"
+                icon="pi pi-chart-line"
+                [text]="true"
+                size="small"
+                ariaLabel="Porównaj w czasie"
+                pTooltip="Porównaj w czasie"
+                (onClick)="openCompare()"
+              />
             </ng-template>
-          </p-table>
+            <ng-template #rowExpansion let-row>
+              <app-lab-result-observations
+                [id]="'patient-results-app-lab-result-observations-' + row.id"
+                [observations]="row.observations"
+              />
+            </ng-template>
+          </app-data-table>
         }
       </p-tabpanel>
 
-      <p-tabpanel value="imaging">
+      <p-tabpanel id="patient-results-p-tabpanel-2" value="imaging">
         @if (imaging().length === 0) {
-          <app-empty-state title="Brak wyników obrazowych" />
+          <app-empty-state id="patient-results-app-empty-state-2" title="Brak wyników obrazowych" />
         } @else {
-          <p-table
-            [value]="imaging()"
-            dataKey="id"
-            size="small"
-            [stripedRows]="true"
-            [rowHover]="true"
+          <app-data-table
+            id="patient-results-imaging-table"
+            [rows]="imaging()"
+            [columns]="imagingColumns"
+            [paginator]="false"
           >
-            <ng-template #header>
-              <tr>
-                <th>Data</th>
-                <th>Modalność</th>
-                <th>Badanie</th>
-                <th>Okolica</th>
-                <th>Status</th>
-                <th>Krytyczny</th>
-                <th></th>
-              </tr>
-            </ng-template>
-            <ng-template #body let-result>
-              <tr>
-                <td>{{ result.performedAt | date: 'dd.MM.yyyy HH:mm' }}</td>
-                <td>{{ result.modality | label: 'imagingModality' }}</td>
-                <td>{{ result.examName }}</td>
-                <td>{{ result.bodyRegion }}</td>
-                <td><app-status-tag kind="resultStatus" [value]="result.status" /></td>
-                <td>
-                  @if (result.critical) {
-                    <p-tag severity="danger" value="Krytyczny" />
+            <ng-template #cell let-row let-col="col">
+              @switch (col.field) {
+                @case ('performedAt') {
+                  {{ row.performedAt | date: 'dd.MM.yyyy HH:mm' }}
+                }
+                @case ('modality') {
+                  {{ row.modality | label: 'imagingModality' }}
+                }
+                @case ('examName') {
+                  {{ row.examName }}
+                }
+                @case ('bodyRegion') {
+                  {{ row.bodyRegion }}
+                }
+                @case ('status') {
+                  <app-status-tag
+                    [id]="'patient-results-app-status-tag-2-' + row.id"
+                    kind="resultStatus"
+                    [value]="row.status"
+                  />
+                }
+                @case ('critical') {
+                  @if (row.critical) {
+                    <p-tag
+                      [id]="'patient-results-p-tag-2-' + row.id"
+                      severity="danger"
+                      value="Krytyczny"
+                    />
                   } @else {
-                    <span class="his-muted">-</span>
+                    <span [id]="'patient-results-muted-2-' + row.id" class="his-muted">-</span>
                   }
-                </td>
-                <td class="his-data-table__actions">
-                  <p-button
-                    icon="pi pi-eye"
-                    [text]="true"
-                    size="small"
-                    ariaLabel="Podgląd"
-                    pTooltip="Podgląd"
-                    (onClick)="navigateImaging(result)"
-                  />
-                  <p-button
-                    icon="pi pi-download"
-                    [text]="true"
-                    size="small"
-                    ariaLabel="Pobierz raport"
-                    pTooltip="Pobierz raport"
-                    (onClick)="downloadImagingReport(result)"
-                  />
-                </td>
-              </tr>
+                }
+              }
             </ng-template>
-          </p-table>
+            <ng-template #rowActions let-row>
+              <p-button
+                [id]="'patient-results-p-button-4-' + row.id"
+                icon="pi pi-eye"
+                [text]="true"
+                size="small"
+                ariaLabel="Podgląd"
+                pTooltip="Podgląd"
+                (onClick)="navigateImaging(row)"
+              />
+              <p-button
+                [id]="'patient-results-p-button-5-' + row.id"
+                icon="pi pi-download"
+                [text]="true"
+                size="small"
+                ariaLabel="Pobierz raport"
+                pTooltip="Pobierz raport"
+                (onClick)="downloadImagingReport(row)"
+              />
+            </ng-template>
+          </app-data-table>
         }
       </p-tabpanel>
     </p-tabpanels>
   </p-tabs>
 
   <app-result-compare-dialog
+    id="patient-results-app-result-compare-dialog"
     [patientId]="patientId()"
     [visible]="compareVisible()"
     [analyteOptions]="trendableAnalytes()"

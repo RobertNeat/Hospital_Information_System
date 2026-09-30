@@ -1,0 +1,9 @@
+.his-registration__full-row {
+  grid-column: 1 / -1;
+}
+
+.his-registration__toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}

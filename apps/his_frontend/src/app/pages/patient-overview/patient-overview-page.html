@@ -1,9 +1,23 @@
-<div class="his-page">
+<div id="patient-overview-page" class="his-page">
   @if (patient(); as p) {
-    <app-page-header title="Dane pacjenta" [subtitle]="p.mrn" icon="pi pi-id-card">
-      <div actions class="his-patient-overview__header-actions">
-        <app-icon-action-group [actions]="quickActions" (action)="onQuickAction($event)" />
+    <app-page-header
+      id="patient-overview-app-page-header"
+      title="Dane pacjenta"
+      [subtitle]="p.mrn"
+      icon="pi pi-id-card"
+    >
+      <div
+        id="patient-overview-header-actions"
+        actions
+        class="his-patient-overview__header-actions"
+      >
+        <app-icon-action-group
+          id="patient-overview-app-icon-action-group"
+          [actions]="quickActions"
+          (action)="onQuickAction($event)"
+        />
         <p-button
+          id="patient-overview-p-button"
           label="Edytuj dane"
           icon="pi pi-file-edit"
           severity="secondary"
@@ -11,6 +25,7 @@
           (onClick)="editPatient()"
         />
         <p-button
+          id="patient-overview-p-button-2"
           label="Wypis pacjenta"
           icon="pi pi-sign-out"
           severity="danger"
@@ -22,46 +37,74 @@
       </div>
     </app-page-header>
 
-    <div class="his-grid-2">
-      <div class="his-section">
-        <app-section-header title="Dane podstawowe" icon="pi pi-id-card" />
-        <div class="his-patient-overview__section-body">
-          <app-summary-list [items]="basicInfoItems()" />
+    <div id="patient-overview-grid-2" class="his-grid-2">
+      <div id="patient-overview-section" class="his-section">
+        <app-section-header
+          id="patient-overview-app-section-header"
+          title="Dane podstawowe"
+          icon="pi pi-id-card"
+        />
+        <div id="patient-overview-section-body" class="his-patient-overview__section-body">
+          <app-summary-list id="patient-overview-app-summary-list" [items]="basicInfoItems()" />
         </div>
       </div>
 
-      <div class="his-section">
-        <app-section-header title="Dane kontaktowe" icon="pi pi-send" />
-        <div class="his-patient-overview__section-body">
-          <app-summary-list [items]="contactItems()" />
+      <div id="patient-overview-section-2" class="his-section">
+        <app-section-header
+          id="patient-overview-app-section-header-2"
+          title="Dane kontaktowe"
+          icon="pi pi-send"
+        />
+        <div id="patient-overview-section-body-2" class="his-patient-overview__section-body">
+          <app-summary-list id="patient-overview-app-summary-list-2" [items]="contactItems()" />
         </div>
       </div>
 
-      <div class="his-section">
-        <app-section-header title="Ubezpieczenie" icon="pi pi-clipboard" />
-        <div class="his-patient-overview__section-body">
-          <app-summary-list [items]="insuranceItems()" />
+      <div id="patient-overview-section-3" class="his-section">
+        <app-section-header
+          id="patient-overview-app-section-header-3"
+          title="Ubezpieczenie"
+          icon="pi pi-clipboard"
+        />
+        <div id="patient-overview-section-body-3" class="his-patient-overview__section-body">
+          <app-summary-list id="patient-overview-app-summary-list-3" [items]="insuranceItems()" />
         </div>
       </div>
 
-      <div class="his-section">
-        <app-section-header title="Osoba kontaktowa / opiekun" icon="pi pi-users" />
-        <div class="his-patient-overview__section-body">
+      <div id="patient-overview-section-4" class="his-section">
+        <app-section-header
+          id="patient-overview-app-section-header-4"
+          title="Osoba kontaktowa / opiekun"
+          icon="pi pi-users"
+        />
+        <div id="patient-overview-section-body-4" class="his-patient-overview__section-body">
           @if (contactPersonItems().length > 0) {
-            <app-summary-list [items]="contactPersonItems()" />
+            <app-summary-list
+              id="patient-overview-app-summary-list-4"
+              [items]="contactPersonItems()"
+            />
           } @else {
-            <app-empty-state icon="pi pi-users" title="Brak danych osoby kontaktowej" />
+            <app-empty-state
+              id="patient-overview-app-empty-state"
+              icon="pi pi-users"
+              title="Brak danych osoby kontaktowej"
+            />
           }
         </div>
       </div>
 
-      <div class="his-section">
-        <app-section-header title="Bieżący pobyt" icon="pi pi-calendar-clock" />
-        <div class="his-patient-overview__section-body">
+      <div id="patient-overview-section-5" class="his-section">
+        <app-section-header
+          id="patient-overview-app-section-header-5"
+          title="Bieżący pobyt"
+          icon="pi pi-calendar-clock"
+        />
+        <div id="patient-overview-section-body-5" class="his-patient-overview__section-body">
           @if (admissionItems().length > 0) {
-            <app-summary-list [items]="admissionItems()" />
+            <app-summary-list id="patient-overview-app-summary-list-5" [items]="admissionItems()" />
           } @else {
             <app-empty-state
+              id="patient-overview-app-empty-state-2"
               icon="pi pi-calendar-clock"
               title="Pacjent nie jest obecnie przyjęty"
             />
@@ -69,13 +112,22 @@
         </div>
       </div>
 
-      <div class="his-section">
-        <app-section-header title="Ostatni pomiar parametrów" icon="pi pi-wave-pulse" />
-        <div class="his-patient-overview__section-body">
+      <div id="patient-overview-section-6" class="his-section">
+        <app-section-header
+          id="patient-overview-app-section-header-6"
+          title="Ostatni pomiar parametrów"
+          icon="pi pi-wave-pulse"
+        />
+        <div id="patient-overview-section-body-6" class="his-patient-overview__section-body">
           @if (!vitalsLoaded()) {
-            <app-empty-state icon="pi pi-wave-pulse" title="Ładowanie..." />
+            <app-empty-state
+              id="patient-overview-app-empty-state-3"
+              icon="pi pi-wave-pulse"
+              title="Ładowanie..."
+            />
           } @else if (latestVitals(); as v) {
             <app-summary-list
+              id="patient-overview-app-summary-list-6"
               [items]="[
                 { label: 'Data pomiaru', value: v.recordedAt | date: 'dd.MM.yyyy HH:mm' },
                 {
@@ -93,26 +145,41 @@
               ]"
             />
           } @else {
-            <app-empty-state icon="pi pi-wave-pulse" title="Brak pomiarów" />
+            <app-empty-state
+              id="patient-overview-app-empty-state-4"
+              icon="pi pi-wave-pulse"
+              title="Brak pomiarów"
+            />
           }
         </div>
       </div>
 
-      <div class="his-section">
+      <div id="patient-overview-section-7" class="his-section">
         <app-section-header
+          id="patient-overview-app-section-header-7"
           title="Alergie"
           icon="pi pi-exclamation-triangle"
           [count]="allergies().length"
         />
-        <div class="his-patient-overview__section-body">
+        <div id="patient-overview-section-body-7" class="his-patient-overview__section-body">
           @if (allergies().length === 0) {
-            <app-empty-state icon="pi pi-exclamation-triangle" title="Brak odnotowanych alergii" />
+            <app-empty-state
+              id="patient-overview-app-empty-state-5"
+              icon="pi pi-exclamation-triangle"
+              title="Brak odnotowanych alergii"
+            />
           } @else {
-            <ul class="his-patient-overview__allergy-list">
-              @for (a of allergies(); track a.id) {
-                <li>
-                  <app-status-tag kind="allergySeverity" [value]="a.severity" />
-                  <span>{{ a.substance }} — {{ a.reaction }}</span>
+            <ul id="patient-overview-allergy-list" class="his-patient-overview__allergy-list">
+              @for (a of allergies(); track a.id; let idx0 = $index) {
+                <li [id]="'patient-overview-li-' + idx0">
+                  <app-status-tag
+                    [id]="'patient-overview-app-status-tag-' + idx0"
+                    kind="allergySeverity"
+                    [value]="a.severity"
+                  />
+                  <span [id]="'patient-overview-span-' + idx0"
+                    >{{ a.substance }} — {{ a.reaction }}</span
+                  >
                 </li>
               }
             </ul>
@@ -121,7 +188,11 @@
       </div>
     </div>
   } @else {
-    <app-page-header title="Dane pacjenta" />
-    <app-empty-state icon="pi pi-id-card" title="Ładowanie danych pacjenta..." />
+    <app-page-header id="patient-overview-app-page-header-2" title="Dane pacjenta" />
+    <app-empty-state
+      id="patient-overview-app-empty-state-6"
+      icon="pi pi-id-card"
+      title="Ładowanie danych pacjenta..."
+    />
   }
 </div>

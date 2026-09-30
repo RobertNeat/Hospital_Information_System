@@ -3,6 +3,7 @@ import { forkJoin, map } from 'rxjs';
 import type { Observable } from 'rxjs';
 import { MOCK_LATENCY_MS } from '../config/mock-api.config';
 import { PATIENTS } from '../mock-data/patients.mock';
+import { WARDS } from '../mock-data/wards.mock';
 import { VITALS } from '../mock-data/vitals.mock';
 import type { ID, PatientSummary, VitalSigns, VitalSignsDraft, WardVitalsRow } from '../models';
 import { minutesAgo } from '../utils/date-utils';
@@ -11,6 +12,7 @@ import { mockResponse, nextId } from '../utils/mock-response';
 import { TeamMessageService } from './team-message.service';
 
 function toSummary(p: (typeof PATIENTS)[number]): PatientSummary {
+  const admitted = p.status === 'admitted';
   return {
     id: p.id,
     mrn: p.mrn,
@@ -21,7 +23,8 @@ function toSummary(p: (typeof PATIENTS)[number]): PatientSummary {
     gender: p.gender,
     status: p.status,
     flags: p.flags,
-    bed: p.status === 'admitted' ? p.currentAdmission?.bed : undefined,
+    wardName: admitted ? WARDS.find((w) => w.id === p.currentAdmission?.wardId)?.name : undefined,
+    bed: admitted ? p.currentAdmission?.bed : undefined,
   };
 }
 

@@ -1,0 +1,30 @@
+:host {
+  display: block;
+}
+
+.his-summary-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.his-summary-table th,
+.his-summary-table td {
+  text-align: left;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid var(--his-card-border);
+}
+
+.his-summary-table th {
+  color: var(--his-text-muted);
+  font-weight: 600;
+}
+
+.his-summary-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.his-allergy-alert {
+  display: block;
+  margin-bottom: 1rem;
+}
