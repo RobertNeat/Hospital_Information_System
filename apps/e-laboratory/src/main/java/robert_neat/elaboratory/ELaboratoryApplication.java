@@ -1,0 +1,13 @@
+package robert_neat.elaboratory;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class ELaboratoryApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(ELaboratoryApplication.class, args);
+    }
+
+}

@@ -1,10 +1,10 @@
-package org.springboot.his_backend;
+package robert_neat.eimaging;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class HisBackendApplicationTests {
+class EImagingApplicationTests {
 
     @Test
     void contextLoads() {
