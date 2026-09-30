@@ -2,6 +2,9 @@ import { describe, expect, it, beforeEach } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { firstValueFrom } from 'rxjs';
 import { MOCK_LATENCY_MS } from '../config/mock-api.config';
+import { DIAGNOSES } from '../mock-data/diagnoses.mock';
+import { ENCOUNTERS } from '../mock-data/encounters.mock';
+import { TREATMENTS } from '../mock-data/treatments.mock';
 import { EhrService } from './ehr.service';
 
 describe('EhrService', () => {
@@ -58,5 +61,15 @@ describe('EhrService', () => {
     expect(summary.recentDiagnoses.length).toBeGreaterThan(0);
     expect(summary.allergies.length).toBeGreaterThan(0);
     expect(summary.chronicConditions.every((d) => d.type === 'chronic')).toBe(true);
+  });
+
+  it('mock encounterId of diagnoses and treatments points to an existing encounter of the same patient', () => {
+    const linked = [...DIAGNOSES, ...TREATMENTS].filter((r) => r.encounterId);
+    expect(linked.length).toBeGreaterThan(0);
+    for (const record of linked) {
+      const encounter = ENCOUNTERS.find((e) => e.id === record.encounterId);
+      expect(encounter, record.id).toBeDefined();
+      expect(encounter?.patientId, record.id).toBe(record.patientId);
+    }
   });
 });

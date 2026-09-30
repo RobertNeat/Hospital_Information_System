@@ -41,4 +41,10 @@ describe('StaffService', () => {
   it('nameOf formats "title firstName lastName"', () => {
     expect(service.nameOf('stf-001')).toBe('lek. Anna Nowak');
   });
+
+  it('seed staff have employeeId, 7-digit pwz and active account', async () => {
+    const staff = await firstValueFrom(service.getStaff());
+    expect(staff.every((s) => s.employeeId && /^\d{7}$/.test(s.pwz ?? ''))).toBe(true);
+    expect(staff.every((s) => s.accountStatus === 'active')).toBe(true);
+  });
 });

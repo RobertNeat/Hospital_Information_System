@@ -7,7 +7,8 @@ import { Textarea } from 'primeng/textarea';
 import { InputText } from 'primeng/inputtext';
 import { Button } from 'primeng/button';
 import { NOTE_CATEGORY_OPTIONS } from '../../constants/labels';
-import type { ClinicalNote, ID, NoteCategory } from '../../models';
+import type { ID, NoteCategory } from '../../models';
+import type { ClinicalNoteCreateRequest } from '../../models/api';
 import { FormField } from '../form-field/form-field';
 
 /** Common symptom picks for the "Objawy" MultiSelect (chips). */
@@ -27,7 +28,7 @@ const SYMPTOM_OPTIONS = [
 ].map((label) => ({ label, value: label }));
 
 export interface ClinicalNoteDialogSave {
-  draft: Omit<ClinicalNote, 'id' | 'createdAt'>;
+  draft: ClinicalNoteCreateRequest;
 }
 
 /** `p-dialog` form to create a new `ClinicalNote` for the patient's history. */

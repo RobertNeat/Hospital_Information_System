@@ -1,3 +1,4 @@
+// Mock-only: thresholds will come from the API (GET /vital-thresholds); backend authoritative.
 import type { VitalThreshold, VitalType } from '../models';
 
 export const VITAL_THRESHOLDS: Record<VitalType, VitalThreshold> = {

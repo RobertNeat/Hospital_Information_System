@@ -5,14 +5,10 @@ import { Button } from 'primeng/button';
 import { IconField } from 'primeng/iconfield';
 import { InputIcon } from 'primeng/inputicon';
 import { InputText } from 'primeng/inputtext';
-import type { LabCategory, LabTest } from '../../models';
+import type { LabCategory, LabPanel, LabTest } from '../../models';
 import { LAB_CATEGORY_LABELS } from '../../constants/labels';
 
-export interface CatalogPanel {
-  id: string;
-  name: string;
-  testCodes: string[];
-}
+export type CatalogPanel = LabPanel;
 
 interface CatalogGroup {
   category: LabCategory;

@@ -3,7 +3,15 @@ import type { Observable } from 'rxjs';
 import { MOCK_LATENCY_MS } from '../config/mock-api.config';
 import { LAB_CATALOG, LAB_PANELS } from '../mock-data/lab-catalog.mock';
 import { LAB_ORDERS } from '../mock-data/lab-orders.mock';
-import type { ID, LabOrder, LabOrderDraft, LabTest, OrderStatus, OrderUrgency } from '../models';
+import type {
+  ID,
+  LabOrder,
+  LabOrderDraft,
+  LabOrderFilter,
+  LabPanel,
+  LabTest,
+  OrderStatus,
+} from '../models';
 import { mockError, mockResponse, nextId } from '../utils/mock-response';
 
 @Injectable({ providedIn: 'root' })
@@ -18,15 +26,11 @@ export class LabOrderService {
     return mockResponse(this.catalog, this.latency);
   }
 
-  getPanels(): Observable<{ id: string; name: string; testCodes: string[] }[]> {
+  getPanels(): Observable<LabPanel[]> {
     return mockResponse(this.panels, this.latency);
   }
 
-  getOrders(filter?: {
-    patientId?: ID;
-    status?: OrderStatus;
-    urgency?: OrderUrgency;
-  }): Observable<LabOrder[]> {
+  getOrders(filter?: LabOrderFilter): Observable<LabOrder[]> {
     let result = this.orders;
     if (filter?.patientId) result = result.filter((o) => o.patientId === filter.patientId);
     if (filter?.status) result = result.filter((o) => o.status === filter.status);

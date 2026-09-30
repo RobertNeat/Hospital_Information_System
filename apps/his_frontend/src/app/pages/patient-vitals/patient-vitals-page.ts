@@ -20,11 +20,16 @@ import {
   type VitalsSaveResult,
 } from '../../components/vitals-entry-form/vitals-entry-form';
 import { VITAL_THRESHOLDS } from '../../constants/vitals-thresholds';
-import type { ResultFlag, TableColumn, VitalAnomaly, VitalSigns, VitalType } from '../../models';
+import type {
+  ResultFlag,
+  TableColumn,
+  VitalAnomaly,
+  VitalSigns,
+  VitalsRange,
+  VitalType,
+} from '../../models';
 import { VitalsService } from '../../services/vitals.service';
 import { evaluateVitals } from '../../utils/vitals-anomaly';
-
-type VitalsRange = '24h' | '7d' | '30d' | 'all';
 
 const VALID_RANGES: VitalsRange[] = ['24h', '7d', '30d', 'all'];
 const DEFAULT_RANGE: VitalsRange = '7d';

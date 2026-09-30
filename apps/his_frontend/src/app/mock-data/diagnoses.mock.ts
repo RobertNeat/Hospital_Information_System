@@ -49,6 +49,7 @@ export const DIAGNOSES: Diagnosis[] = [
   {
     id: 'dx-001',
     patientId: 'pat-001',
+    encounterId: 'enc-001',
     code: { system: 'ICD-10', code: 'I50', display: 'Niewydolność serca' },
     type: 'primary',
     status: 'active',
@@ -58,6 +59,7 @@ export const DIAGNOSES: Diagnosis[] = [
   {
     id: 'dx-002',
     patientId: 'pat-001',
+    encounterId: 'enc-003',
     code: { system: 'ICD-10', code: 'I10', display: 'Nadciśnienie tętnicze samoistne' },
     type: 'chronic',
     status: 'active',
@@ -77,6 +79,7 @@ export const DIAGNOSES: Diagnosis[] = [
   {
     id: 'dx-004',
     patientId: 'pat-002',
+    encounterId: 'enc-004',
     code: { system: 'ICD-10', code: 'I21', display: 'Ostry zawał serca' },
     type: 'primary',
     status: 'active',

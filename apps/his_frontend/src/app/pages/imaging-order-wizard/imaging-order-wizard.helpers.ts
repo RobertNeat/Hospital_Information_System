@@ -12,7 +12,7 @@ import type {
   Allergy,
   ImagingExam,
   ImagingModality,
-  ImagingOrderDraft,
+  ImagingOrderCreateRequest,
   LabResult,
   Patient,
   Laterality,
@@ -112,7 +112,7 @@ export function buildImagingSummary(i: ImagingSummaryInput): SummaryItem[] {
 }
 
 export type ImagingOrderPayloadInput = Pick<
-  ImagingOrderDraft,
+  ImagingOrderCreateRequest,
   'patientId' | 'orderedById' | 'laterality' | 'contrast' | 'clinicalIndication' | 'urgency'
 > & {
   exam: ImagingExam;
@@ -120,11 +120,11 @@ export type ImagingOrderPayloadInput = Pick<
   diagnosis: DiagnosisOption | undefined;
   slot: ScheduleSlot | null;
   /** Raw step 3 form value; only the fields belonging to the order's safety block are used. */
-  safety: ImagingOrderDraft['safety'] & Record<string, unknown>;
+  safety: ImagingOrderCreateRequest['safety'] & Record<string, unknown>;
   creatinineEgfr: CreatinineEgfr | null;
 };
 
-export function buildImagingOrderDraft(i: ImagingOrderPayloadInput): ImagingOrderDraft {
+export function buildImagingOrderDraft(i: ImagingOrderPayloadInput): ImagingOrderCreateRequest {
   return {
     patientId: i.patientId,
     examCode: i.exam.code,

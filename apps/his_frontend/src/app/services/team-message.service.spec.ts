@@ -95,6 +95,23 @@ describe('TeamMessageService', () => {
     expect(after.length).toBe(before.length + 1);
   });
 
+  it('pushAlert keeps the typed target', async () => {
+    const alert = await firstValueFrom(
+      service.pushAlert({
+        type: 'vital_anomaly',
+        severity: 'critical',
+        message: 'Anomalia',
+        target: { kind: 'patient_vitals', id: 'pat-001' },
+      }),
+    );
+    expect(alert.target).toEqual({ kind: 'patient_vitals', id: 'pat-001' });
+  });
+
+  it('acknowledgeAlert sets acknowledgedAt', async () => {
+    const updated = await firstValueFrom(service.acknowledgeAlert('alr-001', 'stf-001'));
+    expect(updated.acknowledgedAt).toBeTruthy();
+  });
+
   it('alerts signal is live: reflects pushAlert and acknowledgeAlert', async () => {
     const before = service.alerts().length;
     const alert = await firstValueFrom(

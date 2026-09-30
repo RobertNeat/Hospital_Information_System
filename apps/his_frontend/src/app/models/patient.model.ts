@@ -1,4 +1,14 @@
-import type { Address, Gender, ID, ISODate, ISODateTime } from './common.model';
+import type {
+  Address,
+  Auditable,
+  Gender,
+  ID,
+  ISODate,
+  ISODateTime,
+  Versioned,
+} from './common.model';
+
+export type { PatientSearchQuery } from './api/patient.api';
 
 export type AdmissionStatus = 'registered' | 'admitted' | 'outpatient' | 'discharged';
 
@@ -8,8 +18,18 @@ export type PatientFlag = 'isolation' | 'fall_risk' | 'dnr' | 'infection_risk' |
 
 export type BloodType = 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | '0+' | '0-';
 
+export type AdmissionType = 'planned' | 'emergency' | 'transfer' | 'outpatient';
+
+export type NoPeselReason = 'foreigner' | 'newborn' | 'unknown_identity';
+
+export type IdentityDocumentType = 'id_card' | 'passport' | 'other';
+
+export type InsuranceStatus = 'active' | 'inactive' | 'unknown';
+
+export type InsurancePayer = 'NFZ' | 'private' | 'none';
+
 export interface IdentityDocument {
-  type: 'id_card' | 'passport' | 'other';
+  type: IdentityDocumentType;
   number: string;
 }
 
@@ -21,14 +41,33 @@ export interface EmergencyContact {
 }
 
 export interface Insurance {
-  status: 'active' | 'inactive' | 'unknown';
+  status: InsuranceStatus;
   nfzBranch: string;
-  payer: 'NFZ' | 'private' | 'none';
+  payer: InsurancePayer;
   ewusVerifiedAt?: ISODateTime;
 }
 
-export interface Admission {
-  admissionType: 'planned' | 'emergency' | 'transfer' | 'outpatient';
+/** Lifecycle of a single Admission record (distinct from the derived `Patient.status`). */
+export type AdmissionRecordStatus = 'active' | 'discharged' | 'cancelled';
+
+export type DischargeDisposition = 'home' | 'transfer' | 'deceased' | 'against_advice' | 'other';
+
+/**
+ * Administrative ADT process of a hospital stay. A patient can have many admissions (history),
+ * at most one of them `active`. Target model: 1:1 with an Encounter of type 'hospitalization'
+ * (Admission owns the link via `encounterId`; Encounter is the clinical context).
+ * Fields marked as server-assigned are set by the backend and absent in `AdmitPatientRequest`.
+ */
+export interface Admission extends Versioned {
+  /** Server-assigned. */
+  id?: ID;
+  /** Server-assigned. */
+  patientId?: ID;
+  /** Server-assigned link to the hospitalization Encounter. */
+  encounterId?: ID;
+  /** Server-assigned. */
+  status?: AdmissionRecordStatus;
+  admissionType: AdmissionType;
   admittedAt: ISODateTime;
   wardId: ID;
   room?: string;
@@ -38,14 +77,17 @@ export interface Admission {
   reason: string;
   referralNumber?: string;
   dischargedAt?: ISODateTime;
+  dischargeDisposition?: DischargeDisposition;
+  dischargeSummaryNoteId?: ID;
 }
 
-export interface Patient {
+export interface Patient
+  extends Partial<Pick<Auditable, 'createdById' | 'updatedById'>>, Versioned {
   id: ID;
   /** Case-history number, e.g. 'HIS/2026/000123'. */
   mrn: string;
   pesel: string | null;
-  noPeselReason?: 'foreigner' | 'newborn' | 'unknown_identity';
+  noPeselReason?: NoPeselReason;
   identityDocument?: IdentityDocument;
   firstName: string;
   secondName?: string;
@@ -58,7 +100,12 @@ export interface Patient {
   emergencyContact?: EmergencyContact;
   insurance: Insurance;
   bloodType?: BloodType;
+  /** Derived from the admission state (stored, kept in sync by the backend). */
   status: AdmissionStatus;
+  /**
+   * @projection Projection of the active Admission (status 'active'); at most one active
+   * admission per patient. The full history is available via `getAdmissions`.
+   */
   currentAdmission?: Admission;
   flags: PatientFlag[];
   createdAt: ISODateTime;
@@ -69,14 +116,17 @@ export type PatientSummary = Pick<
   Patient,
   'id' | 'mrn' | 'pesel' | 'firstName' | 'lastName' | 'birthDate' | 'gender' | 'status' | 'flags'
 > & {
+  /** @projection Ward name resolved from the active admission; only for `admitted` patients. */
   wardName?: string;
+  /** @projection Bed from the active admission; only for `admitted` patients. */
   bed?: string;
 };
 
-export type PatientDraft = Omit<Patient, 'id' | 'mrn' | 'createdAt' | 'updatedAt'>;
-
-export interface PatientSearchQuery {
-  term?: string;
-  status?: AdmissionStatus;
-  wardId?: ID;
-}
+/**
+ * Payload for registering a patient; `PatientCreateRequest` (models/api) is an alias.
+ * Server-assigned and audit fields are never sent by the client.
+ */
+export type PatientDraft = Omit<
+  Patient,
+  'id' | 'mrn' | 'createdAt' | 'updatedAt' | 'createdById' | 'updatedById' | 'version'
+>;

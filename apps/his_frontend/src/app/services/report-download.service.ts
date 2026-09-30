@@ -1,8 +1,17 @@
 import { Injectable } from '@angular/core';
 import type { LabResult, Patient } from '../models';
 
+/** Client-side input of the imaging report download (not a backend contract). */
+export interface ImagingReportContent {
+  examName: string;
+  findings: string;
+  conclusion: string;
+  performedAt: string;
+  reportedAt: string;
+}
+
 /**
- * Builds a text/CSV Blob and triggers a browser download via a hidden `<a download>`.
+ * Pure client-side logic (not a backend contract): builds a text/CSV Blob and triggers a browser download via a hidden `<a download>`.
  * No PDF library is used per project rules -- report downloads are plain text or CSV.
  */
 @Injectable({ providedIn: 'root' })
@@ -26,16 +35,7 @@ export class ReportDownloadService {
     this.triggerDownload(`wynik-lab-${result.id}.txt`, lines.join('\n'), 'text/plain');
   }
 
-  downloadImagingReport(
-    report: {
-      examName: string;
-      findings: string;
-      conclusion: string;
-      performedAt: string;
-      reportedAt: string;
-    },
-    patient: Patient,
-  ): void {
+  downloadImagingReport(report: ImagingReportContent, patient: Patient): void {
     const lines = [
       `Wynik badania obrazowego`,
       `Pacjent: ${patient.lastName} ${patient.firstName}`,

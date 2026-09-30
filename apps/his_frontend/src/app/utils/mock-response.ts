@@ -1,5 +1,6 @@
 import { Observable, of } from 'rxjs';
 import { delay } from 'rxjs/operators';
+import { ProblemDetail } from '../models/api';
 
 /**
  * Builds a mock HTTP-like response.
@@ -22,10 +23,32 @@ export function mockResponse<T>(data: T, latencyMs: number): Observable<T> {
   return latencyMs > 0 ? of(cloned).pipe(delay(latencyMs)) : of(cloned);
 }
 
-/** Mock error response, e.g. for "patient not found". */
-export function mockError<T = never>(message: string, latencyMs: number): Observable<T> {
+/** Error carrying an RFC 9457 `ProblemDetail`, as the backend will return it. */
+export class ApiError extends Error {
+  constructor(readonly problem: ProblemDetail) {
+    super(problem.detail ?? problem.title);
+    this.name = 'ApiError';
+  }
+}
+
+/** Mock error response, e.g. for "patient not found". Defaults to a 404 `ProblemDetail`. */
+export function mockError<T = never>(
+  message: string,
+  latencyMs: number,
+  problem?: Partial<ProblemDetail>,
+): Observable<T> {
   return new Observable<T>((subscriber) => {
-    const emit = () => subscriber.error(new Error(message));
+    const emit = () =>
+      subscriber.error(
+        new ApiError({
+          type: 'about:blank',
+          title: 'Not Found',
+          status: 404,
+          detail: message,
+          code: 'NOT_FOUND',
+          ...problem,
+        }),
+      );
     if (latencyMs > 0) {
       setTimeout(emit, latencyMs);
     } else {

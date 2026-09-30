@@ -9,10 +9,10 @@ import type {
   ImagingExam,
   ImagingModality,
   ImagingOrder,
-  ImagingOrderDraft,
+  ImagingOrderCreateRequest,
+  ImagingOrderFilter,
   ISODate,
   OrderStatus,
-  OrderUrgency,
   ScheduleSlot,
 } from '../models';
 import { mockError, mockResponse, nextId } from '../utils/mock-response';
@@ -33,15 +33,12 @@ export class ImagingOrderService {
     return mockResponse(generateSlots(modality, date), this.latency);
   }
 
-  getOrders(filter?: {
-    patientId?: ID;
-    status?: OrderStatus;
-    urgency?: OrderUrgency;
-  }): Observable<ImagingOrder[]> {
+  getOrders(filter?: ImagingOrderFilter): Observable<ImagingOrder[]> {
     let result = this.orders;
     if (filter?.patientId) result = result.filter((o) => o.patientId === filter.patientId);
     if (filter?.status) result = result.filter((o) => o.status === filter.status);
     if (filter?.urgency) result = result.filter((o) => o.urgency === filter.urgency);
+    if (filter?.modality) result = result.filter((o) => o.modality === filter.modality);
     return mockResponse(result, this.latency);
   }
 
@@ -51,7 +48,7 @@ export class ImagingOrderService {
     return mockResponse(found, this.latency);
   }
 
-  createOrder(draft: ImagingOrderDraft): Observable<ImagingOrder> {
+  createOrder(draft: ImagingOrderCreateRequest): Observable<ImagingOrder> {
     this.sequence++;
     const now = new Date().toISOString();
     const status: OrderStatus = draft.slotId ? 'scheduled' : 'ordered';

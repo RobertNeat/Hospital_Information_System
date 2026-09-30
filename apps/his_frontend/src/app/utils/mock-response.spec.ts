@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { firstValueFrom } from 'rxjs';
-import { mockError, mockResponse, nextId } from './mock-response';
+import { ApiError, mockError, mockResponse, nextId } from './mock-response';
 
 describe('mockResponse', () => {
   it('emits synchronously (no delay) when latencyMs is 0', async () => {
@@ -29,6 +29,28 @@ describe('mockResponse', () => {
 describe('mockError', () => {
   it('errors synchronously when latencyMs is 0', async () => {
     await expect(firstValueFrom(mockError('boom', 0))).rejects.toThrow('boom');
+  });
+
+  it('errors with ApiError carrying a default 404 ProblemDetail', async () => {
+    const error = await firstValueFrom(mockError('boom', 0)).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(ApiError);
+    const { problem, message } = error as ApiError;
+    expect(message).toBe('boom');
+    expect(problem.status).toBe(404);
+    expect(problem.title).toBe('Not Found');
+    expect(problem.detail).toBe('boom');
+    expect(problem.code).toBe('NOT_FOUND');
+  });
+
+  it('lets the problem argument override defaults', async () => {
+    const error = await firstValueFrom(
+      mockError('stale', 0, { status: 409, title: 'Conflict', code: 'CONFLICT' }),
+    ).catch((e: unknown) => e);
+    const { problem, message } = error as ApiError;
+    expect(message).toBe('stale');
+    expect(problem.status).toBe(409);
+    expect(problem.code).toBe('CONFLICT');
+    expect(problem.detail).toBe('stale');
   });
 });
 

@@ -4,35 +4,26 @@ import type { Observable } from 'rxjs';
 import { MOCK_LATENCY_MS } from '../config/mock-api.config';
 import { LAB_RESULTS } from '../mock-data/lab-results.mock';
 import { PATIENTS } from '../mock-data/patients.mock';
+import { WARDS } from '../mock-data/wards.mock';
 import type {
   AnalyteTrend,
   ID,
   LabResult,
   PatientSummary,
+  ResultAbnormalityFilter,
+  ResultWithPatient,
   SelectOption,
   TrendPoint,
 } from '../models';
 import { mockError, mockResponse } from '../utils/mock-response';
-
-function toSummary(p: (typeof PATIENTS)[number]): PatientSummary {
-  return {
-    id: p.id,
-    mrn: p.mrn,
-    pesel: p.pesel,
-    firstName: p.firstName,
-    lastName: p.lastName,
-    birthDate: p.birthDate,
-    gender: p.gender,
-    status: p.status,
-    flags: p.flags,
-    bed: p.status === 'admitted' ? p.currentAdmission?.bed : undefined,
-  };
-}
+import { toPatientSummary } from '../utils/patient-summary';
+import { StaffService } from './staff.service';
 
 @Injectable({ providedIn: 'root' })
 export class LabResultService {
   private readonly latency = inject(MOCK_LATENCY_MS);
   private readonly results: LabResult[] = structuredClone(LAB_RESULTS);
+  private readonly staffService = inject(StaffService);
   private readonly patients = structuredClone(PATIENTS);
 
   getResults(pid: ID): Observable<LabResult[]> {
@@ -48,6 +39,19 @@ export class LabResultService {
     return mockResponse(found, this.latency);
   }
 
+  acknowledgeResult(id: ID): Observable<LabResult> {
+    const index = this.results.findIndex((r) => r.id === id);
+    if (index === -1) return mockError(`Nie znaleziono wyniku o id ${id}`, this.latency);
+    const updated: LabResult = {
+      ...this.results[index],
+      reviewedAt: new Date().toISOString(),
+      reviewedById: this.staffService.currentUser().id,
+    };
+    this.results[index] = updated;
+    return mockResponse(updated, this.latency);
+  }
+
+  // mock-only: backend authoritative (trend computed server-side)
   getAnalyteTrend(pid: ID, analyteCode: string): Observable<AnalyteTrend> {
     const patientResults = this.results
       .filter((r) => r.patientId === pid)
@@ -72,6 +76,8 @@ export class LabResultService {
     return mockResponse({ analyteCode, analyteName, unit, low, high, points }, this.latency);
   }
 
+  /** UI-typed options; backend returns the patient's analyte list (code + name), mapped to `SelectOption` client-side. */
+  // mock-only: backend authoritative
   getTrendableAnalytes(pid: ID): Observable<SelectOption[]> {
     const codes = new Map<string, string>();
     for (const r of this.results) {
@@ -89,9 +95,8 @@ export class LabResultService {
     return mockResponse(options, this.latency);
   }
 
-  getRecent(
-    filter: 'all' | 'abnormal' | 'critical',
-  ): Observable<(LabResult & { patient: PatientSummary })[]> {
+  // mock-only: backend authoritative (patient join is done server-side)
+  getRecent(filter: ResultAbnormalityFilter): Observable<ResultWithPatient<LabResult>[]> {
     return mockResponse(this.results, this.latency).pipe(
       map((results) =>
         results
@@ -103,7 +108,10 @@ export class LabResultService {
           })
           .map((r) => {
             const patient = this.patients.find((p) => p.id === r.patientId);
-            return { ...r, patient: patient ? toSummary(patient) : ({} as PatientSummary) };
+            return {
+              ...r,
+              patient: patient ? toPatientSummary(patient, WARDS) : ({} as PatientSummary),
+            };
           }),
       ),
     );

@@ -39,6 +39,7 @@ export class DrugService {
     return mockResponse(found, this.latency);
   }
 
+  // mock-only: backend authoritative (POST /drug-safety-checks)
   /** Checks a drug against the patient's allergies, active prescriptions and max daily dose. */
   checkSafety(drug: Drug, patientId: ID): Observable<DrugSafetyWarning[]> {
     return forkJoin({
@@ -54,6 +55,7 @@ export class DrugService {
           if (substanceMatch || atcMatch) {
             warnings.push({
               type: 'allergy',
+              drugId: drug.id,
               severity:
                 allergy.severity === 'life_threatening' || allergy.severity === 'severe'
                   ? 'danger'
@@ -69,6 +71,7 @@ export class DrugService {
         if (duplicateAtc) {
           warnings.push({
             type: 'duplicate',
+            drugId: drug.id,
             severity: 'warn',
             message: `Pacjent ma już przepisany lek zawierający ${drug.activeSubstance}.`,
           });
@@ -76,13 +79,14 @@ export class DrugService {
 
         for (const item of activeMedications) {
           if ((drug.interactsWithAtc ?? []).length === 0) continue;
-          const activeDrugAtc = this.drugs.find((d) => d.name === item.drugName)?.atcCode;
+          const activeDrugAtc = this.drugs.find((d) => d.id === item.drugId)?.atcCode;
           if (
             activeDrugAtc &&
             drug.interactsWithAtc?.some((code) => activeDrugAtc.startsWith(code))
           ) {
             warnings.push({
               type: 'interaction',
+              drugId: item.drugId,
               severity: 'warn',
               message: `Możliwa interakcja z aktualnie przyjmowanym lekiem ${item.drugName}.`,
             });

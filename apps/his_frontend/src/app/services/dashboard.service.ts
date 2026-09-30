@@ -28,6 +28,8 @@ export class DashboardService {
   private readonly vitalsService = inject(VitalsService);
   private readonly staffService = inject(StaffService);
 
+  /** Projection of backend `GET /dashboard/stats`. */
+  // mock-only: backend authoritative
   getStats(): Observable<DashboardStats> {
     const currentUserId = this.staffService.currentUser().id;
     return forkJoin({

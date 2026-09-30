@@ -10,6 +10,7 @@ export const ALERTS: ClinicalAlert[] = [
     message: 'Krytyczny wynik troponiny I hs (4520 ng/L) - pacjentka Maria Wiśniewska.',
     createdAt: hoursAgo(19),
     acknowledged: false,
+    target: { kind: 'lab_result', id: 'lres-016', patientId: 'pat-002' },
     link: '/patients/pat-002/results/lab/lres-016',
   },
   {
@@ -21,6 +22,8 @@ export const ALERTS: ClinicalAlert[] = [
     createdAt: hoursAgo(20),
     acknowledged: true,
     acknowledgedById: 'stf-001',
+    acknowledgedAt: hoursAgo(19),
+    target: { kind: 'lab_result', id: 'lres-014', patientId: 'pat-012' },
     link: '/patients/pat-012/results/lab/lres-014',
   },
   {
@@ -31,6 +34,7 @@ export const ALERTS: ClinicalAlert[] = [
     message: 'Krytyczny spadek SpO2 (89%) - pacjent Andrzej Szymański.',
     createdAt: hoursAgo(5),
     acknowledged: false,
+    target: { kind: 'patient_vitals', id: 'pat-007' },
     link: '/patients/pat-007/vitals',
   },
   {
@@ -52,6 +56,7 @@ export const ALERTS: ClinicalAlert[] = [
     message: 'Zakończono badanie TK głowy - wynik dostępny.',
     createdAt: hoursAgo(4),
     acknowledged: false,
+    target: { kind: 'imaging_result', id: 'ires-001', patientId: 'pat-007' },
     link: '/patients/pat-007/results/imaging/ires-001',
   },
   {

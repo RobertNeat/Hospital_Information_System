@@ -10,7 +10,7 @@ import {
   NO_PESEL_REASON_LABELS,
   TRIAGE_LABELS,
 } from '../../constants/labels';
-import type { Admission, AdmissionStatus, Patient, PatientDraft } from '../../models';
+import type { AdmissionStatus, AdmitPatientRequest, Patient, PatientDraft } from '../../models';
 import {
   toIsoDate,
   type AdmissionForm,
@@ -172,7 +172,7 @@ export function buildPatientDraft({ s1, s2, s3, s4, mode, original }: DraftInput
   };
 }
 
-export function buildAdmission(s4: RegistrationValues['s4']): Admission {
+export function buildAdmission(s4: RegistrationValues['s4']): AdmitPatientRequest {
   return {
     admissionType: s4.admissionType,
     admittedAt: s4.admittedAt.toISOString(),

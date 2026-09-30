@@ -1,4 +1,4 @@
-import type { ID, ISODate, ISODateTime } from './common.model';
+import type { Auditable, ID, ISODate, ISODateTime, Versioned } from './common.model';
 import type { AdministrationRoute, DrugForm, ReimbursementLevel } from './drug.model';
 
 /**
@@ -8,12 +8,16 @@ import type { AdministrationRoute, DrugForm, ReimbursementLevel } from './drug.m
 export type DoseFrequency =
   'QD' | 'BID' | 'TID' | 'QID' | 'Q4H' | 'Q6H' | 'Q8H' | 'Q12H' | 'QW' | 'PRN';
 
+export type TimeOfDay = 'morning' | 'noon' | 'evening' | 'night';
+
+export type PrescriptionKind = 'e_prescription' | 'hospital_order';
+
 export interface DosageInstruction {
   dose: number;
   doseUnit: string;
   route: AdministrationRoute;
   frequency: DoseFrequency;
-  timesOfDay?: ('morning' | 'noon' | 'evening' | 'night')[];
+  timesOfDay?: TimeOfDay[];
   durationDays: number;
   asNeeded: boolean;
   maxPerDay?: number;
@@ -21,10 +25,18 @@ export interface DosageInstruction {
 }
 
 export interface PrescriptionItem {
+  id?: ID;
   drugId: ID;
+  /**
+   * @snapshot Copied from the drug catalog at the time of issuing. Frozen
+   * intentionally: later catalog changes must not alter an issued prescription.
+   */
   drugName: string;
+  /** @snapshot See `drugName`. */
   activeSubstance: string;
+  /** @snapshot See `drugName`. */
   strength: string;
+  /** @snapshot See `drugName`. */
   form: DrugForm;
   dosage: DosageInstruction;
   quantityPackages: number;
@@ -32,7 +44,9 @@ export interface PrescriptionItem {
   substitutionAllowed: boolean;
 }
 
-/** Item of an active prescription, tagged with its origin prescription. */
+/**
+ * @projection Item of an active prescription, tagged with its origin prescription.
+ */
 export interface ActiveMedication extends PrescriptionItem {
   prescriptionId: ID;
   /** Prescription start date (`validFrom`). */
@@ -42,30 +56,51 @@ export interface ActiveMedication extends PrescriptionItem {
 export type PrescriptionStatus =
   'issued' | 'partially_dispensed' | 'dispensed' | 'cancelled' | 'expired';
 
-export interface Prescription {
+export interface Prescription extends Versioned, Partial<Auditable> {
   id: ID;
   patientId: ID;
+  encounterId?: ID;
   prescriberId: ID;
   issuedAt: ISODateTime;
   validFrom: ISODate;
   validUntil: ISODate;
-  kind: 'e_prescription' | 'hospital_order';
+  kind: PrescriptionKind;
   items: PrescriptionItem[];
   status: PrescriptionStatus;
-  /** 4 digits. */
+  /** 4 digits. Assigned by the backend; the client does not send it. */
   accessCode: string;
-  /** Mock 44-character key. */
+  /** Mock 44-character key. Assigned by the backend; the client does not send it. */
   eRxKey: string;
   notes?: string;
+  cancelledAt?: ISODateTime;
+  cancelReason?: string;
 }
 
+/** @deprecated Use `PrescriptionCreateRequest` from `models/api`. */
 export type PrescriptionDraft = Omit<
   Prescription,
-  'id' | 'issuedAt' | 'status' | 'accessCode' | 'eRxKey'
+  | 'id'
+  | 'issuedAt'
+  | 'status'
+  | 'accessCode'
+  | 'eRxKey'
+  | 'version'
+  | 'createdAt'
+  | 'createdById'
+  | 'updatedAt'
+  | 'updatedById'
+  | 'cancelledAt'
+  | 'cancelReason'
 >;
 
+export type DrugSafetyWarningType = 'allergy' | 'interaction' | 'duplicate' | 'max_dose';
+
+export type DrugSafetySeverity = 'warn' | 'danger';
+
+/** @projection Backend response of the drug safety check. */
 export interface DrugSafetyWarning {
-  type: 'allergy' | 'interaction' | 'duplicate' | 'max_dose';
-  severity: 'warn' | 'danger';
+  type: DrugSafetyWarningType;
+  severity: DrugSafetySeverity;
+  drugId?: ID;
   message: string;
 }

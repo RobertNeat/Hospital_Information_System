@@ -10,3 +10,4 @@ export * from './vitals.model';
 export * from './message.model';
 export * from './dashboard.model';
 export * from './table.model';
+export * from './api';

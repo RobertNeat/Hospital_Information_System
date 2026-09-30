@@ -130,4 +130,55 @@ describe('PatientService', () => {
     );
     expect(updated.status).toBe('discharged');
   });
+
+  it('getAdmissions synthesizes one entry with an id from currentAdmission', async () => {
+    const history = await firstValueFrom(service.getAdmissions('pat-001'));
+    expect(history).toHaveLength(1);
+    expect(history[0].id).toBeTruthy();
+    expect(history[0].patientId).toBe('pat-001');
+    expect(history[0].status).toBe('active');
+    const patient = await firstValueFrom(service.getPatientById('pat-001'));
+    expect(patient.currentAdmission?.id).toBeUndefined();
+  });
+
+  it('getAdmissions returns an empty history for a patient without admissions', async () => {
+    expect(await firstValueFrom(service.getAdmissions('pat-003'))).toEqual([]);
+  });
+
+  it('getAdmissions returns history newest first after admitPatient', async () => {
+    await firstValueFrom(
+      service.admitPatient('pat-001', {
+        admissionType: 'emergency',
+        admittedAt: '2099-01-01T08:00:00.000Z',
+        wardId: 'ward-int',
+        attendingPhysicianId: 'stf-001',
+        reason: 'Nawrót',
+      }),
+    );
+    const history = await firstValueFrom(service.getAdmissions('pat-001'));
+    expect(history).toHaveLength(2);
+    expect(history[0].admittedAt).toBe('2099-01-01T08:00:00.000Z');
+    expect(history[0].status).toBe('active');
+    expect(history[0].id).toMatch(/^adm-/);
+    expect(history[1].status).toBe('discharged');
+    const patient = await firstValueFrom(service.getPatientById('pat-001'));
+    expect(patient.currentAdmission?.id).toBe(history[0].id);
+  });
+
+  it('getAdmissions errors for an unknown patient', async () => {
+    await expect(firstValueFrom(service.getAdmissions('pat-999'))).rejects.toThrow();
+  });
+
+  it('dischargePatient marks the admission as discharged with disposition', async () => {
+    const at = '2026-01-01T10:00:00.000Z';
+    const updated = await firstValueFrom(
+      service.dischargePatient('pat-001', at, { disposition: 'home', summaryNoteId: 'note-1' }),
+    );
+    expect(updated.currentAdmission?.dischargeDisposition).toBe('home');
+    const [entry] = await firstValueFrom(service.getAdmissions('pat-001'));
+    expect(entry.status).toBe('discharged');
+    expect(entry.dischargedAt).toBe(at);
+    expect(entry.dischargeDisposition).toBe('home');
+    expect(entry.dischargeSummaryNoteId).toBe('note-1');
+  });
 });

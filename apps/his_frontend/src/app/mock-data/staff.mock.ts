@@ -3,6 +3,9 @@ import type { StaffMember } from '../models';
 export const STAFF: StaffMember[] = [
   {
     id: 'stf-001',
+    employeeId: 'EMP-0001',
+    pwz: '2001117',
+    accountStatus: 'active',
     title: 'lek.',
     firstName: 'Anna',
     lastName: 'Nowak',
@@ -14,6 +17,9 @@ export const STAFF: StaffMember[] = [
   },
   {
     id: 'stf-002',
+    employeeId: 'EMP-0002',
+    pwz: '2002234',
+    accountStatus: 'active',
     title: 'dr n. med.',
     firstName: 'Piotr',
     lastName: 'Wiśniewski',
@@ -25,6 +31,9 @@ export const STAFF: StaffMember[] = [
   },
   {
     id: 'stf-003',
+    employeeId: 'EMP-0003',
+    pwz: '2003351',
+    accountStatus: 'active',
     title: 'lek.',
     firstName: 'Tomasz',
     lastName: 'Kamiński',
@@ -36,6 +45,9 @@ export const STAFF: StaffMember[] = [
   },
   {
     id: 'stf-004',
+    employeeId: 'EMP-0004',
+    pwz: '2004468',
+    accountStatus: 'active',
     title: 'lek.',
     firstName: 'Marta',
     lastName: 'Lewandowska',
@@ -47,6 +59,9 @@ export const STAFF: StaffMember[] = [
   },
   {
     id: 'stf-005',
+    employeeId: 'EMP-0005',
+    pwz: '2005585',
+    accountStatus: 'active',
     title: 'lek.',
     firstName: 'Paweł',
     lastName: 'Zieliński',
@@ -58,6 +73,9 @@ export const STAFF: StaffMember[] = [
   },
   {
     id: 'stf-006',
+    employeeId: 'EMP-0006',
+    pwz: '2006702',
+    accountStatus: 'active',
     title: 'mgr piel.',
     firstName: 'Katarzyna',
     lastName: 'Zielińska',
@@ -68,6 +86,9 @@ export const STAFF: StaffMember[] = [
   },
   {
     id: 'stf-007',
+    employeeId: 'EMP-0007',
+    pwz: '2007819',
+    accountStatus: 'active',
     title: 'piel.',
     firstName: 'Magdalena',
     lastName: 'Wójcik',
@@ -78,6 +99,9 @@ export const STAFF: StaffMember[] = [
   },
   {
     id: 'stf-008',
+    employeeId: 'EMP-0008',
+    pwz: '2008936',
+    accountStatus: 'active',
     title: 'piel.',
     firstName: 'Ewa',
     lastName: 'Lewandowska',
@@ -89,6 +113,9 @@ export const STAFF: StaffMember[] = [
   },
   {
     id: 'stf-009',
+    employeeId: 'EMP-0009',
+    pwz: '2010053',
+    accountStatus: 'active',
     title: 'piel.',
     firstName: 'Agnieszka',
     lastName: 'Kaczmarek',
@@ -99,6 +126,9 @@ export const STAFF: StaffMember[] = [
   },
   {
     id: 'stf-010',
+    employeeId: 'EMP-0010',
+    pwz: '2011170',
+    accountStatus: 'active',
     title: 'piel.',
     firstName: 'Michał',
     lastName: 'Szymański',

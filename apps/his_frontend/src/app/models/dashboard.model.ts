@@ -1,3 +1,4 @@
+/** Projection of backend `GET /dashboard/stats`. */
 export interface DashboardStats {
   admittedPatients: number;
   newResults: number;

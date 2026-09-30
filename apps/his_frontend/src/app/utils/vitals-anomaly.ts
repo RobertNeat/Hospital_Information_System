@@ -1,3 +1,4 @@
+// Mock implementation; backend authoritative - see docs/contract/CONVENTIONS.md.
 import { VITAL_THRESHOLDS } from '../constants/vitals-thresholds';
 import type { ISODateTime, VitalAnomaly, VitalSigns, VitalType } from '../models';
 

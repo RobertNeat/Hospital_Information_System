@@ -17,6 +17,7 @@ import { passwordMatchValidator } from '../../validators/password-match.validato
 import { phoneValidator } from '../../validators/phone.validator';
 import { employeeIdValidator, pwzValidator } from '../../validators/staff-identifiers.validator';
 import type { StaffRole } from '../../models';
+import { toRequest } from './register.mappers';
 
 @Component({
   selector: 'app-register-page',
@@ -67,6 +68,8 @@ export class RegisterPage {
       this.form.markAllAsTouched();
       return;
     }
+    // Request is built for the future API call; the demo does not send it.
+    void toRequest(this.form.getRawValue());
     this.messageService.add({
       severity: 'success',
       summary: 'Wniosek wysłany',

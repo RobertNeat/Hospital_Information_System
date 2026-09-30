@@ -2,7 +2,13 @@ import { Injectable, inject } from '@angular/core';
 import type { Observable } from 'rxjs';
 import { MOCK_LATENCY_MS } from '../config/mock-api.config';
 import { PRESCRIPTIONS } from '../mock-data/prescriptions.mock';
-import type { ActiveMedication, ID, Prescription, PrescriptionDraft } from '../models';
+import type {
+  ActiveMedication,
+  ID,
+  Prescription,
+  PrescriptionCreateRequest,
+  PrescriptionFilter,
+} from '../models';
 import { mockError, mockResponse, nextId } from '../utils/mock-response';
 
 function randomAccessCode(): string {
@@ -24,7 +30,7 @@ export class PrescriptionService {
   private readonly prescriptions: Prescription[] = structuredClone(PRESCRIPTIONS);
   private sequence = this.prescriptions.length;
 
-  getPrescriptions(filter?: { patientId?: ID; prescriberId?: ID }): Observable<Prescription[]> {
+  getPrescriptions(filter?: PrescriptionFilter): Observable<Prescription[]> {
     let result = this.prescriptions;
     if (filter?.patientId) result = result.filter((p) => p.patientId === filter.patientId);
     if (filter?.prescriberId) result = result.filter((p) => p.prescriberId === filter.prescriberId);
@@ -37,6 +43,7 @@ export class PrescriptionService {
     return mockResponse(found, this.latency);
   }
 
+  // mock-only: backend authoritative
   /** Items from every non-expired, non-cancelled prescription of the patient, with prescription id and start date. */
   getActiveMedications(pid: ID): Observable<ActiveMedication[]> {
     const today = new Date().toISOString().slice(0, 10);
@@ -53,7 +60,7 @@ export class PrescriptionService {
     return mockResponse(items, this.latency);
   }
 
-  issuePrescription(draft: PrescriptionDraft): Observable<Prescription> {
+  issuePrescription(draft: PrescriptionCreateRequest): Observable<Prescription> {
     this.sequence++;
     const prescription: Prescription = {
       ...draft,
@@ -67,10 +74,15 @@ export class PrescriptionService {
     return mockResponse(prescription, this.latency);
   }
 
-  cancel(id: ID): Observable<Prescription> {
+  cancel(id: ID, reason?: string): Observable<Prescription> {
     const index = this.prescriptions.findIndex((p) => p.id === id);
     if (index === -1) return mockError(`Nie znaleziono recepty o id ${id}`, this.latency);
-    const updated: Prescription = { ...this.prescriptions[index], status: 'cancelled' };
+    const updated: Prescription = {
+      ...this.prescriptions[index],
+      status: 'cancelled',
+      cancelledAt: new Date().toISOString(),
+      ...(reason ? { cancelReason: reason } : {}),
+    };
     this.prescriptions[index] = updated;
     return mockResponse(updated, this.latency);
   }

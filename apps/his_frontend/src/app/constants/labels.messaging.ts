@@ -1,3 +1,4 @@
+import type { StaffRole } from '../models';
 import { toOptions } from './labels.utils';
 
 // ---- Messaging ----
@@ -42,8 +43,16 @@ export const ALERT_SEVERITY_LABELS: Record<'info' | 'warning' | 'critical', stri
 };
 export const ALERT_SEVERITY_OPTIONS = toOptions(ALERT_SEVERITY_LABELS);
 
-export const STAFF_ROLE_LABELS: Record<'doctor' | 'nurse', string> = {
+export const STAFF_ROLE_LABELS: Record<StaffRole, string> = {
   doctor: 'Lekarz',
   nurse: 'Pielęgniarka/Pielęgniarz',
+  lab_technician: 'Diagnosta laboratoryjny',
+  radiologist: 'Radiolog',
+  pharmacist: 'Farmaceuta',
+  registrar: 'Rejestrator/Rejestratorka',
+  admin: 'Administrator',
 };
-export const STAFF_ROLE_OPTIONS = toOptions(STAFF_ROLE_LABELS);
+/** Self-registration and messaging pickers stay limited to clinical roles (doctor, nurse). */
+export const STAFF_ROLE_OPTIONS = toOptions(STAFF_ROLE_LABELS).filter(
+  (o) => o.value === 'doctor' || o.value === 'nurse',
+);

@@ -21,6 +21,18 @@ describe('ImagingResultService', () => {
     await expect(firstValueFrom(service.getResultById('ires-999'))).rejects.toThrow();
   });
 
+  it('acknowledgeResult sets reviewedAt and reviewedById', async () => {
+    const updated = await firstValueFrom(service.acknowledgeResult('ires-001'));
+    expect(updated.reviewedAt).toBeTruthy();
+    expect(updated.reviewedById).toBeTruthy();
+    const fetched = await firstValueFrom(service.getResultById('ires-001'));
+    expect(fetched.reviewedAt).toBe(updated.reviewedAt);
+  });
+
+  it('acknowledgeResult errors for an unknown id', async () => {
+    await expect(firstValueFrom(service.acknowledgeResult('ires-999'))).rejects.toThrow();
+  });
+
   it('getRecent("critical") only returns critical results', async () => {
     const results = await firstValueFrom(service.getRecent('critical'));
     expect(results.every((r) => r.critical)).toBe(true);

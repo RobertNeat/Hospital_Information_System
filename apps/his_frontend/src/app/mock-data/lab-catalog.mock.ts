@@ -1,4 +1,4 @@
-import type { LabTest } from '../models';
+import type { LabPanel, LabTest } from '../models';
 
 export const LAB_CATALOG: LabTest[] = [
   {
@@ -248,7 +248,7 @@ export const LAB_CATALOG: LabTest[] = [
 ];
 
 /** Lab panels: sets of pre-selected test codes shown as one-click buttons in the catalog picker. */
-export const LAB_PANELS: { id: string; name: string; testCodes: string[] }[] = [
+export const LAB_PANELS: LabPanel[] = [
   {
     id: 'panel-cardio',
     name: 'Profil kardiologiczny',

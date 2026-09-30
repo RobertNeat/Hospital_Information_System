@@ -25,6 +25,7 @@ import type {
   DashboardStats,
   LabResult,
   PatientSummary,
+  ResultWithPatient,
   TeamTask,
 } from '../../models';
 
@@ -71,7 +72,7 @@ export class DashboardPage {
   protected readonly stats = signal<DashboardStats | null>(null);
   protected readonly criticalAlerts = signal<ClinicalAlert[]>([]);
   protected readonly myTasks = signal<TeamTask[]>([]);
-  protected readonly abnormalResults = signal<(LabResult & { patient: PatientSummary })[]>([]);
+  protected readonly abnormalResults = signal<ResultWithPatient<LabResult>[]>([]);
   protected readonly fallbackAdmitted = signal<PatientSummary[]>([]);
   protected readonly loading = signal(true);
 

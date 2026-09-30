@@ -4,28 +4,23 @@ import type { Observable } from 'rxjs';
 import { MOCK_LATENCY_MS } from '../config/mock-api.config';
 import { IMAGING_RESULTS } from '../mock-data/imaging-results.mock';
 import { PATIENTS } from '../mock-data/patients.mock';
-import type { ID, ImagingResult, PatientSummary } from '../models';
+import { WARDS } from '../mock-data/wards.mock';
+import type {
+  ID,
+  ImagingResult,
+  PatientSummary,
+  ResultAbnormalityFilter,
+  ResultWithPatient,
+} from '../models';
 import { mockError, mockResponse } from '../utils/mock-response';
-
-function toSummary(p: (typeof PATIENTS)[number]): PatientSummary {
-  return {
-    id: p.id,
-    mrn: p.mrn,
-    pesel: p.pesel,
-    firstName: p.firstName,
-    lastName: p.lastName,
-    birthDate: p.birthDate,
-    gender: p.gender,
-    status: p.status,
-    flags: p.flags,
-    bed: p.status === 'admitted' ? p.currentAdmission?.bed : undefined,
-  };
-}
+import { toPatientSummary } from '../utils/patient-summary';
+import { StaffService } from './staff.service';
 
 @Injectable({ providedIn: 'root' })
 export class ImagingResultService {
   private readonly latency = inject(MOCK_LATENCY_MS);
   private readonly results: ImagingResult[] = structuredClone(IMAGING_RESULTS);
+  private readonly staffService = inject(StaffService);
   private readonly patients = structuredClone(PATIENTS);
 
   getResults(pid: ID): Observable<ImagingResult[]> {
@@ -41,9 +36,20 @@ export class ImagingResultService {
     return mockResponse(found, this.latency);
   }
 
-  getRecent(
-    filter: 'all' | 'abnormal' | 'critical',
-  ): Observable<(ImagingResult & { patient: PatientSummary })[]> {
+  acknowledgeResult(id: ID): Observable<ImagingResult> {
+    const index = this.results.findIndex((r) => r.id === id);
+    if (index === -1) return mockError(`Nie znaleziono wyniku o id ${id}`, this.latency);
+    const updated: ImagingResult = {
+      ...this.results[index],
+      reviewedAt: new Date().toISOString(),
+      reviewedById: this.staffService.currentUser().id,
+    };
+    this.results[index] = updated;
+    return mockResponse(updated, this.latency);
+  }
+
+  // mock-only: backend authoritative (patient join is done server-side)
+  getRecent(filter: ResultAbnormalityFilter): Observable<ResultWithPatient<ImagingResult>[]> {
     return mockResponse(this.results, this.latency).pipe(
       map((results) =>
         results
@@ -52,7 +58,10 @@ export class ImagingResultService {
           .filter((r) => (filter === 'all' ? true : r.critical))
           .map((r) => {
             const patient = this.patients.find((p) => p.id === r.patientId);
-            return { ...r, patient: patient ? toSummary(patient) : ({} as PatientSummary) };
+            return {
+              ...r,
+              patient: patient ? toPatientSummary(patient, WARDS) : ({} as PatientSummary),
+            };
           }),
       ),
     );

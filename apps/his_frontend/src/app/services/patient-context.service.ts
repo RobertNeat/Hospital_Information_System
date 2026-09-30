@@ -1,28 +1,16 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { tap } from 'rxjs';
 import type { Observable } from 'rxjs';
+import { WARDS } from '../mock-data/wards.mock';
 import type { Patient, PatientSummary } from '../models';
+import { toPatientSummary } from '../utils/patient-summary';
 import { PatientService } from './patient.service';
 
 const SESSION_KEY = 'his.currentPatientId';
 const MAX_RECENT = 5;
 
-function toSummary(p: Patient): PatientSummary {
-  return {
-    id: p.id,
-    mrn: p.mrn,
-    pesel: p.pesel,
-    firstName: p.firstName,
-    lastName: p.lastName,
-    birthDate: p.birthDate,
-    gender: p.gender,
-    status: p.status,
-    flags: p.flags,
-    bed: p.currentAdmission?.bed,
-  };
-}
-
 /**
+ * Pure client-side state (not a backend contract).
  * Derived cache of the `patients/:patientId` route param. The route param remains
  * the source of truth (so deep links and refreshes work); this service just holds
  * the currently-resolved patient for display and for global/patient-scoped links.
@@ -51,7 +39,7 @@ export class PatientContextService {
 
   setPatient(p: Patient): void {
     this._patient.set(p);
-    const summary = toSummary(p);
+    const summary = toPatientSummary(p, WARDS);
     this._recentPatients.update((list) => {
       const withoutCurrent = list.filter((r) => r.id !== p.id);
       return [summary, ...withoutCurrent].slice(0, MAX_RECENT);

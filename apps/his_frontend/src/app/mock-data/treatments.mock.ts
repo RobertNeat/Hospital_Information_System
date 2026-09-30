@@ -5,6 +5,7 @@ export const TREATMENTS: Treatment[] = [
   {
     id: 'trt-001',
     patientId: 'pat-001',
+    encounterId: 'enc-001',
     name: 'Furosemid dożylnie',
     type: 'pharmacotherapy',
     startAt: daysAgo(3),
@@ -15,6 +16,7 @@ export const TREATMENTS: Treatment[] = [
   {
     id: 'trt-002',
     patientId: 'pat-002',
+    encounterId: 'enc-004',
     name: 'Angioplastyka wieńcowa ze stentem',
     type: 'procedure',
     startAt: daysAgo(1),

@@ -6,6 +6,7 @@ import type {
   ImagingModality,
   Laterality,
   OrderUrgency,
+  PregnancyStatus,
   ScheduleSlot,
 } from '../../models';
 import { toLocalIsoDate } from '../../utils/date-utils';
@@ -32,7 +33,7 @@ export function createStep2Form(fb: NonNullableFormBuilder) {
 
 export function createStep3Form(fb: NonNullableFormBuilder) {
   return fb.group({
-    pregnancy: fb.control<'no' | 'yes' | 'unknown' | 'na'>('na'),
+    pregnancy: fb.control<PregnancyStatus>('na'),
     pacemakerOrImplant: fb.control(false),
     metalFragments: fb.control(false),
     contrastAllergy: fb.control(false),

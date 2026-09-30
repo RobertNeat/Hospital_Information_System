@@ -17,7 +17,7 @@ import { Tag } from 'primeng/tag';
 import { Textarea } from 'primeng/textarea';
 import { VITAL_CONTEXT_OPTIONS } from '../../constants/labels';
 import { VITAL_THRESHOLDS } from '../../constants/vitals-thresholds';
-import type { VitalAnomaly, VitalSigns, VitalType } from '../../models';
+import type { VitalAnomaly, VitalSigns, VitalsRecordResponse, VitalType } from '../../models';
 import { StaffService } from '../../services/staff.service';
 import { VitalsService } from '../../services/vitals.service';
 import { evaluateVitals } from '../../utils/vitals-anomaly';
@@ -33,10 +33,7 @@ const NUMERIC_FIELDS: VitalType[] = [
   'respiratoryRate',
 ];
 
-export interface VitalsSaveResult {
-  saved: VitalSigns;
-  anomalies: VitalAnomaly[];
-}
+export type VitalsSaveResult = VitalsRecordResponse;
 
 @Component({
   selector: 'app-vitals-entry-form',

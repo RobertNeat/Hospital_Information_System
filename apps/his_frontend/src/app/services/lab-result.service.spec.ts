@@ -42,6 +42,19 @@ describe('LabResultService', () => {
     ).toBe(true);
   });
 
+  it('acknowledgeResult sets reviewedAt and reviewedById', async () => {
+    const first = (await firstValueFrom(service.getResults('pat-001')))[0];
+    const updated = await firstValueFrom(service.acknowledgeResult(first.id));
+    expect(updated.reviewedAt).toBeTruthy();
+    expect(updated.reviewedById).toBe('stf-001');
+    const stored = await firstValueFrom(service.getResultById(first.id));
+    expect(stored.reviewedAt).toBe(updated.reviewedAt);
+  });
+
+  it('acknowledgeResult errors for an unknown id', async () => {
+    await expect(firstValueFrom(service.acknowledgeResult('lres-999'))).rejects.toThrow();
+  });
+
   it('getRecent includes the patient summary', async () => {
     const results = await firstValueFrom(service.getRecent('all'));
     expect(results[0].patient).toHaveProperty('lastName');

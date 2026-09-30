@@ -9,11 +9,18 @@ import { Tooltip } from 'primeng/tooltip';
 import { SHIFT_OPTIONS } from '../../constants/labels';
 import { FormField } from '../form-field/form-field';
 import { PatientSearch } from '../patient-search/patient-search';
-import type { HandoffPatientNote, ID, PatientSummary, StaffMember, Ward } from '../../models';
+import type {
+  HandoffPatientNote,
+  ID,
+  PatientSummary,
+  ShiftType,
+  StaffMember,
+  Ward,
+} from '../../models';
 
 export interface HandoffNoteDialogResult {
   wardId: ID;
-  shift: 'day' | 'night';
+  shift: ShiftType;
   toId: ID;
   generalNotes?: string;
   patientNotes: HandoffPatientNote[];

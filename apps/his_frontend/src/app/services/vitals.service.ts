@@ -5,30 +5,21 @@ import { MOCK_LATENCY_MS } from '../config/mock-api.config';
 import { PATIENTS } from '../mock-data/patients.mock';
 import { WARDS } from '../mock-data/wards.mock';
 import { VITALS } from '../mock-data/vitals.mock';
-import type { ID, PatientSummary, VitalSigns, VitalSignsDraft, WardVitalsRow } from '../models';
+import type {
+  ID,
+  VitalSigns,
+  VitalSignsDraft,
+  VitalsRange,
+  VitalsRecordResponse,
+  WardVitalsRow,
+} from '../models';
 import { minutesAgo } from '../utils/date-utils';
 import { evaluateVitals } from '../utils/vitals-anomaly';
 import { mockResponse, nextId } from '../utils/mock-response';
+import { toPatientSummary } from '../utils/patient-summary';
 import { TeamMessageService } from './team-message.service';
 
-function toSummary(p: (typeof PATIENTS)[number]): PatientSummary {
-  const admitted = p.status === 'admitted';
-  return {
-    id: p.id,
-    mrn: p.mrn,
-    pesel: p.pesel,
-    firstName: p.firstName,
-    lastName: p.lastName,
-    birthDate: p.birthDate,
-    gender: p.gender,
-    status: p.status,
-    flags: p.flags,
-    wardName: admitted ? WARDS.find((w) => w.id === p.currentAdmission?.wardId)?.name : undefined,
-    bed: admitted ? p.currentAdmission?.bed : undefined,
-  };
-}
-
-const RANGE_HOURS: Record<'24h' | '7d' | '30d', number> = {
+const RANGE_HOURS: Record<Exclude<VitalsRange, 'all'>, number> = {
   '24h': 24,
   '7d': 24 * 7,
   '30d': 24 * 30,
@@ -42,7 +33,7 @@ export class VitalsService {
   private readonly patients = structuredClone(PATIENTS);
   private sequence = this.vitals.length;
 
-  getVitals(pid: ID, range: '24h' | '7d' | '30d' | 'all'): Observable<VitalSigns[]> {
+  getVitals(pid: ID, range: VitalsRange): Observable<VitalSigns[]> {
     let result = this.vitals.filter((v) => v.patientId === pid);
     if (range !== 'all') {
       const cutoffMs = Date.now() - RANGE_HOURS[range] * 3600_000;
@@ -59,12 +50,11 @@ export class VitalsService {
     return mockResponse(patientVitals[0], this.latency);
   }
 
-  addVitals(
-    draft: VitalSignsDraft,
-  ): Observable<{ saved: VitalSigns; anomalies: ReturnType<typeof evaluateVitals> }> {
+  addVitals(draft: VitalSignsDraft): Observable<VitalsRecordResponse> {
     this.sequence++;
     const saved: VitalSigns = { ...draft, id: nextId('vit', this.sequence) };
     this.vitals.push(saved);
+    // mock-only: backend authoritative (anomalies are computed server-side)
     const anomalies = evaluateVitals(saved);
 
     const criticalAnomaly = anomalies.find((a) => a.severity === 'critical');
@@ -75,6 +65,7 @@ export class VitalsService {
           severity: 'critical',
           patientId: saved.patientId,
           message: criticalAnomaly.message,
+          target: { kind: 'patient_vitals', id: saved.patientId },
           link: `/patients/${saved.patientId}/vitals`,
         })
         .subscribe();
@@ -83,6 +74,7 @@ export class VitalsService {
     return mockResponse({ saved, anomalies }, this.latency);
   }
 
+  // mock-only: backend authoritative (ward projection and anomalies are computed server-side)
   getWardOverview(wardId?: ID): Observable<WardVitalsRow[]> {
     // A discharged patient can still carry a stale currentAdmission.wardId, so always
     // require status === 'admitted' in addition to any ward filter.
@@ -98,7 +90,7 @@ export class VitalsService {
           map((latest) => {
             const anomalies = latest ? evaluateVitals(latest) : [];
             return {
-              patient: toSummary(p),
+              patient: toPatientSummary(p, WARDS),
               latest,
               anomalies,
               lastMeasuredAgoMin: latest ? minutesAgo(latest.recordedAt) : undefined,

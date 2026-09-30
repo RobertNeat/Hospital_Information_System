@@ -42,7 +42,13 @@ export const VITALS_PAT_001: VitalSigns[] = buildSeries(
   'ward_round',
   [4, 9, 14, 19, 24, 34, 44, 54, 64, 74, 84, 94, 104, 114, 124, 134, 144, 154, 164],
   1,
-).map((v, i) => (i === 2 ? { ...v, systolic: 152, diastolic: 96, heartRate: 98 } : v));
+).map((v, i) =>
+  i === 0
+    ? { ...v, source: 'monitor', deviceId: 'mon-ward-01' }
+    : i === 2
+      ? { ...v, systolic: 152, diastolic: 96, heartRate: 98 }
+      : v,
+);
 
 // pat-002: admitted, ACS - includes a critical hypotension + tachycardia episode
 export const VITALS_PAT_002: VitalSigns[] = buildSeries(

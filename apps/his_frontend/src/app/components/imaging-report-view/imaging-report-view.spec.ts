@@ -21,7 +21,7 @@ describe('ImagingReportView', () => {
     critical: false,
   };
 
-  it('renders the Technika / Opis / Wnioski sections and the PACS placeholder', async () => {
+  it('renders the Technika / Opis / Wnioski sections', async () => {
     const fixture = TestBed.createComponent(ImagingReportView);
     fixture.componentRef.setInput('result', result);
     await fixture.whenStable();
@@ -30,6 +30,6 @@ describe('ImagingReportView', () => {
     expect(text).toContain('Opis');
     expect(text).toContain('Wnioski');
     expect(text).toContain('lek. Anna Nowak');
-    expect(text).toContain('integracja PACS planowana');
+    expect(text).not.toContain('DICOM');
   });
 });

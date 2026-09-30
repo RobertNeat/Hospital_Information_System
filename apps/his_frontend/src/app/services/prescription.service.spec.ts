@@ -75,4 +75,11 @@ describe('PrescriptionService', () => {
     const updated = await firstValueFrom(service.cancel('rx-001'));
     expect(updated.status).toBe('cancelled');
   });
+
+  it('cancel with reason stores cancelledAt and cancelReason', async () => {
+    const updated = await firstValueFrom(service.cancel('rx-001', 'Błąd w dawkowaniu'));
+    expect(updated.status).toBe('cancelled');
+    expect(updated.cancelReason).toBe('Błąd w dawkowaniu');
+    expect(updated.cancelledAt).toBeTruthy();
+  });
 });

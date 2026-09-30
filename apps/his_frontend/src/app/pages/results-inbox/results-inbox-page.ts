@@ -12,11 +12,17 @@ import { SectionHeader } from '../../components/section-header/section-header';
 import { LabResultService } from '../../services/lab-result.service';
 import { ImagingResultService } from '../../services/imaging-result.service';
 import { LabelPipe } from '../../pipes/label.pipe';
-import type { ImagingResult, LabResult, PatientSummary, TableColumn } from '../../models';
+import type {
+  ImagingResult,
+  LabResult,
+  ResultAbnormalityFilter,
+  ResultWithPatient,
+  TableColumn,
+} from '../../models';
 
-type LabResultRow = LabResult & { patient: PatientSummary; patientName: string };
+type LabResultRow = ResultWithPatient<LabResult> & { patientName: string };
 
-type ImagingResultRow = ImagingResult & { patient: PatientSummary; patientName: string };
+type ImagingResultRow = ResultWithPatient<ImagingResult> & { patientName: string };
 
 const FILTER_OPTIONS = [
   { label: 'Wszystkie', value: 'all' as const },
@@ -46,7 +52,7 @@ export class ResultsInboxPage {
   private readonly imagingResultService = inject(ImagingResultService);
   private readonly router = inject(Router);
 
-  readonly filter = input<'all' | 'abnormal' | 'critical' | undefined>('all');
+  readonly filter = input<ResultAbnormalityFilter | undefined>('all');
 
   protected readonly filterOptions = FILTER_OPTIONS;
 
@@ -54,7 +60,7 @@ export class ResultsInboxPage {
 
   private readonly results = toSignal(
     toObservable(this.effectiveFilter).pipe(switchMap((f) => this.labResultService.getRecent(f))),
-    { initialValue: [] as (LabResult & { patient: PatientSummary })[] },
+    { initialValue: [] as ResultWithPatient<LabResult>[] },
   );
 
   protected readonly columns: TableColumn<LabResultRow>[] = [
@@ -76,7 +82,7 @@ export class ResultsInboxPage {
     toObservable(this.effectiveFilter).pipe(
       switchMap((f) => this.imagingResultService.getRecent(f)),
     ),
-    { initialValue: [] as (ImagingResult & { patient: PatientSummary })[] },
+    { initialValue: [] as ResultWithPatient<ImagingResult>[] },
   );
 
   protected readonly imagingColumns: TableColumn<ImagingResultRow>[] = [
@@ -94,7 +100,7 @@ export class ResultsInboxPage {
     })),
   );
 
-  protected onFilterChange(value: 'all' | 'abnormal' | 'critical'): void {
+  protected onFilterChange(value: ResultAbnormalityFilter): void {
     this.router.navigate([], { queryParams: { filter: value }, queryParamsHandling: 'merge' });
   }
 

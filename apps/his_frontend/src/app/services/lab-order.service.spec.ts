@@ -33,6 +33,7 @@ describe('LabOrderService', () => {
   it('getPanels returns lab panels', async () => {
     const panels = await firstValueFrom(service.getPanels());
     expect(panels.some((p) => p.name === 'Profil kardiologiczny')).toBe(true);
+    expect(panels.every((p) => Array.isArray(p.testCodes) && p.testCodes.length > 0)).toBe(true);
   });
 
   it('getOrders filters by patientId and status', async () => {

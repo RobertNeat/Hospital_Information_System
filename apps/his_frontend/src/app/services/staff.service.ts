@@ -4,6 +4,7 @@ import type { Observable } from 'rxjs';
 import { MOCK_LATENCY_MS } from '../config/mock-api.config';
 import { STAFF } from '../mock-data/staff.mock';
 import type { StaffMember, StaffRole } from '../models';
+import type { CurrentUser } from '../models/api';
 import { mockError, mockResponse } from '../utils/mock-response';
 
 @Injectable({ providedIn: 'root' })
@@ -11,11 +12,11 @@ export class StaffService {
   private readonly latency = inject(MOCK_LATENCY_MS);
   private readonly staff: StaffMember[] = structuredClone(STAFF);
 
-  private readonly _currentUser = signal<StaffMember>(
+  private readonly _currentUser = signal<CurrentUser>(
     this.staff.find((s) => s.id === 'stf-001') ?? this.staff[0],
   );
   /** "lek. Anna Nowak" (stf-001), the demo's logged-in user. */
-  readonly currentUser: Signal<StaffMember> = this._currentUser.asReadonly();
+  readonly currentUser: Signal<CurrentUser> = this._currentUser.asReadonly();
 
   getStaff(role?: StaffRole): Observable<StaffMember[]> {
     const result = role ? this.staff.filter((s) => s.role === role) : this.staff;

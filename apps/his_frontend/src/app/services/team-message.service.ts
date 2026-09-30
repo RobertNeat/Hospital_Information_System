@@ -17,12 +17,21 @@ import type {
   TaskStatus,
   TeamTask,
 } from '../models';
+import type {
+  AlertCreateRequest,
+  AlertQuery,
+  HandoffNoteCreateRequest,
+  TaskCreateRequest,
+  TaskQuery,
+} from '../models/api';
+import { StaffService } from './staff.service';
 import { mockError, mockResponse, nextId } from '../utils/mock-response';
 
 /** Named `TeamMessageService` to avoid clashing with PrimeNG's `MessageService`. */
 @Injectable({ providedIn: 'root' })
 export class TeamMessageService {
   private readonly latency = inject(MOCK_LATENCY_MS);
+  private readonly staffService = inject(StaffService);
 
   private readonly threads = signal<MessageThread[]>(structuredClone(MESSAGE_THREADS));
   private readonly messages: Message[] = structuredClone(MESSAGES);
@@ -66,14 +75,15 @@ export class TeamMessageService {
 
   sendMessage(threadId: ID, body: string, priority: Priority): Observable<Message> {
     this.messageSequence++;
+    const senderId = this.staffService.currentUser().id;
     const message: Message = {
       id: nextId('msg', this.messageSequence),
       threadId,
-      senderId: 'stf-001',
+      senderId,
       sentAt: new Date().toISOString(),
       body,
       priority,
-      readByIds: ['stf-001'],
+      readByIds: [senderId],
     };
     this.messages.push(message);
     this.threads.update((list) =>
@@ -91,6 +101,7 @@ export class TeamMessageService {
     this.threadSequence++;
     this.messageSequence++;
     const now = new Date().toISOString();
+    const senderId = this.staffService.currentUser().id;
     const thread: MessageThread = {
       id: nextId('thr', this.threadSequence),
       participantIds,
@@ -103,11 +114,11 @@ export class TeamMessageService {
     this.messages.push({
       id: nextId('msg', this.messageSequence),
       threadId: thread.id,
-      senderId: 'stf-001',
+      senderId,
       sentAt: now,
       body: firstMessage,
       priority: 'normal',
-      readByIds: ['stf-001'],
+      readByIds: [senderId],
     });
     return mockResponse(thread, this.latency);
   }
@@ -130,12 +141,7 @@ export class TeamMessageService {
     return mockResponse(updatedThread, this.latency);
   }
 
-  getTasks(filter?: {
-    assignedToId?: ID;
-    createdById?: ID;
-    patientId?: ID;
-    status?: TaskStatus;
-  }): Observable<TeamTask[]> {
+  getTasks(filter?: TaskQuery): Observable<TeamTask[]> {
     let result = this.tasks();
     if (filter?.assignedToId) result = result.filter((t) => t.assignedToId === filter.assignedToId);
     if (filter?.createdById) result = result.filter((t) => t.createdById === filter.createdById);
@@ -144,7 +150,7 @@ export class TeamMessageService {
     return mockResponse(result, this.latency);
   }
 
-  createTask(draft: Omit<TeamTask, 'id' | 'createdAt'>): Observable<TeamTask> {
+  createTask(draft: TaskCreateRequest): Observable<TeamTask> {
     this.taskSequence++;
     const task: TeamTask = {
       ...draft,
@@ -175,7 +181,7 @@ export class TeamMessageService {
     return mockResponse(result, this.latency);
   }
 
-  createHandoffNote(draft: Omit<HandoffNote, 'id' | 'createdAt'>): Observable<HandoffNote> {
+  createHandoffNote(draft: HandoffNoteCreateRequest): Observable<HandoffNote> {
     this.handoffSequence++;
     const note: HandoffNote = {
       ...draft,
@@ -186,7 +192,7 @@ export class TeamMessageService {
     return mockResponse(note, this.latency);
   }
 
-  getAlerts(filter?: { patientId?: ID; acknowledged?: boolean }): Observable<ClinicalAlert[]> {
+  getAlerts(filter?: AlertQuery): Observable<ClinicalAlert[]> {
     let result = this.alertsState();
     if (filter?.patientId) result = result.filter((a) => a.patientId === filter.patientId);
     if (filter?.acknowledged !== undefined) {
@@ -200,7 +206,12 @@ export class TeamMessageService {
     this.alertsState.update((list) =>
       list.map((a) => {
         if (a.id !== id) return a;
-        updated = { ...a, acknowledged: true, acknowledgedById: userId };
+        updated = {
+          ...a,
+          acknowledged: true,
+          acknowledgedById: userId,
+          acknowledgedAt: new Date().toISOString(),
+        };
         return updated;
       }),
     );
@@ -208,9 +219,7 @@ export class TeamMessageService {
     return mockResponse(updated, this.latency);
   }
 
-  pushAlert(
-    alert: Omit<ClinicalAlert, 'id' | 'createdAt' | 'acknowledged'>,
-  ): Observable<ClinicalAlert> {
+  pushAlert(alert: AlertCreateRequest): Observable<ClinicalAlert> {
     this.alertSequence++;
     const newAlert: ClinicalAlert = {
       ...alert,

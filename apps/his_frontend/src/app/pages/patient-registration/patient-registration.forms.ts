@@ -3,9 +3,7 @@ import { type NonNullableFormBuilder, Validators } from '@angular/forms';
 import { peselValidator } from '../../validators/pesel.validator';
 import { postalCodeValidator } from '../../validators/postal-code.validator';
 import { phoneValidator } from '../../validators/phone.validator';
-import type { Gender, Patient, TriageLevel } from '../../models';
-
-export type AdmissionType = 'planned' | 'emergency' | 'transfer' | 'outpatient';
+import type { AdmissionType, Gender, NoPeselReason, Patient, TriageLevel } from '../../models';
 
 /** Formats a JS `Date` as a local `YYYY-MM-DD` ISO date string (never UTC-shifted). */
 export function toIsoDate(d: Date): string {
@@ -27,7 +25,7 @@ export function createIdentityForm(fb: NonNullableFormBuilder) {
     pesel: fb.control('', [Validators.required, peselValidator()]),
     birthDate: fb.control<Date | null>(null, Validators.required),
     gender: fb.control<Gender>('unknown'),
-    noPeselReason: fb.control<'foreigner' | 'newborn' | 'unknown_identity' | null>(null),
+    noPeselReason: fb.control<NoPeselReason | null>(null),
     documentType: fb.control<'id_card' | 'passport' | 'other' | null>(null),
     documentNumber: fb.control(''),
   });

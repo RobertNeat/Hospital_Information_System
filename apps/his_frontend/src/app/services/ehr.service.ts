@@ -21,6 +21,7 @@ import type {
   Treatment,
   TreatmentEpisode,
 } from '../models';
+import type { ClinicalNoteCreateRequest } from '../models/api';
 import { mockResponse, nextId } from '../utils/mock-response';
 import { PrescriptionService } from './prescription.service';
 
@@ -38,6 +39,7 @@ export class EhrService {
   private readonly treatments: Treatment[] = structuredClone(TREATMENTS);
   private noteSequence = this.notes.length;
 
+  // mock-only: backend authoritative
   getSummary(pid: ID): Observable<EhrSummary> {
     return forkJoin({
       diagnoses: this.getDiagnoses(pid),
@@ -80,7 +82,7 @@ export class EhrService {
     );
   }
 
-  addNote(draft: Omit<ClinicalNote, 'id' | 'createdAt'>): Observable<ClinicalNote> {
+  addNote(draft: ClinicalNoteCreateRequest): Observable<ClinicalNote> {
     this.noteSequence++;
     const note: ClinicalNote = {
       ...draft,
