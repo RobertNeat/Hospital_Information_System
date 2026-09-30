@@ -26,6 +26,9 @@ export const VALIDATION_MESSAGES: Record<string, (error?: unknown) => string> = 
   pesel: () => 'Nieprawidłowy numer PESEL.',
   postalCode: () => 'Nieprawidłowy kod pocztowy (format NN-NNN).',
   phone: () => 'Nieprawidłowy numer telefonu.',
+  pwz: () => 'Numer PWZ składa się z 7 cyfr.',
+  employeeId: () => 'Dozwolone: litery, cyfry i myślnik (4–20 znaków).',
+  passwordMismatch: () => 'Hasła muszą być takie same.',
   dateRange: () => 'Nieprawidłowy zakres dat.',
 };
 

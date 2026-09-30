@@ -50,6 +50,7 @@ export class AppHeader {
     {
       label: 'Wyloguj (demo)',
       icon: 'pi pi-sign-out',
+      routerLink: '/login',
     },
   ];
 

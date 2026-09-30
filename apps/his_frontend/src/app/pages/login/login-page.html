@@ -1,0 +1,63 @@
+<div id="login-page" class="his-auth">
+  <div id="login-card" class="his-auth__card his-auth__card--cover">
+    <div id="login-cover" class="his-auth__cover">
+      <img id="login-cover-img" src="entry_image.png" alt="" />
+    </div>
+    <div id="login-body" class="his-auth__body">
+      <div id="login-brand" class="his-auth__brand">
+        <img id="login-logo" src="logo.png" alt="" />
+        <span id="login-brand-name">Hospital Information System</span>
+      </div>
+      <div id="login-heading">
+        <h1 id="login-title" class="his-auth__title">Logowanie</h1>
+        <p id="login-subtitle" class="his-muted">Zaloguj się identyfikatorem pracownika.</p>
+      </div>
+
+      <form id="login-form" class="his-auth__form" [formGroup]="form" (ngSubmit)="submit()">
+        <app-form-field
+          id="login-employee-id-field"
+          label="Identyfikator pracownika"
+          for="employeeId"
+          [required]="true"
+          [control]="form.controls.employeeId"
+        >
+          <input
+            pInputText
+            id="employeeId"
+            formControlName="employeeId"
+            autocomplete="username"
+            placeholder="np. HIS-000123"
+          />
+        </app-form-field>
+        <app-form-field
+          id="login-password-field"
+          label="Hasło"
+          for="password"
+          [required]="true"
+          [control]="form.controls.password"
+        >
+          <p-password
+            id="login-password"
+            inputId="password"
+            formControlName="password"
+            [feedback]="false"
+            [toggleMask]="true"
+            [fluid]="true"
+            autocomplete="current-password"
+          />
+        </app-form-field>
+        <button
+          id="login-submit"
+          type="submit"
+          pButton
+          label="Zaloguj się"
+          icon="pi pi-sign-in"
+        ></button>
+      </form>
+
+      <p id="login-footer" class="his-auth__footer">
+        Nie masz konta? <a id="login-register-link" routerLink="/register">Zarejestruj się</a>
+      </p>
+    </div>
+  </div>
+</div>

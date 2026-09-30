@@ -1,0 +1,224 @@
+<div id="register-page" class="his-auth">
+  <div id="register-card" class="his-auth__card his-auth__card--wide">
+    <div id="register-body" class="his-auth__body">
+      <div id="register-brand" class="his-auth__brand">
+        <img id="register-logo" src="logo.png" alt="" />
+        <span id="register-brand-name">Hospital Information System</span>
+      </div>
+      <div id="register-heading">
+        <h1 id="register-title" class="his-auth__title">Rejestracja konta</h1>
+        <p id="register-subtitle" class="his-muted">
+          Wniosek o konto pracownika medycznego. Aktywacja po weryfikacji przez administratora.
+        </p>
+      </div>
+
+      <form id="register-form" class="his-form-grid" [formGroup]="form" (ngSubmit)="submit()">
+        <app-form-field
+          id="register-first-name-field"
+          label="Imię"
+          for="firstName"
+          [required]="true"
+          [control]="form.controls.firstName"
+        >
+          <input pInputText id="firstName" formControlName="firstName" autocomplete="given-name" />
+        </app-form-field>
+        <app-form-field
+          id="register-last-name-field"
+          label="Nazwisko"
+          for="lastName"
+          [required]="true"
+          [control]="form.controls.lastName"
+        >
+          <input pInputText id="lastName" formControlName="lastName" autocomplete="family-name" />
+        </app-form-field>
+
+        <app-form-field
+          id="register-role-field"
+          label="Rola"
+          for="role"
+          [required]="true"
+          [control]="form.controls.role"
+        >
+          <p-select
+            id="register-role"
+            inputId="role"
+            formControlName="role"
+            [options]="roleOptions"
+            optionLabel="label"
+            optionValue="value"
+            [fluid]="true"
+          />
+        </app-form-field>
+        <app-form-field
+          id="register-title-field"
+          label="Stopień / tytuł zawodowy"
+          for="title"
+          [required]="true"
+          [control]="form.controls.title"
+        >
+          <p-select
+            id="register-title-select"
+            inputId="title"
+            formControlName="title"
+            [options]="titleOptions"
+            optionLabel="label"
+            optionValue="value"
+            placeholder="Wybierz"
+            [fluid]="true"
+          />
+        </app-form-field>
+
+        <app-form-field
+          id="register-specialization-field"
+          label="Dziedzina / specjalizacja"
+          for="specialization"
+          [required]="true"
+          [control]="form.controls.specialization"
+        >
+          <p-select
+            id="register-specialization"
+            inputId="specialization"
+            formControlName="specialization"
+            [options]="specializationOptions"
+            optionLabel="label"
+            optionValue="value"
+            placeholder="Wybierz"
+            [filter]="true"
+            [fluid]="true"
+          />
+        </app-form-field>
+        <app-form-field
+          id="register-pwz-field"
+          label="Numer PWZ"
+          for="pwz"
+          hint="Numer prawa wykonywania zawodu (7 cyfr)."
+          [required]="true"
+          [control]="form.controls.pwz"
+        >
+          <input
+            pInputText
+            id="pwz"
+            formControlName="pwz"
+            inputmode="numeric"
+            maxlength="7"
+            placeholder="np. 1234567"
+          />
+        </app-form-field>
+
+        <app-form-field
+          id="register-ward-field"
+          label="Oddział macierzysty"
+          for="wardId"
+          [required]="true"
+          [control]="form.controls.wardId"
+        >
+          <p-select
+            id="register-ward"
+            inputId="wardId"
+            formControlName="wardId"
+            [options]="wards()"
+            optionLabel="name"
+            optionValue="id"
+            placeholder="Wybierz"
+            [fluid]="true"
+          />
+        </app-form-field>
+        <app-form-field
+          id="register-phone-field"
+          label="Telefon służbowy"
+          for="phone"
+          [control]="form.controls.phone"
+        >
+          <input
+            pInputText
+            id="phone"
+            formControlName="phone"
+            autocomplete="tel"
+            placeholder="+48 600 100 200"
+          />
+        </app-form-field>
+
+        <app-form-field
+          id="register-employee-id-field"
+          label="Identyfikator pracownika"
+          for="employeeId"
+          hint="Będzie służył do logowania."
+          [required]="true"
+          [control]="form.controls.employeeId"
+        >
+          <input
+            pInputText
+            id="employeeId"
+            formControlName="employeeId"
+            autocomplete="username"
+            placeholder="np. HIS-000123"
+          />
+        </app-form-field>
+        <div id="register-spacer" class="his-auth__spacer"></div>
+
+        <app-form-field
+          id="register-password-field"
+          label="Hasło"
+          for="password"
+          hint="Minimum 8 znaków."
+          [required]="true"
+          [control]="form.controls.password"
+        >
+          <p-password
+            id="register-password"
+            inputId="password"
+            formControlName="password"
+            [feedback]="false"
+            [toggleMask]="true"
+            [fluid]="true"
+            autocomplete="new-password"
+          />
+        </app-form-field>
+        <app-form-field
+          id="register-password-confirm-field"
+          label="Powtórz hasło"
+          for="passwordConfirm"
+          [required]="true"
+          [control]="form.controls.passwordConfirm"
+        >
+          <p-password
+            id="register-password-confirm"
+            inputId="passwordConfirm"
+            formControlName="passwordConfirm"
+            [feedback]="false"
+            [toggleMask]="true"
+            [fluid]="true"
+            autocomplete="new-password"
+          />
+          @if (form.controls.passwordConfirm.touched && form.hasError('passwordMismatch')) {
+            <small id="register-password-mismatch" class="his-auth__error"
+              >Hasła muszą być takie same.</small
+            >
+          }
+        </app-form-field>
+
+        <div id="register-terms-row" class="his-auth__full-row">
+          <label id="register-terms-label" class="his-auth__terms">
+            <p-checkbox id="register-terms" formControlName="acceptTerms" [binary]="true" />
+            Oświadczam, że zapoznałem(-am) się z regulaminem systemu i zasadami ochrony danych
+            medycznych.
+          </label>
+        </div>
+
+        <div id="register-actions" class="his-auth__full-row">
+          <button
+            id="register-submit"
+            type="submit"
+            pButton
+            label="Wyślij wniosek"
+            icon="pi pi-user-plus"
+          ></button>
+        </div>
+      </form>
+
+      <p id="register-footer" class="his-auth__footer">
+        Masz już konto? <a id="register-login-link" routerLink="/login">Zaloguj się</a>
+      </p>
+    </div>
+  </div>
+</div>

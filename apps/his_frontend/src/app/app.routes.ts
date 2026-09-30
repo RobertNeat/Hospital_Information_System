@@ -6,6 +6,16 @@ import { patientScopedRedirect } from './utils/patient-scoped-redirect';
 
 export const routes: Routes = [
   {
+    path: 'login',
+    loadComponent: () => import('./pages/login/login-page').then((m) => m.LoginPage),
+    title: 'Logowanie',
+  },
+  {
+    path: 'register',
+    loadComponent: () => import('./pages/register/register-page').then((m) => m.RegisterPage),
+    title: 'Rejestracja konta',
+  },
+  {
     path: '',
     component: AppShell,
     children: [
