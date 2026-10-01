@@ -1,6 +1,6 @@
-# FHIR: integracja z usługami e-* (recepty / e-receipt)
+# FHIR: integracja z usługami e-* (recepty / e-receipt, badania laboratoryjne / e-laboratory, badania obrazowe / e-imaging)
 
-Endpointy FHIR R4 wystawiane przez `his_backend` dla usług `e-*` oraz klient FHIR wywołujący `e-receipt`. Powrót: [README.md](README.md). Konfiguracja: [deployment-and-config.md](deployment-and-config.md). Zdarzenia: [events.md](events.md).
+Endpointy FHIR R4 wystawiane przez `his_backend` dla usług `e-*` oraz klienci FHIR wywołujący `e-receipt`, `e-laboratory` i `e-imaging`. Powrót: [README.md](README.md). Konfiguracja: [deployment-and-config.md](deployment-and-config.md). Zdarzenia: [events.md](events.md).
 
 Biblioteka: HAPI FHIR R4 (`hapi-fhir-base` + `hapi-fhir-structures-r4`, wersja z `hapi-fhir.version` w `pom.xml`); `FhirContext` to singleton (`common/fhir/FhirConfig`). Treść żądań i odpowiedzi FHIR jest `String` serializowanym przez HAPI (Jackson nie obsługuje `application/fhir+json`); klient HTTP to Spring `RestClient`.
 
@@ -81,6 +81,168 @@ Reguły (`PrescriptionExternalService`):
 - Bez ponawiania i bez kolejki: nieudana wysyłka nie jest powtarzana (stan HIS pozostaje autorytatywny, recepta bez klucza e-receipt zachowuje klucz lokalny).
 - mTLS: `his.integration.ereceipt.ssl-bundle` = nazwa paczki `spring.ssl.bundle.*` (np. `fhir-client` z profilu `mtls`); `RestClient` budowany przez `ClientHttpRequestFactoryBuilder` z `HttpClientSettings.withSslBundle`.
 
-## Wzorzec dla kolejnych usług (e-laboratory, e-imaging)
+## Badania laboratoryjne (e-laboratory)
 
-Wspólne elementy w `common/fhir` (`FhirConfig`, `FhirServiceProperties`, `FhirSecurityConfig`, `FhirEndpoint`, `FhirException`, `FhirExceptionHandler`, `FhirSystems`); część domenowa w pakiecie modułu (`prescription/ereceipt`: properties, klient, listener, mapper, serwis zmiany stanu, kontroler). Nowy kontroler FHIR oznacza się `@FhirEndpoint` (błędy jako `OperationOutcome`), a ścieżka pod `/fhir/**` jest automatycznie chroniona kluczem usługowym.
+Pakiet `lab/elab` (`ELabProperties`, `ELabClient`, `ELabIntegration`, `LabFhirMapper`, `LabOrderExternalService`, `LabResultExternalService`, `LabFhirHandler`). Błędy to `OperationOutcome`, autoryzacja i `Content-Type` jak dla recept. Ścieżki `/fhir/ServiceRequest` i `/fhir/DiagnosticReport` są wspólne z badaniami obrazowymi (patrz [Wspólne ścieżki](#wspólne-ścieżki-servicerequest-i-diagnosticreport)).
+
+```
+HIS: utworzenie zlecenia laboratoryjnego
+  -> (AFTER_COMMIT) POST {e-laboratory}/fhir/ServiceRequest              (id = id zlecenia HIS)
+e-laboratory (UI): zmiana stanu (scheduled, specimen_collected, in_progress, completed, cancelled)
+  -> PUT  {his-backend}/fhir/ServiceRequest/{id zlecenia HIS}            -> stan zlecenia w HIS
+e-laboratory (UI): wynik badania z pozycji zlecenia
+  -> POST {his-backend}/fhir/DiagnosticReport                             -> LabResultRecordingService.recordResult
+HIS: anulowanie zlecenia przez lekarza
+  -> (AFTER_COMMIT) PUT  {e-laboratory}/fhir/ServiceRequest/{id zlecenia HIS}
+```
+
+Identyfikatorem zlecenia po obu stronach jest `id` zlecenia HIS (UUID; e-laboratory nie nadaje własnego klucza, HIS niczego nie zapisuje po wysyłce).
+
+### Endpointy wystawione przez his_backend
+
+| Metoda | Ścieżka | Ciało | Odpowiedź | Statusy |
+| --- | --- | --- | --- | --- |
+| GET | `/fhir/ServiceRequest/{id}` | - | `ServiceRequest` | 200; 401; 404 |
+| PUT | `/fhir/ServiceRequest/{id}` | `ServiceRequest` (status) | `ServiceRequest` po zmianie | 200; 400; 401; 404; 409; 422 |
+| POST | `/fhir/DiagnosticReport` | `DiagnosticReport` z obserwacjami `contained` | zapisany `DiagnosticReport` (`id` = id wyniku HIS, `Location`) | 201; 200 (powtórzony raport); 400; 401; 409; 422 |
+| GET | `/fhir/DiagnosticReport/{id}` | - | `DiagnosticReport` | 200; 401; 404 |
+
+### Zmiana stanu zlecenia (PUT)
+
+Docelowy stan: rozszerzenie `urn:his:fhir:lab-order-status` (`valueString` = status HIS: `ordered`, `scheduled`, `specimen_collected`, `in_progress`, `completed`, `cancelled`); bez rozszerzenia ze `status` R4: `active` -> `ordered`, `completed` -> `completed`, `revoked` -> `cancelled`, inne -> 400. Reguły (`LabOrderExternalService`), zgodne z istniejącą maszyną stanów (`LabOrderStateMachine`):
+
+- Identyfikator `urn:his:lab-order-id` w ciele, jeśli podany, musi równać się `id` zlecenia (422).
+- Stan równy zapisanemu: 200 bez zmiany (idempotencja; bez nowej wersji i zdarzenia).
+- Żądanie `ordered` (inne niż zapisany stan): 422.
+- Zlecenie w stanie końcowym (`completed`, `cancelled`) lub przejście niedozwolone przez maszynę stanów (np. `scheduled -> in_progress`): 409.
+- Zmiana publikuje `LabOrderStatusChanged` z `actorId = null` (wpis historii bez autora, notatka "Zmiana stanu w e-laboratory" albo "Anulowano w e-laboratory"), zwiększa `version`, audyt `updatedBy` = null; `completed` i `cancelled` tworzą alert `order_status`.
+- Zmiany stanu wykonane w HIS (poza anulowaniem) nie są przekazywane do e-laboratory; ewentualna rozbieżność (np. HIS ma już `in_progress`, a e-laboratory zgłasza `specimen_collected`) kończy się 409 widocznym w UI e-laboratory.
+
+### Wynik (POST DiagnosticReport)
+
+Mapowanie na `LabResultRecordingService.recordResult` (`LabResultExternalService`, aktor systemowy `null`); wszystkie reguły zapisu wyniku obowiązują bez zmian ([rest-api-lab.md](rest-api-lab.md#zapis-wyniku-poza-rest)): walidacja pól i analitów 422, stan zlecenia i wynik ostateczny 409, flagi, zdarzenie `LabResultRecorded`, auto-`completed`.
+
+| Element `DiagnosticReport` | Zawartość |
+| --- | --- |
+| `status` | `preliminary`, `final`, `corrected` (inne -> 400) |
+| `code.coding` | `urn:his:lab-test` = kod badania z katalogu |
+| `subject` | `Patient/{uuid}` (musi zgadzać się ze zleceniem, 422) |
+| `basedOn[0]` | `ServiceRequest/{uuid zlecenia HIS}` (wymagane; brak -> 400) |
+| `effectiveDateTime`, `issued` | `collectedAt`, `resultedAt` (wymagane) |
+| `performer[0].display` | `performerName` (domyślnie "e-laboratory") |
+| `conclusion` | komentarz |
+| `result` + `contained` | `Observation` lokalne (`#id`): `code.coding` `urn:his:lab-analyte` = kod analitu; `valueQuantity.value` (liczba) albo `valueString`; `interpretation` (HL7 `v3-ObservationInterpretation`: `N`, `L`, `H`, `LL`, `HH`, `A`) = jawna flaga (brak = z zakresu katalogu); `valueQuantity.unit` i `referenceRange` są informacyjne - HIS zapisuje jednostkę i zakres z katalogu (snapshot) |
+
+Idempotencja: raport pozycji zlecenia o tym samym statusie i czasie `issued` co zapisany wynik zwraca ten wynik (200) zamiast konfliktu 409 (HIS nie zapisuje identyfikatora wyniku e-laboratory). Odpowiedź `GET`/`POST` ma `id` wyniku HIS i obserwacje jako `contained`.
+
+### Zasób ServiceRequest (wysyłany do e-laboratory)
+
+`LabFhirMapper`. Bez danych osobowych pacjenta (tylko referencje).
+
+| Element | Zawartość |
+| --- | --- |
+| `id`, `identifier` | id zlecenia HIS; `urn:his:lab-order-id` |
+| `status`, `intent` | status R4 (`ordered`/`scheduled`/`specimen_collected`/`in_progress` -> `active`, `completed`, `cancelled` -> `revoked`), `order`; rozszerzenie `urn:his:fhir:lab-order-status` z kodem HIS |
+| `priority` | `routine`, `urgent`, `stat` |
+| `subject`, `requester` | `Patient/{patientId}`, `Practitioner/{orderedById}` |
+| `authoredOn`, `occurrenceDateTime` | `orderedAt`, `plannedCollectionAt` (UTC) |
+| `code.text` | kody badań połączone `; ` |
+| `orderDetail[]` | po jednym na pozycję: `coding` `urn:his:lab-test` (kod, nazwa) i `urn:his:specimen-type` (materiał); rozszerzenia `urn:his:fhir:lab-analyte` (podrozszerzenia `code`, `name`, `unit`, `low`, `high`) z definicjami analitów badania z katalogu |
+| `patientInstruction` | "Na czczo" (gdy `fasting`) |
+| `reasonCode` | diagnoza (`diagnosisCode`), jeśli jest |
+| `note` | `clinicalInfo`, `notes` |
+
+### Klient e-laboratory
+
+`lab/elab/ELabIntegration` (listener `@TransactionalEventListener(AFTER_COMMIT)`) + `ELabClient`.
+
+- **Domyślnie wyłączony** (`his.integration.elab.enabled=false`). Brak e-laboratory (timeout, połączenie, HTTP) jest tylko logowany; utworzenie i anulowanie zlecenia nigdy od niego nie zależy. Wywołanie jest synchroniczne (`connect-timeout` 1 s, `read-timeout` 3 s), poza transakcją bazodanową.
+- `LabOrderPlaced` (publikowane przez `LabOrderService.create`): `POST {base-url}/ServiceRequest`.
+- `LabOrderStatusChanged` na `cancelled` z aktorem (anulowanie w HIS): `PUT {base-url}/ServiceRequest/{id zlecenia}`. 404 z e-laboratory (zlecenie mock/sprzed integracji) = log informacyjny. Zdarzenie bez aktora (zmiana pochodząca z e-laboratory, także auto-`completed` po wyniku) nie jest odsyłane (brak pętli).
+- Bez ponawiania i bez kolejki: zlecenie, które nie dotarło do e-laboratory, nie jest wysyłane ponownie (stan HIS pozostaje autorytatywny).
+- mTLS: `his.integration.elab.ssl-bundle` jak dla e-receipt.
+
+## Wspólne ścieżki ServiceRequest i DiagnosticReport
+
+Badania laboratoryjne i obrazowe używają tych samych typów zasobów, więc `common/fhir/ServiceRequestFhirController` i `DiagnosticReportFhirController` kierują żądanie do modułu przez interfejs `FhirOrderHandler` (implementacje: `lab/elab/LabFhirHandler`, `imaging/eimg/ImagingFhirHandler`):
+
+- `GET`/`PUT /fhir/ServiceRequest/{id}`: moduł, w którym istnieje zlecenie o tym `id` (UUID zleceń laboratoryjnych i obrazowych nie powtarzają się); nieznane lub nieprawidłowe `id` to 404.
+- `POST /fhir/DiagnosticReport`: moduł wskazuje system kodu badania w `code.coding` (`urn:his:lab-test` albo `urn:his:imaging-exam`); żaden z nich -> 400.
+- `GET /fhir/DiagnosticReport/{id}`: wynik z dowolnego modułu; nieznany -> 404.
+- Niepoprawny JSON `ServiceRequest`/`DiagnosticReport` -> 400 (kontroler wspólny, przed routingiem).
+
+## Badania obrazowe (e-imaging)
+
+Pakiet `imaging/eimg` (`EImgProperties`, `EImgClient`, `EImgIntegration`, `ImagingFhirMapper`, `ImagingOrderExternalService`, `ImagingResultExternalService`, `ImagingFhirHandler`). Błędy, autoryzacja i `Content-Type` jak dla pozostałych usług; id zlecenia HIS jest identyfikatorem po obu stronach.
+
+```
+HIS: utworzenie zlecenia obrazowego (ze slotem albo bez)
+  -> (AFTER_COMMIT) POST {e-imaging}/fhir/ServiceRequest                  (id = id zlecenia HIS)
+e-imaging (UI): zmiana stanu (ordered, scheduled, in_progress, completed, cancelled)
+  -> PUT  {his-backend}/fhir/ServiceRequest/{id zlecenia HIS}            -> stan zlecenia w HIS
+e-imaging (UI): wynik badania (opis, wnioski, krytyczny)
+  -> POST {his-backend}/fhir/DiagnosticReport                             -> ImagingResultRecordingService.recordResult
+HIS: anulowanie zlecenia przez lekarza
+  -> (AFTER_COMMIT) PUT  {e-imaging}/fhir/ServiceRequest/{id zlecenia HIS}
+```
+
+### Zmiana stanu zlecenia (PUT)
+
+Docelowy stan: rozszerzenie `urn:his:fhir:imaging-order-status` (`valueString` = status HIS: `ordered`, `scheduled`, `in_progress`, `completed`, `cancelled`); bez rozszerzenia ze `status` R4: `active` -> `ordered`, `completed` -> `completed`, `revoked` -> `cancelled`, inne -> 400. Reguły (`ImagingOrderExternalService`), zgodne z `ImagingOrderStateMachine`:
+
+- Identyfikator `urn:his:imaging-order-id` w ciele, jeśli podany, musi równać się `id` zlecenia (422).
+- Stan równy zapisanemu: 200 bez zmiany (idempotencja).
+- Żądanie `ordered` (inne niż zapisany stan) i `specimen_collected`: 422.
+- Zlecenie w stanie końcowym (`completed`, `cancelled`) lub przejście niedozwolone przez maszynę stanów (np. `in_progress -> scheduled`): 409.
+- Zmiana publikuje `ImagingOrderStatusChanged` z `actorId = null` (wpis historii bez autora, notatka "Zmiana stanu w e-imaging" albo "Anulowano w e-imaging"), zwiększa `version`, audyt `updatedBy` = null; `completed` i `cancelled` tworzą alert `order_status`. Anulowanie zwalnia zarezerwowany slot (jak `/cancel`).
+- Zmiany stanu wykonane w HIS (poza anulowaniem) nie są przekazywane do e-imaging; rozbieżność kończy się 409 widocznym w UI e-imaging.
+
+### Wynik (POST DiagnosticReport)
+
+Mapowanie na `ImagingResultRecordingService.recordResult` (`ImagingResultExternalService`, aktor systemowy `null`); wszystkie reguły zapisu obowiązują bez zmian ([rest-api-imaging.md](rest-api-imaging.md#zapis-wyniku-poza-rest)): walidacja pól 422, stan zlecenia (`scheduled`/`in_progress`) i wynik ostateczny 409, zdarzenie `ImagingResultRecorded`, auto-`completed` po wyniku `final`.
+
+| Element `DiagnosticReport` | Zawartość |
+| --- | --- |
+| `status` | `preliminary`, `final` (inne, także `corrected` -> 400) |
+| `code.coding` | `urn:his:imaging-exam` = kod badania zlecenia (wymagany do routingu; niezgodny ze zleceniem -> 422) |
+| `subject` | `Patient/{uuid}` (musi zgadzać się ze zleceniem, 422) |
+| `basedOn[0]` | `ServiceRequest/{uuid zlecenia HIS}` (wymagane; brak -> 400) |
+| `effectiveDateTime`, `issued` | `performedAt` (wykonanie), `reportedAt` (opis; nie wcześniej niż wykonanie, 422) - wymagane (400) |
+| `performer[0].display` | radiolog (domyślnie "e-imaging") |
+| `conclusion` | wnioski (wymagane, 422) |
+| rozszerzenie `urn:his:fhir:imaging-findings` | `valueString` = opis badania (wymagany, 422) |
+| rozszerzenie `urn:his:fhir:imaging-critical` | `valueBoolean` = wynik krytyczny wg radiologa (domyślnie `false`) |
+
+Idempotencja: raport zlecenia o tym samym statusie i czasie `issued` co zapisany wynik zwraca ten wynik (200) zamiast konfliktu; sprawdzana przed zapisem, bo po wyniku `final` zlecenie jest już `completed`. Odpowiedź `GET`/`POST` ma `id` wyniku HIS, `code.text` = nazwa badania, `code.coding` `urn:his:imaging-modality` i te same rozszerzenia.
+
+### Zasób ServiceRequest (wysyłany do e-imaging)
+
+`ImagingFhirMapper`. Bez danych osobowych pacjenta (tylko referencje) i bez listy kontrolnej bezpieczeństwa.
+
+| Element | Zawartość |
+| --- | --- |
+| `id`, `identifier` | id zlecenia HIS; `urn:his:imaging-order-id` |
+| `status`, `intent` | status R4 (`ordered`/`scheduled`/`in_progress` -> `active`, `completed`, `cancelled` -> `revoked`), `order`; rozszerzenie `urn:his:fhir:imaging-order-status` z kodem HIS (zlecenie ze slotem jest od razu `scheduled`) |
+| `priority` | `routine`, `urgent`, `stat` |
+| `subject`, `requester` | `Patient/{patientId}`, `Practitioner/{orderedById}` |
+| `authoredOn`, `occurrenceDateTime` | `orderedAt`, termin badania (`scheduledAt` = początek slotu; brak bez slotu) |
+| `code` | `coding` `urn:his:imaging-exam` (kod, nazwa), `text` = nazwa badania |
+| `orderDetail[0]` | `coding` `urn:his:imaging-modality` (modalność) i `urn:his:imaging-laterality` (`left`, `right`, `bilateral`, `na`) |
+| `bodySite[0].text` | okolica badania |
+| rozszerzenia | `urn:his:fhir:imaging-contrast` (`valueBoolean`), `urn:his:fhir:imaging-slot` (`valueString` = id slotu, gdy zarezerwowany) |
+| `reasonCode` | `text` = wskazanie kliniczne; drugi wpis z diagnozą (`diagnosisCode`), jeśli jest |
+| `note` | pytanie kliniczne (`clinicalQuestion`), jeśli jest |
+
+### Klient e-imaging
+
+`imaging/eimg/EImgIntegration` (listener `@TransactionalEventListener(AFTER_COMMIT)`) + `EImgClient`; zachowanie jak klient e-laboratory:
+
+- **Domyślnie wyłączony** (`his.integration.eimg.enabled=false`). Brak e-imaging (timeout, połączenie, HTTP) jest tylko logowany; utworzenie i anulowanie zlecenia nigdy od niego nie zależy. Wywołanie synchroniczne (`connect-timeout` 1 s, `read-timeout` 3 s), poza transakcją bazodanową.
+- `ImagingOrderPlaced` (publikowane przez `ImagingOrderService.create`): `POST {base-url}/ServiceRequest`.
+- `ImagingOrderStatusChanged` na `cancelled` z aktorem (anulowanie w HIS): `PUT {base-url}/ServiceRequest/{id zlecenia}`. 404 z e-imaging (zlecenie mock/sprzed integracji) = log informacyjny. Zdarzenie bez aktora (zmiana z e-imaging, także auto-`completed` po wyniku) nie jest odsyłane (brak pętli).
+- Bez ponawiania i bez kolejki: zlecenie, które nie dotarło do e-imaging, nie jest wysyłane ponownie (stan HIS pozostaje autorytatywny).
+- mTLS: `his.integration.eimg.ssl-bundle` jak dla pozostałych klientów.
+
+## Wzorzec dla kolejnych usług
+
+Wspólne elementy w `common/fhir` (`FhirConfig`, `FhirServiceProperties`, `FhirSecurityConfig`, `FhirEndpoint`, `FhirException`, `FhirExceptionHandler`, `FhirSystems`, `FhirOrderHandler` z kontrolerami `ServiceRequest`/`DiagnosticReport`); część domenowa w pakiecie modułu (`prescription/ereceipt`, `lab/elab`, `imaging/eimg`: properties, klient, listener, mapper, serwis zmiany stanu, handler lub kontroler). Nowy kontroler FHIR oznacza się `@FhirEndpoint` (błędy jako `OperationOutcome`), a ścieżka pod `/fhir/**` jest automatycznie chroniona kluczem usługowym.

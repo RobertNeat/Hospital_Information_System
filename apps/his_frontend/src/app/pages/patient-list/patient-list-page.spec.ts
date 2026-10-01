@@ -5,18 +5,11 @@ import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import { PatientListPage } from './patient-list-page';
-import { MOCK_LATENCY_MS } from '../../config/mock-api.config';
 
 describe('PatientListPage', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [
-        patientServiceStub,
-        ehrServiceStub,
-        provideRouter([]),
-        wardServiceStub,
-        { provide: MOCK_LATENCY_MS, useValue: 0 },
-      ],
+      providers: [patientServiceStub, ehrServiceStub, provideRouter([]), wardServiceStub],
     });
   });
 
@@ -29,7 +22,7 @@ describe('PatientListPage', () => {
   it('loads patients into the table', async () => {
     const fixture = TestBed.createComponent(PatientListPage);
     await fixture.whenStable();
-    // Debounced 300ms; MOCK_LATENCY_MS is 0 so once the debounce fires the mock resolves sync.
+    // Debounced 300ms; once the debounce fires the stub resolves sync.
     await new Promise((resolve) => setTimeout(resolve, 350));
     await fixture.whenStable();
     const rows = (fixture.componentInstance as unknown as { rows: () => unknown[] }).rows();

@@ -20,6 +20,7 @@ import { PatientContextService } from '../../services/patient-context.service';
 import { PatientService } from '../../services/patient.service';
 import { StaffService } from '../../services/staff.service';
 import { TeamMessageService } from '../../services/team-message.service';
+import { alertRoute, type AlertRoute } from '../../utils/alert-route';
 import type {
   ClinicalAlert,
   DashboardStats,
@@ -75,6 +76,8 @@ export class DashboardPage {
   protected readonly abnormalResults = signal<ResultWithPatient<LabResult>[]>([]);
   protected readonly fallbackAdmitted = signal<PatientSummary[]>([]);
   protected readonly loading = signal(true);
+  /** Names of patients missing from inbox rows (`patient` is optional), resolved by id. */
+  private readonly patientNames = signal<Record<string, string>>({});
 
   protected readonly taskColumns = [
     { field: 'title', header: 'Zadanie' },
@@ -94,14 +97,42 @@ export class DashboardPage {
       admitted: this.patientService.getPatients({ status: 'admitted' }),
     })
       .pipe(takeUntilDestroyed())
-      .subscribe(({ stats, alerts, tasks, abnormalResults, admitted }) => {
-        this.stats.set(stats);
-        this.criticalAlerts.set(alerts.filter((a) => a.severity === 'critical'));
-        this.myTasks.set(tasks);
-        this.abnormalResults.set(abnormalResults);
-        this.fallbackAdmitted.set(admitted);
-        this.loading.set(false);
+      .subscribe({
+        next: ({ stats, alerts, tasks, abnormalResults, admitted }) => {
+          this.stats.set(stats);
+          this.criticalAlerts.set(alerts.filter((a) => a.severity === 'critical'));
+          this.myTasks.set(tasks);
+          this.abnormalResults.set(abnormalResults);
+          this.fallbackAdmitted.set(admitted);
+          this.loading.set(false);
+          this.resolveMissingPatients(abnormalResults);
+        },
+        error: () => this.loading.set(false),
       });
+  }
+
+  /** Route of an alert from its target; a patient-only alert opens the patient overview. */
+  protected alertLink(alert: ClinicalAlert): AlertRoute | null {
+    return (
+      alertRoute(alert) ??
+      (alert.patientId ? { commands: ['/patients', alert.patientId, 'overview'] } : null)
+    );
+  }
+
+  protected resultPatientName(result: ResultWithPatient<LabResult>): string {
+    if (result.patient) return `${result.patient.lastName} ${result.patient.firstName}`;
+    return this.patientNames()[result.patientId] ?? '';
+  }
+
+  private resolveMissingPatients(results: ResultWithPatient<LabResult>[]): void {
+    const missing = new Set(results.filter((r) => !r.patient).map((r) => r.patientId));
+    for (const id of missing) {
+      this.patientService.getPatientById(id).subscribe({
+        next: (p) =>
+          this.patientNames.update((m) => ({ ...m, [id]: `${p.lastName} ${p.firstName}` })),
+        error: () => undefined,
+      });
+    }
   }
 
   protected goToPatient(patient: PatientSummary): void {

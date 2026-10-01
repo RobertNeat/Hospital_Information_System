@@ -38,6 +38,7 @@
               id="imaging-order-wizard-app-form-field-2"
               label="Badanie"
               [required]="true"
+              [control]="step1Form.controls.examCode"
             >
               <p-select
                 id="imaging-order-wizard-exam-code"
@@ -55,6 +56,7 @@
                 id="imaging-order-wizard-app-form-field-3"
                 label="Strona"
                 [required]="true"
+                [control]="step1Form.controls.laterality"
               >
                 <p-selectbutton
                   id="imaging-order-wizard-laterality"
@@ -66,7 +68,11 @@
               </app-form-field>
             }
 
-            <app-form-field id="imaging-order-wizard-app-form-field-4" label="Z kontrastem">
+            <app-form-field
+              id="imaging-order-wizard-app-form-field-4"
+              label="Z kontrastem"
+              [control]="step1Form.controls.contrast"
+            >
               <p-toggleswitch
                 id="imaging-order-wizard-contrast"
                 formControlName="contrast"
@@ -104,7 +110,11 @@
               ></textarea>
             </app-form-field>
 
-            <app-form-field id="imaging-order-wizard-app-form-field-6" label="Pytanie kliniczne">
+            <app-form-field
+              id="imaging-order-wizard-app-form-field-6"
+              label="Pytanie kliniczne"
+              [control]="step2Form.controls.clinicalQuestion"
+            >
               <textarea
                 id="imaging-order-wizard-clinical-question"
                 pTextarea
@@ -130,6 +140,7 @@
               id="imaging-order-wizard-app-form-field-8"
               label="Pilność"
               [required]="true"
+              [control]="step2Form.controls.urgency"
             >
               <p-selectbutton
                 id="imaging-order-wizard-urgency"
@@ -197,7 +208,11 @@
               </div>
             }
 
-            <app-form-field id="imaging-order-wizard-app-form-field-16" label="Data badania">
+            <app-form-field
+              id="imaging-order-wizard-app-form-field-16"
+              label="Data badania"
+              [control]="step4Form.controls.slotId"
+            >
               <p-datepicker
                 id="imaging-order-wizard-date"
                 formControlName="date"
@@ -212,6 +227,7 @@
                 [modality]="step1Form.controls.modality.value!"
                 [date]="slotDateIso()"
                 [selectedSlotId]="step4Form.controls.slotId.value"
+                [refreshKey]="slotRefresh()"
                 (slotSelected)="onSlotSelected($event)"
               />
             }

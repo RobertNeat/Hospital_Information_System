@@ -1,4 +1,5 @@
 import { computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import type { HandoffNoteDialogResult } from '../../components/handoff-note-dialog/handoff-note-dialog';
 import type { ClinicalAlert, HandoffNote } from '../../models';
 import { TeamMessageService } from '../../services/team-message.service';
@@ -39,7 +40,6 @@ export function createHandoffState(ctx: MessagesContext) {
           wardId: result.wardId,
           shiftDate: new Date().toISOString().slice(0, 10),
           shift: result.shift,
-          fromId: ctx.currentUser().id,
           toId: result.toId,
           generalNotes: result.generalNotes,
           patientNotes: result.patientNotes,
@@ -72,8 +72,8 @@ export function createAlertsState(ctx: MessagesContext) {
     [...alerts()].sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity]),
   );
 
-  const load = (): void => {
-    alertsLoading.set(true);
+  const load = (silent = false): void => {
+    if (!silent) alertsLoading.set(true);
     service.getAlerts().subscribe((list) => {
       alerts.set(list);
       alertsLoading.set(false);
@@ -83,13 +83,17 @@ export function createAlertsState(ctx: MessagesContext) {
     });
   };
 
+  service.pushed$.pipe(takeUntilDestroyed()).subscribe((push) => {
+    if (push.kind === 'alert' || push.kind === 'resync') load(true);
+  });
+
   return {
     alertsLoading,
     sortedAlerts,
     load,
 
     acknowledgeAlert: (alert: ClinicalAlert): void => {
-      service.acknowledgeAlert(alert.id, ctx.currentUser().id).subscribe({
+      service.acknowledgeAlert(alert.id).subscribe({
         next: () => {
           load();
           ctx.toast.add({ severity: 'success', summary: 'Alert potwierdzony' });

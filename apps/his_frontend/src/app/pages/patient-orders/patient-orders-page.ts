@@ -1,3 +1,4 @@
+import type { Observable } from 'rxjs';
 import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -17,6 +18,7 @@ import { OrderStatusTimeline } from '../../components/order-status-timeline/orde
 import { LabelPipe } from '../../pipes/label.pipe';
 import type { ImagingOrder, LabOrder, TableColumn } from '../../models';
 import { toApiError } from '../../utils/api-error';
+import { AuthService } from '../../services/auth.service';
 import { LabOrderService } from '../../services/lab-order.service';
 import { ImagingOrderService } from '../../services/imaging-order.service';
 
@@ -52,6 +54,7 @@ type OrdersTab = 'lab' | 'imaging';
 export class PatientOrdersPage {
   private readonly labOrderService = inject(LabOrderService);
   private readonly imagingOrderService = inject(ImagingOrderService);
+  private readonly auth = inject(AuthService);
   private readonly confirmationService = inject(ConfirmationService);
   private readonly toast = inject(MessageService);
   private readonly router = inject(Router);
@@ -112,8 +115,10 @@ export class PatientOrdersPage {
     });
   }
 
-  protected canCancel(status: string): boolean {
-    return status !== 'completed' && status !== 'cancelled';
+  /** Cancelling lab and imaging orders are separate (doctor-only) permissions on the backend. */
+  protected canCancel(status: string, kind: OrdersTab = 'lab'): boolean {
+    if (status === 'completed' || status === 'cancelled') return false;
+    return this.auth.hasPermission(kind === 'lab' ? 'lab-order:cancel' : 'imaging-order:cancel');
   }
 
   protected requestCancel(kind: OrdersTab, id: string): void {
@@ -143,29 +148,26 @@ export class PatientOrdersPage {
       return;
     }
     const kind = this.cancelTargetKind();
-    const onCancelled = () => {
-      this.toast.add({
-        severity: 'success',
-        summary: 'Zlecenie anulowane',
-      });
-      if (kind === 'lab') this.labResource.reload();
-      else this.imagingResource.reload();
-    };
-    if (kind === 'lab') {
-      const version = this.labResource.value()?.find((o) => o.id === id)?.version;
-      this.labOrderService.cancelOrder(id, reason, version).subscribe({
-        next: onCancelled,
-        error: (error: unknown) => {
-          this.toast.add({
-            severity: 'error',
-            summary: 'Nie udało się anulować zlecenia',
-            detail: toApiError(error).problem.detail,
-          });
-          this.labResource.reload();
-        },
-      });
-    } else {
-      this.imagingOrderService.cancelOrder(id, reason).subscribe(onCancelled);
-    }
+    const resource = kind === 'lab' ? this.labResource : this.imagingResource;
+    const version = resource.value()?.find((o) => o.id === id)?.version;
+    const cancel$: Observable<unknown> =
+      kind === 'lab'
+        ? this.labOrderService.cancelOrder(id, reason, version)
+        : this.imagingOrderService.cancelOrder(id, reason, version);
+    cancel$.subscribe({
+      next: () => {
+        this.toast.add({ severity: 'success', summary: 'Zlecenie anulowane' });
+        resource.reload();
+      },
+      // Reload after a failure too: a 409 means the loaded status/version is stale.
+      error: (error: unknown) => {
+        this.toast.add({
+          severity: 'error',
+          summary: 'Nie udało się anulować zlecenia',
+          detail: toApiError(error).problem.detail,
+        });
+        resource.reload();
+      },
+    });
   }
 }

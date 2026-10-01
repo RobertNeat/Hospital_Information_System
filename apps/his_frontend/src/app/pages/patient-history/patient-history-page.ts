@@ -7,7 +7,8 @@ import { Select } from 'primeng/select';
 import { Tab, TabList, TabPanel, TabPanels, Tabs } from 'primeng/tabs';
 import { Timeline } from 'primeng/timeline';
 import { Button } from 'primeng/button';
-import { forkJoin } from 'rxjs';
+import { catchError, forkJoin, of, tap } from 'rxjs';
+import type { Observable } from 'rxjs';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { DataTable } from '../../components/data-table/data-table';
 import { EmptyState } from '../../components/empty-state/empty-state';
@@ -33,6 +34,7 @@ import type {
 } from '../../models';
 import { LabelPipe } from '../../pipes/label.pipe';
 import { StaffNamePipe } from '../../pipes/staff-name.pipe';
+import { AuthService } from '../../services/auth.service';
 import { EhrService } from '../../services/ehr.service';
 import { StaffService } from '../../services/staff.service';
 import { WardService } from '../../services/ward.service';
@@ -52,6 +54,9 @@ const VALID_TABS: HistoryTab[] = [
   'treatments',
   'allergies',
 ];
+
+/** Tabs backed by `ehr:read` only; `ehr:read-limited` sees just diagnoses, allergies, treatments. */
+const FULL_ONLY_TABS: HistoryTab[] = ['overview', 'encounters', 'notes'];
 
 @Component({
   selector: 'app-patient-history-page',
@@ -90,15 +95,20 @@ export class PatientHistoryPage {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly toast = inject(MessageService);
+  private readonly auth = inject(AuthService);
 
   readonly patientId = input.required<string>();
   readonly tab = input<string>();
 
   protected readonly currentUserId = computed(() => this.staffService.currentUser().id);
 
+  /** Full chart (`ehr:read`); otherwise only the limited sections are requested and shown. */
+  protected readonly canReadFull = computed(() => this.auth.hasPermission('ehr:read'));
+
   protected readonly activeTab = computed<HistoryTab>(() => {
     const t = this.tab();
-    return (VALID_TABS as string[]).includes(t ?? '') ? (t as HistoryTab) : 'overview';
+    const requested = (VALID_TABS as string[]).includes(t ?? '') ? (t as HistoryTab) : 'overview';
+    return !this.canReadFull() && FULL_ONLY_TABS.includes(requested) ? 'diagnoses' : requested;
   });
 
   protected readonly noteCategoryOptions = NOTE_CATEGORY_OPTIONS;
@@ -115,17 +125,39 @@ export class PatientHistoryPage {
 
   private readonly ehrResource = rxResource({
     params: () => this.patientId(),
-    stream: ({ params: pid }) =>
-      forkJoin({
-        summary: this.ehrService.getSummary(pid),
-        encounters: this.ehrService.getEncounters(pid),
-        episodes: this.ehrService.getEpisodes(pid),
-        notes: this.ehrService.getNotes(pid),
-        diagnoses: this.ehrService.getDiagnoses(pid),
-        treatments: this.ehrService.getTreatments(pid),
-        allergies: this.ehrService.getAllergies(pid),
-        contraindications: this.ehrService.getContraindications(pid),
-      }),
+    stream: ({ params: pid }) => {
+      // Sections load independently: one failing (e.g. 403) must not blank the others.
+      let failed = false;
+      const section = <T, F>(source: Observable<T>, fallback: F): Observable<T | F> =>
+        source.pipe(
+          catchError(() => {
+            failed = true;
+            return of(fallback);
+          }),
+        );
+      const full = this.canReadFull();
+      const none = <F>(fallback: F): Observable<F> => of(fallback);
+      return forkJoin({
+        summary: full ? section(this.ehrService.getSummary(pid), null) : none(null),
+        encounters: full ? section(this.ehrService.getEncounters(pid), []) : none([]),
+        episodes: full ? section(this.ehrService.getEpisodes(pid), []) : none([]),
+        notes: full ? section(this.ehrService.getNotes(pid), []) : none([]),
+        diagnoses: section(this.ehrService.getDiagnoses(pid), []),
+        treatments: section(this.ehrService.getTreatments(pid), []),
+        allergies: section(this.ehrService.getAllergies(pid), []),
+        contraindications: section(this.ehrService.getContraindications(pid), []),
+      }).pipe(
+        tap(() => {
+          if (failed) {
+            this.toast.add({
+              severity: 'warn',
+              summary: 'Historia choroby',
+              detail: 'Nie wszystkie sekcje udało się wczytać.',
+            });
+          }
+        }),
+      );
+    },
   });
 
   protected readonly loading = computed(() => this.ehrResource.isLoading());

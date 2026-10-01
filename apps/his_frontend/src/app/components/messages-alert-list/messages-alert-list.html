@@ -20,13 +20,14 @@
         <span [id]="'messages-alert-list-muted-3-' + idx0" class="his-muted">{{
           alertAgo()(alert)
         }}</span>
-        @if (alert.link) {
+        @if (route(alert); as link) {
           <p-button
             [id]="'messages-alert-list-goto-' + alert.id"
             label="Przejdź"
             severity="secondary"
             size="small"
-            [routerLink]="alert.link"
+            [routerLink]="link.commands"
+            [queryParams]="link.queryParams"
           />
         }
         @if (!alert.acknowledged) {

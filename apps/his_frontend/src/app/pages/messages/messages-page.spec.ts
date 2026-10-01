@@ -1,11 +1,12 @@
 import { staffServiceStub } from '../../testing/staff-service.stub';
+import { patientServiceStub } from '../../testing/patient-service.stub';
+import { teamMessageServiceStub } from '../../testing/team-message-service.stub';
 import { wardServiceStub } from '../../testing/ward-service.stub';
 import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { MessageService } from 'primeng/api';
 import { MessagesPage } from './messages-page';
-import { MOCK_LATENCY_MS } from '../../config/mock-api.config';
 
 // jsdom has no ResizeObserver; PrimeNG's p-tabs relies on it in ngAfterViewInit.
 class ResizeObserverStub {
@@ -23,17 +24,18 @@ describe('MessagesPage', () => {
         provideRouter([]),
         MessageService,
         wardServiceStub,
-        { provide: MOCK_LATENCY_MS, useValue: 0 },
+        patientServiceStub,
+        teamMessageServiceStub,
       ],
     });
   });
 
-  it('renders the page header and the demo-mode info message', async () => {
+  it('renders the page header and the live-update info message', async () => {
     const fixture = TestBed.createComponent(MessagesPage);
     await fixture.whenStable();
     const el = fixture.nativeElement as HTMLElement;
     expect(el.textContent).toContain('Komunikacja zespołowa');
-    expect(el.textContent).toContain('Tryb demonstracyjny');
+    expect(el.textContent).toContain('na żywo');
   });
 
   it('defaults to the "Wiadomości" tab and shows a thread with messages', async () => {

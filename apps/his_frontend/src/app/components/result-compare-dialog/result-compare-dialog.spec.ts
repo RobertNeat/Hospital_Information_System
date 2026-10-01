@@ -2,14 +2,13 @@ import { labResultServiceStub } from '../../testing/lab-result-service.stub';
 import { describe, expect, it, beforeEach } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { firstValueFrom } from 'rxjs';
-import { MOCK_LATENCY_MS } from '../../config/mock-api.config';
 import { ResultCompareDialog } from './result-compare-dialog';
 import { LabResultService } from '../../services/lab-result.service';
 
 describe('ResultCompareDialog', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [labResultServiceStub, { provide: MOCK_LATENCY_MS, useValue: 0 }],
+      providers: [labResultServiceStub],
     });
   });
 

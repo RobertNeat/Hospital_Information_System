@@ -130,7 +130,7 @@
               }
             </ng-template>
             <ng-template #rowActions let-row>
-              @if (canCancel(row.status)) {
+              @if (canCancel(row.status, 'imaging')) {
                 <button
                   [id]="'patient-orders-icon-btn-2-' + row.id"
                   type="button"

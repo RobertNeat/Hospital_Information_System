@@ -1,79 +1,27 @@
-// Mock implementation; backend authoritative - see docs/his_frontend_contract/CONVENTIONS.md.
-import { VITAL_THRESHOLDS } from '../constants/vitals-thresholds';
-import type { ISODateTime, VitalAnomaly, VitalSigns, VitalType } from '../models';
+import type { AnomalyDirection, AnomalySeverity, VitalThreshold, VitalType } from '../models';
 
-const VITAL_LABELS: Record<VitalType, string> = {
-  systolic: 'Ciśnienie skurczowe',
-  diastolic: 'Ciśnienie rozkurczowe',
-  heartRate: 'Tętno',
-  temperature: 'Temperatura',
-  spo2: 'Saturacja SpO₂',
-  respiratoryRate: 'Częstość oddechów',
-};
+export type VitalThresholds = Partial<Record<VitalType, VitalThreshold>>;
 
-function evaluateOne(type: VitalType, value: number, recordedAt: ISODateTime): VitalAnomaly | null {
-  const t = VITAL_THRESHOLDS[type];
-  const label = VITAL_LABELS[type];
-
-  if (value < t.criticalLow) {
-    return {
-      type,
-      value,
-      severity: 'critical',
-      direction: 'low',
-      message: `${label}: wartość krytycznie niska (${value} ${t.unit}).`,
-      recordedAt,
-    };
-  }
-  if (value > t.criticalHigh) {
-    return {
-      type,
-      value,
-      severity: 'critical',
-      direction: 'high',
-      message: `${label}: wartość krytycznie wysoka (${value} ${t.unit}).`,
-      recordedAt,
-    };
-  }
-  if (value < t.low) {
-    return {
-      type,
-      value,
-      severity: 'warning',
-      direction: 'low',
-      message: `${label}: wartość poniżej normy (${value} ${t.unit}).`,
-      recordedAt,
-    };
-  }
-  if (value > t.high) {
-    return {
-      type,
-      value,
-      severity: 'warning',
-      direction: 'high',
-      message: `${label}: wartość powyżej normy (${value} ${t.unit}).`,
-      recordedAt,
-    };
-  }
-  return null;
+export interface VitalClassification {
+  severity: AnomalySeverity;
+  direction: AnomalyDirection;
 }
 
-/** Evaluates every present vital field of `v` against `VITAL_THRESHOLDS`. */
-export function evaluateVitals(v: VitalSigns): VitalAnomaly[] {
-  const anomalies: VitalAnomaly[] = [];
-  const fields: VitalType[] = [
-    'systolic',
-    'diastolic',
-    'heartRate',
-    'temperature',
-    'spo2',
-    'respiratoryRate',
-  ];
-  for (const field of fields) {
-    const value = v[field];
-    if (value === undefined || value === null) continue;
-    const anomaly = evaluateOne(field, value, v.recordedAt);
-    if (anomaly) anomalies.push(anomaly);
-  }
-  return anomalies;
+/**
+ * Display-only classification of one value against backend thresholds (strict comparisons, as on
+ * the server). Colours history cells and trend points, where the backend returns no anomalies.
+ * Anomalies of a saved reading and of the ward overview always come from the backend.
+ */
+export function classifyVital(
+  thresholds: VitalThresholds,
+  type: VitalType,
+  value: number | null | undefined,
+): VitalClassification | undefined {
+  const t = thresholds[type];
+  if (!t || value === undefined || value === null) return undefined;
+  if (value < t.criticalLow) return { severity: 'critical', direction: 'low' };
+  if (value > t.criticalHigh) return { severity: 'critical', direction: 'high' };
+  if (value < t.low) return { severity: 'warning', direction: 'low' };
+  if (value > t.high) return { severity: 'warning', direction: 'high' };
+  return undefined;
 }

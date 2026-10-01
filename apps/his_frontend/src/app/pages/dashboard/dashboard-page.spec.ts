@@ -1,16 +1,19 @@
-import { labOrderServiceStub } from '../../testing/lab-order-service.stub';
 import { labResultServiceStub } from '../../testing/lab-result-service.stub';
 import { patientServiceStub } from '../../testing/patient-service.stub';
 import { ehrServiceStub } from '../../testing/ehr-service.stub';
 import { wardServiceStub } from '../../testing/ward-service.stub';
+import {
+  DASHBOARD_STATS_FIXTURE,
+  dashboardServiceStub,
+} from '../../testing/dashboard-service.stub';
+import { teamMessageServiceStub } from '../../testing/team-message-service.stub';
 import { staffServiceStub } from '../../testing/staff-service.stub';
-import { describe, expect, it, beforeEach, vi } from 'vitest';
+import { afterEach, describe, expect, it, beforeEach, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import { DashboardPage } from './dashboard-page';
-import { MOCK_LATENCY_MS } from '../../config/mock-api.config';
 import { PatientContextService } from '../../services/patient-context.service';
-import type { PatientSummary } from '../../models';
+import type { ClinicalAlert, PatientSummary } from '../../models';
 
 const SUMMARY: PatientSummary = {
   id: 'pat-001',
@@ -25,7 +28,14 @@ const SUMMARY: PatientSummary = {
 };
 
 describe('DashboardPage', () => {
+  // Storage must not leak into other specs (auth.service.spec asserts it is empty).
+  afterEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+  });
+
   beforeEach(() => {
+    localStorage.clear();
     sessionStorage.clear();
     TestBed.configureTestingModule({
       providers: [
@@ -34,9 +44,9 @@ describe('DashboardPage', () => {
         wardServiceStub,
         staffServiceStub,
         provideRouter([]),
-        labOrderServiceStub,
         labResultServiceStub,
-        { provide: MOCK_LATENCY_MS, useValue: 0 },
+        dashboardServiceStub,
+        teamMessageServiceStub,
       ],
     });
   });
@@ -100,5 +110,45 @@ describe('DashboardPage', () => {
     expect(ctx.recentPatients().length).toBe(0);
     const el = fixture.nativeElement as HTMLElement;
     expect(el.textContent).toContain('Ostatnio przeglądani pacjenci');
+  });
+
+  it('shows the counters returned by the backend stats endpoint', async () => {
+    const fixture = TestBed.createComponent(DashboardPage);
+    await fixture.whenStable();
+    expect(fixture.componentInstance['stats']()).toEqual(DASHBOARD_STATS_FIXTURE);
+  });
+
+  it('links a critical alert through its target and falls back to the patient overview', async () => {
+    const fixture = TestBed.createComponent(DashboardPage);
+    await fixture.whenStable();
+    const page = fixture.componentInstance as unknown as {
+      alertLink: (a: Partial<ClinicalAlert>) => { commands: string[] } | null;
+    };
+    expect(
+      page.alertLink({ target: { kind: 'lab_result', id: 'lres-1', patientId: 'pat-001' } })
+        ?.commands,
+    ).toEqual(['/patients', 'pat-001', 'results', 'lab', 'lres-1']);
+    expect(page.alertLink({ patientId: 'pat-002' })?.commands).toEqual([
+      '/patients',
+      'pat-002',
+      'overview',
+    ]);
+    expect(page.alertLink({})).toBeNull();
+  });
+
+  it('names an inbox result without `patient` by resolving its patientId', async () => {
+    const fixture = TestBed.createComponent(DashboardPage);
+    await fixture.whenStable();
+    const page = fixture.componentInstance as unknown as {
+      resultPatientName: (r: unknown) => string;
+      resolveMissingPatients: (r: unknown[]) => void;
+    };
+    const row = { patientId: 'pat-001' };
+    expect(page.resultPatientName({ ...row, patient: SUMMARY })).toBe('Kowalski Jan');
+    expect(page.resultPatientName(row)).toBe('');
+
+    page.resolveMissingPatients([row]);
+    await fixture.whenStable();
+    expect(page.resultPatientName(row)).not.toBe('');
   });
 });

@@ -21,7 +21,7 @@ export type AnomalyDirection = 'low' | 'high';
  * Single vital-signs measurement (immutable: no update/version; correction = new reading).
  * A flat row with nullable columns is a deliberate decision (no EAV / observation list).
  * `painScore` is outside `VitalType` and has no thresholds.
- * `recordedById` is the actor from the session (target: server-assigned, not sent by the client).
+ * `recordedById` is the actor from the session (assigned by the server).
  */
 export interface VitalSigns {
   id: ID;
@@ -44,13 +44,7 @@ export interface VitalSigns {
   notes?: string;
 }
 
-/**
- * @deprecated Use `VitalSignsCreateRequest` from `models/api`. Target shape omits `recordedById`
- * (taken from the session); kept for now because the UI still sends it.
- */
-export type VitalSignsDraft = Omit<VitalSigns, 'id'>;
-
-/** Configuration; target source: `GET /vital-thresholds`. */
+/** Configuration served by `GET /vital-thresholds` (read-only for the client). */
 export interface VitalThreshold {
   type: VitalType;
   label: string;

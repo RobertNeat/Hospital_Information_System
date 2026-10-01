@@ -1,5 +1,5 @@
 import type { ID, ISODateTime } from '../common.model';
-import type { StaffMember, StaffRole } from '../staff.model';
+import type { StaffMember, StaffRole, Ward } from '../staff.model';
 
 export interface LoginRequest {
   employeeId: string;
@@ -17,6 +17,9 @@ export interface LoginResponse {
   user: CurrentUser;
   expiresAt: ISODateTime;
 }
+
+/** Ward entry of the public registration dictionary. */
+export type PublicWard = Pick<Ward, 'id' | 'name' | 'shortName'>;
 
 export interface StaffRegistrationRequest {
   firstName: string;

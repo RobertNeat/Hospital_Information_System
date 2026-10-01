@@ -37,6 +37,9 @@ importers:
       '@primeuix/themes':
         specifier: ^3.0.1
         version: 3.0.1
+      '@stomp/stompjs':
+        specifier: ^7.3.0
+        version: 7.3.0
       chart.js:
         specifier: ^4.4.0
         version: 4.5.1
@@ -1762,6 +1765,9 @@ packages:
 
   '@standard-schema/spec@1.1.0':
     resolution: {integrity: sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==}
+
+  '@stomp/stompjs@7.3.0':
+    resolution: {integrity: sha512-nKMLoFfJhrQAqkvvKd1vLq/cVBGCMwPRCD0LqW7UT1fecRx9C3GoKEIR2CYwVuErGeZu8w0kFkl2rlhPlqHVgQ==}
 
   '@tufjs/canonical-json@2.0.0':
     resolution: {integrity: sha512-yVtV8zsdo8qFHe+/3kw81dSLyF7D576A5cCFCi4X7B39tWT7SekaEFUnvnWJHz+9qO7qJTah1JbrDjWKqFtdWA==}
@@ -5145,6 +5151,8 @@ snapshots:
       '@sigstore/protobuf-specs': 0.5.2
 
   '@standard-schema/spec@1.1.0': {}
+
+  '@stomp/stompjs@7.3.0': {}
 
   '@tufjs/canonical-json@2.0.0': {}
 

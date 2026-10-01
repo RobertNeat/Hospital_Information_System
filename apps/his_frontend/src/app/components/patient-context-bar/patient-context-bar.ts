@@ -48,7 +48,7 @@ export class PatientContextBar {
 
   protected readonly wardName = computed(() => {
     const admission = this.patient().currentAdmission;
-    return admission ? this.wardService.nameOf(admission.wardId) : undefined;
+    return admission?.wardId ? this.wardService.nameOf(admission.wardId) : undefined;
   });
 
   protected emit(a: PatientBarAction): void {

@@ -2,7 +2,7 @@
 
 Endpointy `/terminology/snomed/*` i integracja z serwerem terminologii FHIR (Snowstorm Lite). Powrót: [README.md](README.md).
 
-Kod: `terminology/snomed/*` (`TerminologyController`, `SnowstormClient`, `SnowstormProperties`, `TerminologyException`, `TerminologyExceptionHandler`).
+Kod: `terminology/snomed/*` (`TerminologyController`, `TerminologySuggestionService`, `SpecializationEclResolver`, `SuggestionProperties`, `SnowstormClient`, `SnowstormProperties`, `TerminologyException`, `TerminologyExceptionHandler`).
 
 ## Endpointy
 
@@ -12,6 +12,7 @@ Dostęp: wystarczy uwierzytelnienie (`/api/**` jest `authenticated`; brak `@PreA
 | --- | --- | --- | --- | --- |
 | GET | `/api/v1/terminology/snomed/concepts` | `ecl` (opc.), `term` (opc.), `limit` (domyślnie 20), `offset` (domyślnie 0); wymagane `ecl` lub `term` | `SnomedConceptPage` (`total`, `offset`, `concepts[]` `{ code, display }`) | 200; 400; 503 |
 | GET | `/api/v1/terminology/snomed/concepts/{sctid}` | `sctid`: 6-18 cyfr | `SnomedConcept` (`code`, `display`) | 200; 400; 404; 503 |
+| GET | `/api/v1/terminology/snomed/suggestions` | `kind` (wymagany: `diagnosis`, `symptom`, `procedure`; wielkość liter bez znaczenia), `term` (opc.), `size` (domyślnie 20) | `SnomedConceptPage` (`total`, `offset`=0, `concepts[]` `{ code, display }`) | 200; 400; 503 |
 
 Zachowanie `GET /concepts`:
 
@@ -19,6 +20,18 @@ Zachowanie `GET /concepts`:
 - Podane `ecl` (z `term` lub bez) -> `ecl` jako zakres, `term` jako filtr.
 - Walidacja lokalna (400): brak `ecl` i `term` ("Wymagany jest parametr ecl lub term"); `ecl` > 2000 znaków; `term` > 200 znaków; `limit` poza `1..HIS_SNOWSTORM_MAX_PAGE_SIZE` (domyślnie 100); `offset` < 0. Zły typ `limit`/`offset` (np. tekst) -> 422 z globalnego handlera.
 - `sctid` niepasujący do `\d{6,18}` -> 400. Nieznany kod (Snowstorm: 400/404/422 na `$lookup`) -> 404.
+
+## Podpowiedzi wg specjalizacji (`GET /suggestions`)
+
+Backend wybiera zakres ECL na podstawie `StaffMember.specialization` zalogowanego pracownika (`staffId` z JWT, specjalizacja czytana z bazy) i rodzaju (`kind`), po czym woła Snowstorm tak jak `GET /concepts` (`term` jako filtr tekstowy, `size` jako `count`, `offset` zawsze 0). Zwraca zwykłe `SnomedConcept` (SCTID + `display`); ECL nie jest zwracany ani przyjmowany od klienta.
+
+- Konfiguracja: `his.terminology.suggestions.*` w `application.properties` (bez tabeli Liquibase: to wyłącznie wyrażenia ECL/SCTID, zmieniane razem z wdrożeniem, bez migracji). `fallback.{diagnosis,symptom,procedure}` = zestaw domyślny; `profiles[n].specializations` (lista) + `diagnosis`/`symptom`/`procedure` = ECL profilu.
+- Dopasowanie specjalizacji: bez wielkości liter i bez znaków diakrytycznych, nadmiarowe spacje ignorowane (np. `Choroby wewnętrzne` = `choroby wewnetrzne`); nazwy w konfiguracji zapisuje się w postaci znormalizowanej (ASCII).
+- Zestaw domyślny (`fallback`) dotyczy: pustej/nieznanej specjalizacji, nieznanego pracownika, principala bez `staffId` oraz profilu bez ECL danego rodzaju. Gdy i `fallback` jest pusty: `<< 64572001` (rozpoznania), `<< 418799008` (objawy), `<< 71388002` (procedury).
+- Bazowe ECL (SCTID z hierarchii SNOMED CT): rozpoznania `<< 64572001` (Disease) lub `<< 404684003` (Clinical finding), objawy `<< 418799008` (Finding reported by subject), procedury `<< 71388002` (Procedure). Profile (specjalizacje z danych mock i kont demo): choroby wewnętrzne/medycyna rodzinna (procedury diagnostyczne i zabiegowe `<< 103693007 OR << 387713003`), kardiologia i neurologia (rozpoznania `<< 404684003 : 363698007 = << <struktura>`, procedury `<< 71388002 : 363704007 = << <struktura>`; struktura `113257007` układ krążenia / `21483005` OUN), chirurgia ogólna (procedury `<< 387713003`), medycyna ratunkowa (`<< 404684003`, `<< 71388002`), radiologia (procedury `<< 363679005`), diagnostyka laboratoryjna (procedury `<< 108252007`).
+- Walidacja (400, przed sprawdzeniem `enabled`): brak lub nieznany `kind`; `size` poza `1..HIS_SNOWSTORM_MAX_PAGE_SIZE`; `term` > 200 znaków. Zły typ `size` -> 422. Integracja wyłączona/niedostępna -> 503. Uprawnienia: jak pozostałe endpointy terminologii (samo uwierzytelnienie).
+- Walidacja kodów SNOMED zapisywanych w EHR nie zmienia się: tylko format SCTID, bez sprawdzania zgodności ze specjalizacją.
+- Nie sprawdzono na rzeczywistym Snowstormie: obsługa składni ECL (filtr `:` z atrybutami, `OR`) w Lite; testy używają zamockowanego klienta. Ewentualne odrzucenie ECL przez serwer daje 400 (HTTP 501/400).
 
 ## Integracja ze Snowstorm Lite
 

@@ -20,6 +20,7 @@ import type {
   ScheduleSlot,
 } from '../../models';
 import { ageFromBirthDate } from '../../utils/date-utils';
+import { rawValueSignal } from '../../utils/form-signals';
 import { EhrService } from '../../services/ehr.service';
 import { LabResultService } from '../../services/lab-result.service';
 import { buildDiagnosisOptions, type DiagnosisOption } from '../../utils/diagnosis-options';
@@ -148,7 +149,6 @@ export function buildImagingOrderDraft(i: ImagingOrderPayloadInput): ImagingOrde
       egfr: i.creatinineEgfr?.egfr,
     },
     slotId: i.slot?.id,
-    scheduledAt: i.slot?.start,
     orderedById: i.orderedById,
   };
 }
@@ -190,21 +190,23 @@ export function createSafetyState(deps: {
   patient: Signal<Patient | null>;
   egfr: Signal<CreatinineEgfr | null>;
 }) {
-  const { step1Form, step3Form } = deps;
+  // Reactive forms are not signals: track their values through value-change signals.
+  const step1 = rawValueSignal(deps.step1Form);
+  const step3 = rawValueSignal(deps.step3Form);
   const patientAge = computed<number | null>(() => {
     const p = deps.patient();
     return p ? ageFromBirthDate(p.birthDate) : null;
   });
   const needs = computed(() =>
-    needsPregnancyCheck(step1Form.controls.modality.value, patientAge(), deps.patient()?.gender),
+    needsPregnancyCheck(step1().modality, patientAge(), deps.patient()?.gender),
   );
-  const isMri = computed(() => step1Form.controls.modality.value === 'MRI');
+  const isMri = computed(() => step1().modality === 'MRI');
   const egfrBlocksContrast = computed(() => {
     const egfr = deps.egfr()?.egfr;
-    return step1Form.controls.contrast.value && typeof egfr === 'number' && egfr < 30;
+    return step1().contrast && typeof egfr === 'number' && egfr < 30;
   });
   const step3Blocked = computed(() => {
-    const s3 = step3Form.getRawValue();
+    const s3 = step3();
     return isSafetyBlocked({
       isMri: isMri(),
       implantOrMetal: s3.pacemakerOrImplant || s3.metalFragments,

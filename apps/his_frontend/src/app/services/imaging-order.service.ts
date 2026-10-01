@@ -1,82 +1,99 @@
+import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import type { Observable } from 'rxjs';
-import { MOCK_LATENCY_MS } from '../config/mock-api.config';
-import { IMAGING_CATALOG } from '../mock-data/imaging-catalog.mock';
-import { IMAGING_ORDERS } from '../mock-data/imaging-orders.mock';
-import { generateSlots } from '../mock-data/schedule-slots.mock';
+import {
+  IMAGING_EXAMS_URL,
+  IMAGING_ORDERS_URL,
+  IMAGING_SLOTS_URL,
+  imagingOrderCancelUrl,
+  imagingOrderStatusUrl,
+  imagingOrderUrl,
+  patientImagingOrdersUrl,
+} from '../config/api.config';
 import type {
   ID,
   ImagingExam,
   ImagingModality,
   ImagingOrder,
-  ImagingOrderCreateRequest,
-  ImagingOrderFilter,
   ISODate,
   OrderStatus,
   ScheduleSlot,
 } from '../models';
-import { mockError, mockResponse, nextId } from '../utils/mock-response';
+import type {
+  ImagingOrderCreateRequest,
+  ImagingOrderFilter,
+  OrderCancelRequest,
+  OrderStatusUpdateRequest,
+  Page,
+} from '../models/api';
+import { toHttpParams } from '../utils/http-params';
+import { MAX_PAGE_SIZE, readAllPages } from '../utils/read-all-pages';
 
+/**
+ * Imaging catalog, slots and orders backed by `/imaging-exams`, `/imaging-slots` and
+ * `/imaging-orders`. The backend owns ids, the state machine (no `specimen_collected`), slot
+ * reservation and the status history. Failures (404/409/422) arrive as `HttpErrorResponse` with a
+ * `ProblemDetail` body (see `toApiError`); 422 `errors[].field` is e.g. `examCode`/`slotId`
+ * (`notFound`), `laterality` (`required`), `contrast` (`notAllowed`), `safety.confirmed`
+ * (`required`); 409 on a taken slot.
+ */
 @Injectable({ providedIn: 'root' })
 export class ImagingOrderService {
-  private readonly latency = inject(MOCK_LATENCY_MS);
-  private readonly catalog: ImagingExam[] = structuredClone(IMAGING_CATALOG);
-  private readonly orders: ImagingOrder[] = structuredClone(IMAGING_ORDERS);
-  private sequence = this.orders.length;
+  private readonly http = inject(HttpClient);
 
   getCatalog(modality?: ImagingModality): Observable<ImagingExam[]> {
-    const result = modality ? this.catalog.filter((e) => e.modality === modality) : this.catalog;
-    return mockResponse(result, this.latency);
+    return this.http.get<ImagingExam[]>(IMAGING_EXAMS_URL, { params: toHttpParams({ modality }) });
   }
 
+  /** All slots of the modality starting on `date` (Europe/Warsaw day), taken ones have `available=false`. */
   getSlots(modality: ImagingModality, date: ISODate): Observable<ScheduleSlot[]> {
-    return mockResponse(generateSlots(modality, date), this.latency);
+    return this.http.get<ScheduleSlot[]>(IMAGING_SLOTS_URL, {
+      params: toHttpParams({ modality, date }),
+    });
   }
 
+  /** All orders matching the filter, newest first (every page is read). */
   getOrders(filter?: ImagingOrderFilter): Observable<ImagingOrder[]> {
-    let result = this.orders;
-    if (filter?.patientId) result = result.filter((o) => o.patientId === filter.patientId);
-    if (filter?.status) result = result.filter((o) => o.status === filter.status);
-    if (filter?.urgency) result = result.filter((o) => o.urgency === filter.urgency);
-    if (filter?.modality) result = result.filter((o) => o.modality === filter.modality);
-    return mockResponse(result, this.latency);
+    return readAllPages((page) =>
+      this.http.get<Page<ImagingOrder>>(IMAGING_ORDERS_URL, {
+        params: toHttpParams({
+          patientId: filter?.patientId,
+          status: filter?.status,
+          urgency: filter?.urgency,
+          modality: filter?.modality,
+          page,
+          size: MAX_PAGE_SIZE,
+        }),
+      }),
+    );
   }
 
   getOrderById(id: ID): Observable<ImagingOrder> {
-    const found = this.orders.find((o) => o.id === id);
-    if (!found) return mockError(`Nie znaleziono zlecenia o id ${id}`, this.latency);
-    return mockResponse(found, this.latency);
+    return this.http.get<ImagingOrder>(imagingOrderUrl(id));
   }
 
+  /**
+   * The orderer comes from the token (`orderedById` is ignored); exam name/modality/body region are
+   * taken from the catalog. With `slotId` the order is `scheduled` at once and the slot is reserved.
+   */
   createOrder(draft: ImagingOrderCreateRequest): Observable<ImagingOrder> {
-    this.sequence++;
-    const now = new Date().toISOString();
-    const status: OrderStatus = draft.slotId ? 'scheduled' : 'ordered';
-    const order: ImagingOrder = {
-      ...draft,
-      id: nextId('iord', this.sequence),
-      orderedAt: now,
-      status,
-      statusHistory: [{ status, at: now, byId: draft.orderedById }],
-    };
-    this.orders.push(order);
-    return mockResponse(order, this.latency);
+    return this.http.post<ImagingOrder>(patientImagingOrdersUrl(draft.patientId), draft);
   }
 
-  updateStatus(id: ID, status: OrderStatus, note?: string): Observable<ImagingOrder> {
-    const index = this.orders.findIndex((o) => o.id === id);
-    if (index === -1) return mockError(`Nie znaleziono zlecenia o id ${id}`, this.latency);
-    const now = new Date().toISOString();
-    const updated: ImagingOrder = {
-      ...this.orders[index],
-      status,
-      statusHistory: [...this.orders[index].statusHistory, { status, at: now, note }],
-    };
-    this.orders[index] = updated;
-    return mockResponse(updated, this.latency);
+  /** Pass the loaded `version`; 409 on a forbidden transition or version mismatch. Not for `cancelled`. */
+  updateStatus(
+    id: ID,
+    status: OrderStatus,
+    note?: string,
+    version?: number,
+  ): Observable<ImagingOrder> {
+    const body: OrderStatusUpdateRequest = { status, note, version };
+    return this.http.post<ImagingOrder>(imagingOrderStatusUrl(id), body);
   }
 
-  cancelOrder(id: ID, reason: string): Observable<ImagingOrder> {
-    return this.updateStatus(id, 'cancelled', reason);
+  /** Releases a reserved slot; `reason` is required. */
+  cancelOrder(id: ID, reason: string, version?: number): Observable<ImagingOrder> {
+    const body: OrderCancelRequest = { reason, version };
+    return this.http.post<ImagingOrder>(imagingOrderCancelUrl(id), body);
   }
 }

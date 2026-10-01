@@ -43,6 +43,17 @@
       </button>
     }
 
+    <span
+      id="app-header-realtime-status"
+      class="his-header__realtime"
+      [class.his-header__realtime--connected]="realtimeStatus() === 'connected'"
+      [class.his-header__realtime--connecting]="realtimeStatus() === 'connecting'"
+      role="status"
+      [attr.aria-label]="realtimeLabel()"
+      [pTooltip]="realtimeLabel()"
+      tooltipPosition="bottom"
+    ></span>
+
     <button
       id="app-header-header-icon-btn-3"
       type="button"

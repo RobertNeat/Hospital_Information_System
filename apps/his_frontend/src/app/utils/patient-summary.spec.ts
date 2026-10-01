@@ -58,4 +58,16 @@ describe('toPatientSummary', () => {
     expect(s.wardName).toBeUndefined();
     expect(s.bed).toBeUndefined();
   });
+
+  it('handles an outpatient admission without ward or physician', () => {
+    const s = toPatientSummary(
+      makePatient({
+        status: 'outpatient',
+        currentAdmission: { admissionType: 'outpatient', admittedAt: '2026-01-01T00:00:00Z' },
+      }),
+      wards,
+    );
+    expect(s.wardName).toBeUndefined();
+    expect(s.bed).toBeUndefined();
+  });
 });

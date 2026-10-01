@@ -4,7 +4,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { MessageService } from 'primeng/api';
-import { MOCK_LATENCY_MS } from '../../config/mock-api.config';
+import { vitalsServiceStub } from '../../testing/vitals-service.stub';
 import { VitalsService } from '../../services/vitals.service';
 import { PatientVitalsPage } from './patient-vitals-page';
 import {
@@ -27,7 +27,7 @@ class TrendChartCardStub {
 describe('PatientVitalsPage', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [provideRouter([]), MessageService, { provide: MOCK_LATENCY_MS, useValue: 0 }],
+      providers: [provideRouter([]), MessageService, vitalsServiceStub],
     });
     TestBed.overrideComponent(PatientVitalsPage, {
       remove: { imports: [TrendChartCard] },
@@ -91,8 +91,6 @@ describe('PatientVitalsPage', () => {
     const result = await firstValueFrom(
       vitalsService.addVitals({
         patientId: 'pat-001',
-        recordedAt: new Date().toISOString(),
-        recordedById: 'stf-001',
         context: 'ward_round',
         heartRate: 72,
       }),

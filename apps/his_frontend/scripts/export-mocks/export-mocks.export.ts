@@ -71,7 +71,7 @@ async function loadMocks(): Promise<Mocks> {
     import(`${dir}/alerts.mock`),
     import(`${dir}/tasks.mock`),
     import(`${dir}/handoff-notes.mock`),
-    import('../../src/app/constants/vitals-thresholds'),
+    import(`${dir}/vital-thresholds.mock`),
   ]);
   return {
     STAFF: staff.STAFF,

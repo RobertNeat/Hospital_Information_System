@@ -3,19 +3,12 @@ import { describe, expect, it, beforeEach } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { ConfirmationService, MessageService } from 'primeng/api';
-import { MOCK_LATENCY_MS } from '../../config/mock-api.config';
 import { PatientPrescriptionsPage } from './patient-prescriptions-page';
 
 describe('PatientPrescriptionsPage', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [
-        prescriptionServiceStub,
-        provideRouter([]),
-        MessageService,
-        ConfirmationService,
-        { provide: MOCK_LATENCY_MS, useValue: 0 },
-      ],
+      providers: [prescriptionServiceStub, provideRouter([]), MessageService, ConfirmationService],
     });
   });
 

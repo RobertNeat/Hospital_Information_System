@@ -1,10 +1,10 @@
+import { imagingResultServiceStub } from '../../testing/imaging-result-service.stub';
 import { labResultServiceStub } from '../../testing/lab-result-service.stub';
 import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { MessageService } from 'primeng/api';
-import { MOCK_LATENCY_MS } from '../../config/mock-api.config';
 import { PatientResultsPage } from './patient-results-page';
 import { LabResultService } from '../../services/lab-result.service';
 
@@ -23,7 +23,7 @@ describe('PatientResultsPage', () => {
         provideRouter([]),
         MessageService,
         labResultServiceStub,
-        { provide: MOCK_LATENCY_MS, useValue: 0 },
+        imagingResultServiceStub,
       ],
     });
   });

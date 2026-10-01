@@ -40,4 +40,8 @@ public interface LabResultRepository extends JpaRepository<LabResult, UUID>, Jpa
             @Param("statuses") Collection<ResultStatus> statuses);
 
     boolean existsByOrderItemIdAndStatusIn(UUID orderItemId, Collection<ResultStatus> statuses);
+
+    /** Wynik pozycji o tym statusie i czasie (powtorzone przekazanie z e-laboratory jest idempotentne). */
+    java.util.Optional<LabResult> findFirstByOrderItemIdAndStatusAndResultedAt(UUID orderItemId, ResultStatus status,
+            java.time.Instant resultedAt);
 }

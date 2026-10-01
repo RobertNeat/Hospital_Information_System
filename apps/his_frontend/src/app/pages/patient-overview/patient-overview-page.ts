@@ -148,17 +148,17 @@ export class PatientOverviewPage {
     return [
       { label: 'Typ przyjęcia', value: ADMISSION_TYPE_LABELS[a.admissionType] },
       { label: 'Data przyjęcia', value: this.formatDateTime(a.admittedAt) },
-      { label: 'Oddział', value: this.wardService.nameOf(a.wardId) },
+      { label: 'Oddział', value: a.wardId ? this.wardService.nameOf(a.wardId) : null },
       { label: 'Sala/Łóżko', value: [a.room, a.bed].filter(Boolean).join(' / ') || null },
       {
         label: 'Lekarz prowadzący',
-        value: this.staffService.nameOf(a.attendingPhysicianId),
+        value: a.attendingPhysicianId ? this.staffService.nameOf(a.attendingPhysicianId) : null,
       },
       {
         label: 'Triage',
         value: a.triageLevel ? TRIAGE_LABELS[a.triageLevel] : null,
       },
-      { label: 'Powód przyjęcia', value: a.reason },
+      { label: 'Powód przyjęcia', value: a.reason ?? null },
       { label: 'Nr skierowania', value: a.referralNumber ?? null },
     ];
   });

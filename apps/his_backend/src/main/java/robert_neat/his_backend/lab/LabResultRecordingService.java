@@ -33,7 +33,7 @@ import robert_neat.his_backend.patient.PatientRepository;
 import robert_neat.his_backend.staff.StaffMemberRepository;
 
 /**
- * Wewnetrzny zapis wynikow laboratoryjnych (dla laboranta / przyszlego `e-laboratory`; bez endpointu HTTP).
+ * Wewnetrzny zapis wynikow laboratoryjnych (wywolywany przez `POST /fhir/DiagnosticReport` z `e-laboratory`; bez endpointu REST).
  * <ul>
  *   <li>422: brakujace/niespojne pola, nieznany pacjent/zlecenie/pozycja/badanie/analit, niezgodnosc pacjenta,
  *       badania lub pozycji ze zleceniem, dokladnie jedna wartosc na obserwacje;</li>

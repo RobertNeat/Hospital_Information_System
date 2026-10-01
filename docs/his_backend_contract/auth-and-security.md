@@ -38,7 +38,7 @@ Uprawnienia pochodzą wyłącznie z claima `authorities` (bez odczytu bazy przy 
 
 ## Wywołania usług e-* (`/fhir/**`)
 
-Osobny łańcuch `FhirSecurityConfig` (`@Order(1)`, `securityMatcher("/fhir/**")`) przed łańcuchem JWT: bezstanowy, bez CSRF/CORS, autoryzacja nagłówkiem `X-Service-Key` równym `his.fhir.service-key` (`HIS_FHIR_SERVICE_KEY`, porównanie w stałym czasie, pusty klucz = zawsze 401). Błąd 401 to `OperationOutcome`. Token JWT nie działa na `/fhir/**`. Rozwiązanie przejściowe (jeden współdzielony klucz dla wszystkich usług `e-*`); docelowo mTLS. Szczegóły: [rest-api-fhir.md](rest-api-fhir.md).
+Osobny łańcuch `FhirSecurityConfig` (`@Order(1)`, `securityMatcher("/fhir/**")`) przed łańcuchem JWT: bezstanowy, bez CSRF/CORS, autoryzacja nagłówkiem `X-Service-Key` równym `his.fhir.service-key` (`HIS_FHIR_SERVICE_KEY`, porównanie w stałym czasie, pusty klucz = zawsze 401). Błąd 401 to `OperationOutcome`. Token JWT nie działa na `/fhir/**`. Rozwiązanie przejściowe (jeden współdzielony klucz dla wszystkich usług `e-*`, także e-laboratory i e-imaging); docelowo mTLS. Szczegóły: [rest-api-fhir.md](rest-api-fhir.md).
 
 ## Endpointy auth
 

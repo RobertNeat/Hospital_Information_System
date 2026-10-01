@@ -23,8 +23,8 @@ Architektura docelowa (README.md): `his_frontend` --(REST + STOMP)--> `his_backe
 | Uwierzytelnianie | JWT stateless HS256 (`spring-boot-starter-oauth2-resource-server`), token w pamięci frontendu |
 | Konta | proste konta demo (login = hasło) także na produkcji; ryzyko słabych haseł w LAN zaakceptowane |
 | Compose | `deploy/compose.yml` (kanoniczny) + `deploy/compose.dev.yml` (nakładka: `build:`, porty loopback) + `deploy/local.env` |
-| Usługi e-* | `e-receipt`: symulator (UI Thymeleaf + FHIR R4 HAPI, stan w pamięci, wywołanie zwrotne do HIS z kluczem usługowym); `e-laboratory`, `e-imaging`: tylko health; docelowo mTLS, patrz "Pozostało" |
-| Frontend | zrealizowana warstwa auth (AuthService, interceptory, guardy, login/register); pozostałe serwisy na mockach, podmiana w toku (etapy poniżej) |
+| Usługi e-* | `e-receipt`, `e-laboratory`, `e-imaging`: symulatory (UI Thymeleaf + FHIR R4 HAPI, stan w pamięci, wywołanie zwrotne do HIS z kluczem usługowym); docelowo mTLS, patrz "Pozostało" |
+| Frontend | zrealizowana warstwa auth (AuthService, interceptory, guardy, login/register); wszystkie serwisy domenowe korzystają z his_backend (etapy poniżej) |
 
 ## Stan realizacji
 
@@ -45,14 +45,16 @@ Architektura docelowa (README.md): `his_frontend` --(REST + STOMP)--> `his_backe
 | `realtime` | STOMP `/ws` (JWT w CONNECT, push po commit, rejestr online) | gotowe |
 | `terminology` | klient Snowstorm Lite, `/api/v1/terminology/snomed/*`; sprawdzony na lokalnym Lite (import 20261001) | gotowe |
 | Integracja `his_backend` <-> `e-receipt` | wysyłka recept `e_prescription` (AFTER_COMMIT, best effort) i zapis `eRxKey`; `PUT /fhir/MedicationRequest/{id}` zmienia stan recepty w HIS (klucz usługowy); anulowanie w HIS przekazywane do e-receipt; docs: `rest-api-fhir.md` | gotowe |
+| Integracja `his_backend` <-> `e-laboratory` | wysyłka zleceń lab (`ServiceRequest`, AFTER_COMMIT, best effort, `HIS_ELAB_ENABLED`), anulowanie z HIS przekazywane; `PUT /fhir/ServiceRequest/{id}` zmienia stan zlecenia wg maszyny stanów, `POST /fhir/DiagnosticReport` zapisuje wynik przez `LabResultRecordingService`; symulator `e-laboratory` (UI Thymeleaf: lista, zmiana stanu, formularz wyniku); docs: `rest-api-fhir.md` | gotowe |
+| Integracja `his_backend` <-> `e-imaging` | wysyłka zleceń obrazowych (`ServiceRequest`, AFTER_COMMIT, best effort, `HIS_EIMG_ENABLED`, zdarzenie `ImagingOrderPlaced`), anulowanie z HIS przekazywane; `PUT /fhir/ServiceRequest/{id}` zmienia stan zlecenia wg maszyny stanów (anulowanie zwalnia slot), `POST /fhir/DiagnosticReport` zapisuje wynik przez `ImagingResultRecordingService` (idempotentnie, auto-`completed`); ścieżki wspólne z lab (`FhirOrderHandler` kieruje po id zlecenia / systemie kodu badania); symulator `e-imaging` (UI Thymeleaf: lista, zmiana stanu, formularz wyniku); docs: `rest-api-fhir.md` | gotowe |
 | Wdrożenie | ujednolicony compose z e-*, Snowstorm Lite, proxy nginx `/api` i `/ws`, Actuator + health we wszystkich 4 aplikacjach Spring, `curl` w `spring.Dockerfile`, `validate_projects.sh` | gotowe |
 | Frontend: warstwa auth | AuthService, interceptory, guardy, login/register | gotowe |
-| Frontend: serwisy na `HttpClient` | `ward`, `staff`, `patient`, `ehr`, `patient-context`, `drug`, `prescription`, `lab-order`, `lab-result` (etapy F0-F4) | gotowe |
-| Frontend: serwisy na mockach | `imaging-order`, `imaging-result`, `vitals`, `team-message`, `dashboard` (etapy F5-F6) | do zrobienia |
+| Frontend: serwisy na `HttpClient` | `ward`, `staff`, `patient`, `ehr`, `patient-context`, `drug`, `prescription`, `lab-order`, `lab-result`, `imaging-order`, `imaging-result`, `vitals`, `team-message`, `dashboard` (etapy F0-F6) | gotowe |
+| Frontend: serwisy na mockach | brak (`mock-data/` zostaje dla stubów w `testing/` i testów) | gotowe |
 | Dokumentacja | `docs/his_frontend_contract`, `docs/his_backend_contract` | gotowe |
-| Weryfikacja | po F4: lint, typecheck, prettier, testy frontu (435) zielone; po B2: `verify` his_backend (935 testów) zielone, po E1: `verify` e-receipt (26 testów) zielone. Pełny przebieg po ostatnich zmianach nie był uruchomiony; wykonać na początku kolejnej sesji | do powtórzenia |
+| Weryfikacja | lint, typecheck, prettier, testy frontu (458, dwa przebiegi) i build zielone; `verify` zielone: his_backend (1000 testów), e-receipt (26), e-laboratory (34), e-imaging (35); `docker compose config` zielone. Build frontu ostrzega o budżecie initial 500 kB (849 kB; limit bez zmian) | gotowe |
 
-### Integracja his_frontend <-> his_backend (w toku)
+### Integracja his_frontend <-> his_backend (etapy F0-F8 gotowe; smoke test na realnym backendzie w "Pozostało")
 
 Zasady dla wszystkich etapów: źródłem prawdy jest `docs/his_backend_contract` (w tym sekcja odstępstw); backend jest autorytatywny, logika mockowa serwisów jest usuwana; `mock-data/` zostaje (używa go generator); po mutacji ponowne pobranie danych zamiast modyfikacji lokalnych tablic; `version` przekazywane przy aktualizacjach; zmiana modelu TS = aktualizacja `docs/his_frontend_contract` w tym samym przebiegu. Etapy wykonywane sekwencyjnie w jednym drzewie roboczym.
 
@@ -63,19 +65,20 @@ Zasady dla wszystkich etapów: źródłem prawdy jest `docs/his_backend_contract
 | F2 Pacjent i EHR | `patient`, `ehr`, `patient-context`, specyfikacje komponentów | gotowe |
 | F3 Recepty | `drug`, `prescription` (+ drug-safety-checks), stuby `testing/drug-service.stub.ts`, `testing/prescription-service.stub.ts` | gotowe |
 | F4 Laboratorium | `lab-order`, `lab-result` (stuby `testing/lab-order-service.stub.ts`, `testing/lab-result-service.stub.ts`), mapowanie 422 `errors[]` na pola kreatora zlecenia | gotowe |
-| F5 Obrazowanie | `imaging-order`, `imaging-result`, strony mieszające HTTP i mock (`orders-worklist`, `patient-orders`, kreator), brakujący `patient` w wierszu inboxu. Niedokończone: `imaging-result.service.spec.ts` i `imaging-order-wizard-page.spec.ts` mają częściowe zmiany (do sprawdzenia przy starcie F5) | do zrobienia |
-| F6 Pozostałe | `vitals`, `team-message`, `dashboard` (dashboard: nie pobierać wszystkich stron inboxu; rozważyć endpoint liczników w backendzie) | do zrobienia |
-| F7 STOMP | klient `/ws` (JWT w CONNECT) na `@stomp/stompjs` (zaakceptowany) | do zrobienia |
-| F8 Domknięcie | użycie `GET /auth/register/wards` w rejestracji, opcjonalne `currentAdmission.wardId`/`attendingPhysicianId` w modelach (przyjęcie `outpatient`), fallback `PatientHistoryPage` dla `ehr:read-limited` (403), usunięcie nieużywanych elementów mock (`mockResponse`, `MOCK_LATENCY_MS`), smoke test na `EMP-*`, pełna weryfikacja | do zrobienia |
+| F5 Obrazowanie | `imaging-order`, `imaging-result` (stuby `testing/imaging-order-service.stub.ts`, `testing/imaging-result-service.stub.ts`), worklista zleceń z osobną mapą przejść obrazowych i uprawnieniami, anulowanie ze `version`, kreator (422 na pola, 409 zajęty slot), `ResultWithPatient.patient` opcjonalny | gotowe |
+| F6 Pozostałe | `vitals` (progi z `GET /vital-thresholds`, anomalie i `ward-overview` z backendu, 422 na pola formularza), `team-message` (stan `unreadCount`/`alerts` odświeżany `refresh()` przy starcie powłoki; zadania ze `version` i tylko dla przypisanego/twórcy; `GET /message-threads/{id}` dla głębokiego linku; `ClinicalAlert.target` -> trasa w `utils/alert-route.ts`), `dashboard` (`GET /dashboard/stats`; wiersze inboxu bez `patient` rozwiązywane po `patientId`); stuby `testing/vitals-service.stub.ts`, `testing/team-message-service.stub.ts`, `testing/dashboard-service.stub.ts` | gotowe |
+| F7 STOMP | `services/realtime.service.ts` na `@stomp/stompjs`: `/ws` (JWT w CONNECT), połączenie wg sesji, reconnect z backoffem + `refresh()`, push -> `TeamMessageService.applyPush`/`pushed$` (strony wiadomości), status w nagłówku; stub `testing/realtime-service.stub.ts` | gotowe |
+| F8 Domknięcie | rejestracja z publicznym `GET /auth/register/wards` (`PublicWard`); opcjonalne `Admission.wardId`/`attendingPhysicianId`/`reason` (przyjęcie `outpatient` z samym `{admissionType, admittedAt}`, formularz ambulatoryjny wykonuje przyjęcie); `PatientHistoryPage` bez `ehr:read` pokazuje tylko sekcje `ehr:read-limited`, sekcje ładują się niezależnie; uprawnienia zleceń lab w UI (`lab-order:update-status`, `lab-order:collect-specimen`, `lab-order:cancel`); usunięte `mockResponse` i `MOCK_LATENCY_MS`; `@stomp/stompjs` w `allowedCommonJsDependencies`; generator czyta progi z `mock-data/vital-thresholds.mock.ts` | gotowe |
 
 Uwaga: po zalogowaniu na konto demo (`stf-*` w mockach vs UUID w bazie) część widoków może być pusta; do testów używać kont `EMP-0001..EMP-0010`.
 
 ### Pozostało (poza integracją frontendu)
 
-1. **Symulatory `e-laboratory` / `e-imaging`** wg wzorca `e-receipt` (patrz `docs/his_backend_contract/rest-api-fhir.md`): UI Thymeleaf bez uwierzytelniania, własny stan, wywołanie FHIR do his_backend przy zmianie stanu/wyniku; his_backend jako klient FHIR (listener AFTER_COMMIT na zdarzeniach zlecenia, wspólne elementy `common/fhir`). Wyniki lab/imaging wracają do `LabResultRecordingService` / `ImagingResultRecordingService` w his_backend (backend nie ma dziś endpointów POST wyniku; wyniki wejdą przez FHIR `DiagnosticReport`). Stan: nierozpoczęte.. `e-receipt`: bez ponawiania wysyłki z his_backend (nieudana wysyłka zostawia klucz lokalny), stan w pamięci, UI niedostępne na produkcji (brak publikacji portów `e-*`).
+1. **Ograniczenia symulatorów `e-receipt`, `e-laboratory`, `e-imaging`:** bez ponawiania wysyłki z his_backend (nieudana wysyłka nie jest powtarzana; w e-receipt zostaje klucz lokalny, zlecenie lab/obrazowe nie trafia do usługi), stan w pamięci, UI niedostępne na produkcji (brak publikacji portów `e-*`); zmiany stanu wykonane w HIS (poza anulowaniem) nie są przekazywane do e-laboratory ani e-imaging.
 2. **mTLS** między his_backend a e-*: profil `mtls` istnieje, ale `client-auth=need` uniemożliwia zwykły healthcheck; wymaga certyfikatów i osobnego portu zarządzania. Klienty FHIR mają właściwość `ssl-bundle` (paczka `spring.ssl.bundle.*`); do czasu wdrożenia mTLS wywołania e-* -> his_backend autoryzuje współdzielony klucz usługowy (`X-Service-Key`, `HIS_FHIR_SERVICE_KEY`).
-3. **Dobór terminologii wg specjalizacji lekarza** (README): `terminology` udostępnia dziś ogólne `/terminology/snomed/*`; brak podzbiorów (ECL) per specjalizacja. Otwarte: relacja do słownika `icd10_code` / `/dictionaries/icd-10` (README zakłada SCTID).
-4. **Weryfikacja bezpieczeństwa w CI:** `trivy fs`, `semgrep` i `validate_projects.sh` (wymaga `jq`) nie były uruchamiane lokalnie; sprawdzić w pierwszym przebiegu CI (hasła demo, placeholdery `change-me`, hashe BCrypt w SQL mogą zostać oflagowane).
+3. **Dobór terminologii wg specjalizacji lekarza** (README): jest `GET /terminology/snomed/suggestions?kind=diagnosis|symptom|procedure` (ECL per specjalizacja zalogowanego lekarza z `his.terminology.suggestions.*`, zestaw domyślny dla nieznanej/pustej); frontend jeszcze go nie używa, składnia ECL profili nie była sprawdzona na lokalnym Lite. Otwarte: relacja do słownika `icd10_code` / `/dictionaries/icd-10` (README zakłada SCTID).
+4. **Smoke test frontu na prawdziwym backendzie** (konta `EMP-*`): nie wykonany; generator `pnpm export:mocks` nie uruchamiany po zmianach F8 (zapisuje do `his_backend`), sprawdzony tylko typecheckiem.
+5. **Weryfikacja bezpieczeństwa w CI:** `trivy fs`, `semgrep` i `validate_projects.sh` (wymaga `jq`) nie były uruchamiane lokalnie; sprawdzić w pierwszym przebiegu CI (hasła demo, placeholdery `change-me`, hashe BCrypt w SQL mogą zostać oflagowane).
 
 ## Ograniczenia i znane odstępstwa
 

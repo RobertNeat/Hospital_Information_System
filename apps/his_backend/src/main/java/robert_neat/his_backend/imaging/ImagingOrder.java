@@ -144,6 +144,11 @@ public class ImagingOrder extends VersionedEntity {
         return order;
     }
 
+    /** Zmiana stanu zainicjowana przez e-imaging (bez uzytkownika HIS; poprawnosc przejscia sprawdza serwis). */
+    public void applyExternalStatus(OrderStatus next, Instant at, String note) {
+        transitionTo(next, at, null, note);
+    }
+
     /** Ustawia status i dopisuje wpis historii (bez sprawdzania dozwolenia przejscia - to robi serwis). */
     void transitionTo(OrderStatus next, Instant at, UUID byId, String note) {
         this.status = next;

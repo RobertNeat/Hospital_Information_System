@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import type { VitalSigns } from '../../models';
+import { vitalsServiceStub } from '../../testing/vitals-service.stub';
 import { VitalsCompareTable } from './vitals-compare-table';
 
 const base: Omit<VitalSigns, 'temperature' | 'spo2' | 'systolic'> = {
@@ -12,6 +13,8 @@ const base: Omit<VitalSigns, 'temperature' | 'spo2' | 'systolic'> = {
 };
 
 describe('VitalsCompareTable', () => {
+  beforeEach(() => TestBed.configureTestingModule({ providers: [vitalsServiceStub] }));
+
   it('colors a temperature rising further above normal as danger', async () => {
     const fixture = TestBed.createComponent(VitalsCompareTable);
     fixture.componentRef.setInput('measurementA', { ...base, temperature: 37.6 } as VitalSigns);

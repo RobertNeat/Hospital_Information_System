@@ -8,7 +8,6 @@ import { describe, expect, it, beforeEach } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { ConfirmationService, MessageService } from 'primeng/api';
-import { MOCK_LATENCY_MS } from '../../config/mock-api.config';
 import { PrescriptionWizardPage } from './prescription-wizard-page';
 
 describe('PrescriptionWizardPage', () => {
@@ -24,7 +23,6 @@ describe('PrescriptionWizardPage', () => {
         provideRouter([]),
         MessageService,
         ConfirmationService,
-        { provide: MOCK_LATENCY_MS, useValue: 0 },
       ],
     });
   });

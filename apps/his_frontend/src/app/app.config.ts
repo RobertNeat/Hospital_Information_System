@@ -19,7 +19,6 @@ import {
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { providePrimeNG } from 'primeng/config';
 import { HisTitleStrategy } from './config/his-title-strategy';
-import { MOCK_LATENCY_MS } from './config/mock-api.config';
 import { PRIMENG_PL } from './config/primeng-pl';
 import { HisPreset } from './config/theme-preset';
 import { routes } from './app.routes';
@@ -51,7 +50,6 @@ export const appConfig: ApplicationConfig = {
     MessageService,
     ConfirmationService,
     { provide: LOCALE_ID, useValue: 'pl' },
-    { provide: MOCK_LATENCY_MS, useValue: 300 },
     { provide: TitleStrategy, useClass: HisTitleStrategy },
     // Applies a persisted dark-mode preference to <html> before first paint --
     // ThemeService applies `.app-dark` as a constructor side effect, so it must be

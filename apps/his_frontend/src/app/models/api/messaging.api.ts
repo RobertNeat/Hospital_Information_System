@@ -1,13 +1,9 @@
-import type { ID, Priority } from '../common.model';
-import type { ClinicalAlert, HandoffNote, TaskStatus, TeamTask } from '../message.model';
+import type { ID, ISODate, Priority } from '../common.model';
+import type { HandoffNote, TaskStatus, TeamTask } from '../message.model';
 import type { PageQuery } from './common.api';
 
-/**
- * `participantId` is sent only by the mock; the backend takes the participant from the
- * session (authenticated user).
- */
+/** The backend lists only the threads of the authenticated user (taken from the session). */
 export interface ThreadQuery extends PageQuery {
-  participantId?: ID;
   patientId?: ID;
 }
 
@@ -33,24 +29,31 @@ export interface TaskQuery {
   patientId?: ID;
 }
 
-export type TaskCreateRequest = Omit<TeamTask, 'id' | 'createdAt'>;
+/** A new task is always `open`; the creator comes from the token. */
+export type TaskCreateRequest = Omit<
+  TeamTask,
+  'id' | 'createdAt' | 'createdById' | 'status' | 'updatedAt' | 'updatedById' | 'version'
+>;
 
+/** Only the assignee or the creator may change the status (403 otherwise); 409 on a stale `version`. */
 export interface TaskStatusUpdateRequest {
   status: TaskStatus;
+  version?: number;
 }
 
-export type HandoffNoteCreateRequest = Omit<HandoffNote, 'id' | 'createdAt'>;
+/** `fromId` comes from the token. */
+export type HandoffNoteCreateRequest = Omit<HandoffNote, 'id' | 'createdAt' | 'fromId'>;
+
+export interface HandoffNoteQuery {
+  wardId?: ID;
+  /** `YYYY-MM-DD`. */
+  shiftDate?: ISODate;
+}
 
 export interface AlertQuery {
   patientId?: ID;
   acknowledged?: boolean;
 }
-
-/** Internal (server-to-server); alerts are raised by the backend, not by the client. */
-export type AlertCreateRequest = Omit<
-  ClinicalAlert,
-  'id' | 'createdAt' | 'acknowledged' | 'acknowledgedById' | 'acknowledgedAt'
->;
 
 /** Empty body: the acknowledging user comes from the session. */
 export type AlertAcknowledgeRequest = Record<string, never>;

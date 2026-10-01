@@ -35,6 +35,7 @@ import robert_neat.his_backend.common.order.OrderStatusUpdateRequest;
 import robert_neat.his_backend.common.order.Urgency;
 import robert_neat.his_backend.common.security.CurrentActor;
 import robert_neat.his_backend.ehr.Coding;
+import robert_neat.his_backend.lab.events.LabOrderPlaced;
 import robert_neat.his_backend.lab.events.LabOrderStatusChanged;
 import robert_neat.his_backend.patient.EncounterRepository;
 import robert_neat.his_backend.patient.PatientRepository;
@@ -43,7 +44,7 @@ import robert_neat.his_backend.patient.PatientRepository;
  * Zlecenia laboratoryjne. Aktor zawsze z sesji (`orderedById` z zadania jest ignorowany); `patientId` w ciele musi
  * byc zgodny ze sciezka (422). Nazwa badania i material zapisywane jako snapshot z katalogu. Status zmieniaja
  * wylacznie akcje `status` i `cancel` wg {@link LabOrderStateMachine} (niedozwolone przejscie lub niezgodna `version`
- * = 409); kazda zmiana dopisuje wpis historii i publikuje {@link LabOrderStatusChanged} (konsument: AlertEventListener). Pielegniarka
+ * = 409); kazda zmiana dopisuje wpis historii i publikuje {@link LabOrderStatusChanged} (konsument: AlertEventListener); utworzenie publikuje {@link LabOrderPlaced} (konsument: integracja e-laboratory). Pielegniarka
  * (`lab-order:collect-specimen`) moze ustawic wylacznie `specimen_collected`. DTO mapowane w transakcji.
  */
 @Service
@@ -119,6 +120,7 @@ public class LabOrderService {
         LabOrder saved = orders.saveAndFlush(LabOrder.place(id, request.encounterId(), actor, now, request.urgency(),
                 request.fasting(), request.plannedCollectionAt(), diagnosis, request.clinicalInfo().trim(),
                 blankToNull(request.notes()), items));
+        events.publishEvent(new LabOrderPlaced(saved.getId(), saved.getPatientId(), actor, now));
         return LabOrderMapper.toResponse(saved);
     }
 

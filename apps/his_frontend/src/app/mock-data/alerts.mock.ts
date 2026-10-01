@@ -11,7 +11,6 @@ export const ALERTS: ClinicalAlert[] = [
     createdAt: hoursAgo(19),
     acknowledged: false,
     target: { kind: 'lab_result', id: 'lres-016', patientId: 'pat-002' },
-    link: '/patients/pat-002/results/lab/lres-016',
   },
   {
     id: 'alr-002',
@@ -24,7 +23,6 @@ export const ALERTS: ClinicalAlert[] = [
     acknowledgedById: 'stf-001',
     acknowledgedAt: hoursAgo(19),
     target: { kind: 'lab_result', id: 'lres-014', patientId: 'pat-012' },
-    link: '/patients/pat-012/results/lab/lres-014',
   },
   {
     id: 'alr-003',
@@ -35,7 +33,6 @@ export const ALERTS: ClinicalAlert[] = [
     createdAt: hoursAgo(5),
     acknowledged: false,
     target: { kind: 'patient_vitals', id: 'pat-007' },
-    link: '/patients/pat-007/vitals',
   },
   {
     id: 'alr-004',
@@ -46,7 +43,7 @@ export const ALERTS: ClinicalAlert[] = [
     createdAt: hoursAgo(28),
     acknowledged: true,
     acknowledgedById: 'stf-006',
-    link: '/patients/pat-012/vitals',
+    target: { kind: 'patient_vitals', id: 'pat-012' },
   },
   {
     id: 'alr-005',
@@ -57,7 +54,6 @@ export const ALERTS: ClinicalAlert[] = [
     createdAt: hoursAgo(4),
     acknowledged: false,
     target: { kind: 'imaging_result', id: 'ires-001', patientId: 'pat-007' },
-    link: '/patients/pat-007/results/imaging/ires-001',
   },
   {
     id: 'alr-006',
@@ -67,6 +63,6 @@ export const ALERTS: ClinicalAlert[] = [
     message: 'Zaległe zadanie: podanie Clexane 40 mg sc.',
     createdAt: hoursAgo(1),
     acknowledged: false,
-    link: '/messages?tab=tasks',
+    target: { kind: 'task', id: 'tsk-003', patientId: 'pat-009' },
   },
 ];

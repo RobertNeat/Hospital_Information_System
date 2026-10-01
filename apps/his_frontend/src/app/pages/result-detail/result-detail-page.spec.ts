@@ -4,19 +4,13 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { MessageService } from 'primeng/api';
-import { MOCK_LATENCY_MS } from '../../config/mock-api.config';
 import { ResultDetailPage } from './result-detail-page';
 import { LabResultService } from '../../services/lab-result.service';
 
 describe('ResultDetailPage', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [
-        provideRouter([]),
-        MessageService,
-        labResultServiceStub,
-        { provide: MOCK_LATENCY_MS, useValue: 0 },
-      ],
+      providers: [provideRouter([]), MessageService, labResultServiceStub],
     });
   });
 

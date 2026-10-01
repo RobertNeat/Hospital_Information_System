@@ -6,9 +6,10 @@ import java.util.UUID;
 import robert_neat.his_backend.common.order.OrderStatus;
 
 /**
- * Zdarzenie domenowe: zmieniono status zlecenia obrazowego (`/status`, `/cancel`, automatyczne `completed` po wyniku
+ * Zdarzenie domenowe: zmieniono status zlecenia obrazowego (`/status`, `/cancel`, `PUT /fhir/ServiceRequest/{id}` z `actorId` null, automatyczne `completed` po wyniku
  * ostatecznym; publikowane w transakcji; konsument: `alert/AlertEventListener` - synchronicznie w transakcji
- * zrodlowej, alert `order_status` dla `completed`/`cancelled`). Utworzenie
+ * zrodlowej, alert `order_status` dla `completed`/`cancelled`; `imaging/eimg/EImgIntegration` przekazuje po commicie
+ * anulowanie z aktorem do e-imaging). Utworzenie
  * zlecenia nie jest zmiana statusu. `actorId` = `null` dla aktora systemowego (auto-`completed` bez sesji).
  */
 public record ImagingOrderStatusChanged(

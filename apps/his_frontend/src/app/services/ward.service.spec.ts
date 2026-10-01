@@ -101,4 +101,10 @@ describe('WardService', () => {
     service.load().subscribe();
     http.expectOne(WARDS_URL).flush([SOR]);
   });
+
+  it('nameOf returns an empty string for an absent id without calling the API', () => {
+    authenticated = true;
+    expect(service.nameOf(undefined)).toBe('');
+    http.expectNone(WARDS_URL);
+  });
 });

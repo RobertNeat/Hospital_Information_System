@@ -1,6 +1,6 @@
 # REST API - indeks i zasady wspólne
 
-Indeks 82 endpointów REST `his_backend` (liczba zweryfikowana grepem po `@GetMapping`/`@PostMapping`/`@PatchMapping`; w `/api/v1` brak `PUT` i `DELETE`; `PUT` istnieje tylko w `/fhir`, patrz [rest-api-fhir.md](rest-api-fhir.md)) oraz zasady czytania podplików. Powrót: [README.md](README.md).
+Indeks 83 endpointów REST `his_backend` (liczba zweryfikowana grepem po `@GetMapping`/`@PostMapping`/`@PatchMapping`; w `/api/v1` brak `PUT` i `DELETE`; `PUT` istnieje tylko w `/fhir`, patrz [rest-api-fhir.md](rest-api-fhir.md)) oraz zasady czytania podplików. Powrót: [README.md](README.md).
 
 ## Zasady czytania
 
@@ -24,8 +24,8 @@ Indeks 82 endpointów REST `his_backend` (liczba zweryfikowana grepem po `@GetMa
 | [rest-api-prescription.md](rest-api-prescription.md) | `/drugs*` (2), recepty (5), `/drug-safety-checks` (1) |
 | [rest-api-vitals.md](rest-api-vitals.md) | odczyty (3), `ward-overview` (1), `/vital-thresholds` (1) |
 | [rest-api-messaging.md](rest-api-messaging.md) | wątki (6), zadania (3), przekazania (2), alerty (2) |
-| [terminology-snomed.md](terminology-snomed.md) | `/terminology/snomed/*` (2) |
-| [rest-api-fhir.md](rest-api-fhir.md) | `/fhir/MedicationRequest/{id}` (GET, PUT; poza `/api/v1`, klucz usługowy; nie wliczone do 82) |
+| [terminology-snomed.md](terminology-snomed.md) | `/terminology/snomed/*` (3) |
+| [rest-api-fhir.md](rest-api-fhir.md) | `/fhir/MedicationRequest/{id}` (GET, PUT; poza `/api/v1`, klucz usługowy; nie wliczone do 83) |
 
 ## Pełna lista
 
@@ -114,14 +114,15 @@ Indeks 82 endpointów REST `his_backend` (liczba zweryfikowana grepem po `@GetMa
 | POST | `/alerts/{alertId}/acknowledge` | `alert:acknowledge` | messaging |
 | GET | `/terminology/snomed/concepts` | uwierz. | terminology |
 | GET | `/terminology/snomed/concepts/{sctid}` | uwierz. | terminology |
+| GET | `/terminology/snomed/suggestions` | uwierz. | terminology |
 
-Endpointów zapisu, które istnieją w kontrakcie frontendu, a których nie ma w kodzie: brak. Zapisów, których nie ma w API: wyniki lab/obrazowe, progi parametrów życiowych, zmiana/usunięcie pracownika lub oddziału, edycja/anulowanie notatek, diagnoz i alergii.
+Endpointów zapisu, które istnieją w kontrakcie frontendu, a których nie ma w kodzie: brak. Zapisów, których nie ma w API REST: wyniki lab i obrazowe (tylko FHIR), progi parametrów życiowych, zmiana/usunięcie pracownika lub oddziału, edycja/anulowanie notatek, diagnoz i alergii.
 
 ## Operacje poza HTTP
 
 | Operacja | Gdzie | Uwagi |
 | --- | --- | --- |
-| Zapis wyniku laboratoryjnego | `LabResultRecordingService.recordResult(RecordLabResultCommand)` | brak endpointu; reguły w [rest-api-lab.md](rest-api-lab.md#zapis-wyniku-poza-http) |
-| Zapis wyniku obrazowego | `ImagingResultRecordingService.recordResult(RecordImagingResultCommand)` | brak endpointu; reguły w [rest-api-imaging.md](rest-api-imaging.md#zapis-wyniku-poza-http) |
+| Zapis wyniku laboratoryjnego | `LabResultRecordingService.recordResult(RecordLabResultCommand)` | brak endpointu REST; wejście: `POST /fhir/DiagnosticReport` ([rest-api-fhir.md](rest-api-fhir.md)); reguły w [rest-api-lab.md](rest-api-lab.md#zapis-wyniku-poza-rest) |
+| Zapis wyniku obrazowego | `ImagingResultRecordingService.recordResult(RecordImagingResultCommand)` | brak endpointu REST; wejście: `POST /fhir/DiagnosticReport` ([rest-api-fhir.md](rest-api-fhir.md#badania-obrazowe-e-imaging)); reguły w [rest-api-imaging.md](rest-api-imaging.md#zapis-wyniku-poza-rest) |
 | Tworzenie alertów | `AlertService.raise` | tylko jako reakcja na zdarzenia ([events.md](events.md)) |
 | Push STOMP | `RealtimePublisher` | [realtime-stomp.md](realtime-stomp.md) |

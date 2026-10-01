@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -13,17 +14,22 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.List;
+import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
+import robert_neat.his_backend.security.HisUserPrincipal;
 import robert_neat.his_backend.security.SecurityConfig;
+import robert_neat.his_backend.staff.StaffRole;
 
 @WebMvcTest(TerminologyController.class)
 @Import(SecurityConfig.class)
@@ -34,6 +40,9 @@ class TerminologyControllerTest {
 
     @MockitoBean
     private SnowstormClient client;
+
+    @MockitoBean
+    private TerminologySuggestionService suggestions;
 
     @Test
     @WithMockUser
@@ -135,5 +144,68 @@ class TerminologyControllerTest {
                 .andExpect(status().isUnauthorized())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.code").value("UNAUTHENTICATED"));
+    }
+
+    private static RequestPostProcessor hisUser(UUID staffId) {
+        HisUserPrincipal p = new HisUserPrincipal(UUID.randomUUID(), staffId, "EMP-1", StaffRole.DOCTOR,
+                UUID.randomUUID());
+        return authentication(UsernamePasswordAuthenticationToken.authenticated(p, "n/a", List.of()));
+    }
+
+    @Test
+    void suggestionsUseStaffIdOfLoggedInDoctor() throws Exception {
+        UUID staffId = UUID.randomUUID();
+        when(suggestions.suggest(staffId, TerminologyKind.PROCEDURE, "rtg", 7)).thenReturn(
+                new SnomedConceptPage(1, 0, List.of(new SnomedConcept("363679005", "Obrazowanie"))));
+
+        mvc.perform(get("/api/v1/terminology/snomed/suggestions")
+                        .param("kind", "procedure").param("term", "rtg").param("size", "7").with(hisUser(staffId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.concepts[0].code").value("363679005"));
+    }
+
+    @Test
+    void suggestionsDefaultSizeAndNonHisPrincipalUsesNullStaff() throws Exception {
+        when(suggestions.suggest(null, TerminologyKind.DIAGNOSIS, null, 20))
+                .thenReturn(new SnomedConceptPage(0, 0, List.of()));
+
+        mvc.perform(get("/api/v1/terminology/snomed/suggestions").param("kind", "DIAGNOSIS").with(jwt()))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @WithMockUser
+    void suggestionsInvalidOrMissingKindIs400() throws Exception {
+        mvc.perform(get("/api/v1/terminology/snomed/suggestions").param("kind", "drug"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(get("/api/v1/terminology/snomed/suggestions"))
+                .andExpect(status().isBadRequest());
+        verifyNoInteractions(suggestions);
+    }
+
+    @Test
+    @WithMockUser
+    void suggestionsUnavailableIs503() throws Exception {
+        when(suggestions.suggest(any(), any(), any(), anyInt()))
+                .thenThrow(new TerminologyException.Unavailable("wylaczona", null));
+
+        mvc.perform(get("/api/v1/terminology/snomed/suggestions").param("kind", "symptom"))
+                .andExpect(status().isServiceUnavailable());
+    }
+
+    @Test
+    @WithMockUser
+    void suggestionsInvalidSizeFromServiceIs400() throws Exception {
+        when(suggestions.suggest(any(), any(), any(), anyInt()))
+                .thenThrow(new TerminologyException.InvalidRequest("limit", null));
+
+        mvc.perform(get("/api/v1/terminology/snomed/suggestions").param("kind", "symptom").param("size", "0"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void suggestionsAnonymousIs401() throws Exception {
+        mvc.perform(get("/api/v1/terminology/snomed/suggestions").param("kind", "symptom"))
+                .andExpect(status().isUnauthorized());
     }
 }

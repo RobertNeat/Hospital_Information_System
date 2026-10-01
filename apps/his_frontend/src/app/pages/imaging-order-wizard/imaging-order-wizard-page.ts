@@ -9,7 +9,7 @@ import {
 } from '@angular/core';
 import { Router } from '@angular/router';
 import { rxResource } from '@angular/core/rxjs-interop';
-import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { type AbstractControl, FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { MessageService } from 'primeng/api';
 import { Step, StepList, StepPanel, StepPanels, Stepper } from 'primeng/stepper';
 import { Select } from 'primeng/select';
@@ -32,6 +32,8 @@ import {
 } from '../../constants/labels';
 import type { HasUnsavedChanges } from '../../guards/unsaved-changes.guard';
 import type { ImagingExam, ScheduleSlot } from '../../models';
+import type { FieldError } from '../../models/api';
+import { toApiError } from '../../utils/api-error';
 import type { DiagnosisOption } from '../../utils/diagnosis-options';
 import { toLocalIsoDate } from '../../utils/date-utils';
 import {
@@ -49,6 +51,7 @@ import {
   createSafetyState,
 } from './imaging-order-wizard.helpers';
 import { orderSubmitObserver, warnIncompleteOrder } from '../../utils/order-wizard';
+import { rawValueSignal } from '../../utils/form-signals';
 import { tryAdvance } from '../../utils/wizard';
 import { PatientContextService } from '../../services/patient-context.service';
 import { ImagingOrderService } from '../../services/imaging-order.service';
@@ -113,19 +116,27 @@ export class ImagingOrderWizardPage implements HasUnsavedChanges {
 
   protected readonly step1Form = createStep1Form(this.fb);
 
+  // Reactive forms are not signals: derive computeds from value-change signals (steps 2/4 below).
+  private readonly step1Value = rawValueSignal(this.step1Form);
+
   protected readonly examsForModality = computed<ImagingExam[]>(() => {
-    const modality = this.step1Form.controls.modality.value;
+    const modality = this.step1Value().modality;
     if (!modality) return [];
     return this.fullCatalog().filter((e) => e.modality === modality);
   });
 
   protected readonly selectedExam = computed<ImagingExam | null>(() => {
-    const code = this.step1Form.controls.examCode.value;
+    const code = this.step1Value().examCode;
     return this.fullCatalog().find((e) => e.code === code) ?? null;
   });
 
   constructor() {
-    bindStep1Rules(this.step1Form, () => this.selectedExam());
+    // Plain lookup (not the signal): runs inside the control's valueChanges, before the group emits.
+    bindStep1Rules(
+      this.step1Form,
+      () =>
+        this.fullCatalog().find((e) => e.code === this.step1Form.controls.examCode.value) ?? null,
+    );
 
     // Prefill "contrast allergy" once the patient's allergy data resolves.
     effect(() => {
@@ -137,6 +148,7 @@ export class ImagingOrderWizardPage implements HasUnsavedChanges {
 
   // ---- Step 2: Wskazania kliniczne ----
   protected readonly step2Form = createStep2Form(this.fb);
+  private readonly step2Value = rawValueSignal(this.step2Form);
 
   // ---- Step 3: Bezpieczeństwo pacjenta ----
   protected readonly step3Form = createStep3Form(this.fb);
@@ -154,14 +166,15 @@ export class ImagingOrderWizardPage implements HasUnsavedChanges {
 
   // ---- Step 4: Termin badania ----
   protected readonly step4Form = createStep4Form(this.fb);
+  private readonly step4Value = rawValueSignal(this.step4Form);
 
   protected readonly selectedSlot = signal<ScheduleSlot | null>(null);
+  /** Bumped to make the slot picker refetch after a slot conflict. */
+  protected readonly slotRefresh = signal(0);
 
-  protected readonly isCito = computed(() => this.step2Form.controls.urgency.value === 'stat');
+  protected readonly isCito = computed(() => this.step2Value().urgency === 'stat');
 
-  protected readonly slotDateIso = computed(() =>
-    toLocalIsoDate(this.step4Form.controls.date.value),
-  );
+  protected readonly slotDateIso = computed(() => toLocalIsoDate(this.step4Value().date));
 
   protected onSlotSelected(slot: ScheduleSlot): void {
     this.selectedSlot.set(slot);
@@ -193,19 +206,19 @@ export class ImagingOrderWizardPage implements HasUnsavedChanges {
   protected readonly summaryItems = computed<SummaryItem[]>(() =>
     buildImagingSummary({
       exam: this.selectedExam(),
-      modality: this.step1Form.controls.modality.value,
-      laterality: this.step1Form.controls.laterality.value,
-      contrast: this.step1Form.controls.contrast.value,
-      urgency: this.step2Form.controls.urgency.value,
+      modality: this.step1Value().modality,
+      laterality: this.step1Value().laterality,
+      contrast: this.step1Value().contrast,
+      urgency: this.step2Value().urgency,
       diagnosis: this.selectedDiagnosis(),
-      clinicalIndication: this.step2Form.controls.clinicalIndication.value,
-      immediate: this.step4Form.controls.immediate.value,
+      clinicalIndication: this.step2Value().clinicalIndication,
+      immediate: this.step4Value().immediate,
       slot: this.selectedSlot(),
     }),
   );
 
   private selectedDiagnosis(): DiagnosisOption | undefined {
-    const { diagnosisCode } = this.step2Form.getRawValue();
+    const { diagnosisCode } = this.step2Value();
     return this.diagnosisOptions().find((o) => o.value === diagnosisCode);
   }
 
@@ -286,8 +299,53 @@ export class ImagingOrderWizardPage implements HasUnsavedChanges {
           orderType: 'imaging',
           isCito: this.isCito(),
           successDetail: 'Zlecenie badania obrazowego zostało zapisane.',
+          onError: (error) => this.handleSubmitError(error),
         }),
       );
+  }
+
+  /** 409 = slot taken meanwhile (drop it, refetch); 422 `errors[]` land on form fields. */
+  private handleSubmitError(error: unknown): boolean {
+    const api = toApiError(error);
+    if (api.status === 409 && this.selectedSlot()) {
+      this.step4Form.controls.slotId.setValue(null);
+      this.selectedSlot.set(null);
+      this.slotRefresh.update((n) => n + 1);
+      this.toast.add({
+        severity: 'error',
+        summary: 'Termin jest już zajęty',
+        detail: 'Wybierz inny termin badania.',
+      });
+      return true;
+    }
+    return this.applyServerErrors(api.fieldErrors);
+  }
+
+  /** Puts 422 `errors[]` on matching fields; every message also goes to the toast (steps differ). */
+  private applyServerErrors(errors: FieldError[]): boolean {
+    if (errors.length === 0) return false;
+    const controls: Record<string, AbstractControl> = {
+      examCode: this.step1Form.controls.examCode,
+      laterality: this.step1Form.controls.laterality,
+      contrast: this.step1Form.controls.contrast,
+      clinicalIndication: this.step2Form.controls.clinicalIndication,
+      clinicalQuestion: this.step2Form.controls.clinicalQuestion,
+      urgency: this.step2Form.controls.urgency,
+      'safety.confirmed': this.step3Form.controls.confirmed,
+      slotId: this.step4Form.controls.slotId,
+    };
+    for (const e of errors) {
+      const control = controls[e.field];
+      if (!control) continue;
+      control.setErrors({ server: e.message });
+      control.markAsTouched();
+    }
+    this.toast.add({
+      severity: 'error',
+      summary: 'Nie udało się wysłać zlecenia',
+      detail: errors.map((e) => e.message).join(' '),
+    });
+    return true;
   }
 
   protected cancel(): void {

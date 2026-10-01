@@ -9,6 +9,7 @@ import {
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import type { AbstractControl } from '@angular/forms';
 import { MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { InputNumber } from 'primeng/inputnumber';
@@ -16,11 +17,10 @@ import { Select } from 'primeng/select';
 import { Tag } from 'primeng/tag';
 import { Textarea } from 'primeng/textarea';
 import { VITAL_CONTEXT_OPTIONS } from '../../constants/labels';
-import { VITAL_THRESHOLDS } from '../../constants/vitals-thresholds';
-import type { VitalAnomaly, VitalSigns, VitalsRecordResponse, VitalType } from '../../models';
-import { StaffService } from '../../services/staff.service';
+import type { FieldError, VitalsRecordResponse, VitalType } from '../../models';
 import { VitalsService } from '../../services/vitals.service';
-import { evaluateVitals } from '../../utils/vitals-anomaly';
+import { toApiError } from '../../utils/api-error';
+import { classifyVital, type VitalClassification } from '../../utils/vitals-anomaly';
 import { FormField } from '../form-field/form-field';
 
 /** Vital fields the entry form edits directly (excludes `painScore`, which has its own 0-10 scale). */
@@ -46,41 +46,23 @@ export type VitalsSaveResult = VitalsRecordResponse;
 export class VitalsEntryForm {
   private readonly fb = inject(FormBuilder).nonNullable;
   private readonly vitalsService = inject(VitalsService);
-  private readonly staffService = inject(StaffService);
   private readonly messageService = inject(MessageService);
 
   readonly patientId = input.required<string>();
   readonly saved = output<VitalsSaveResult>();
 
   protected readonly contextOptions = VITAL_CONTEXT_OPTIONS;
-  protected readonly thresholds = VITAL_THRESHOLDS;
+  /** Backend thresholds (input bounds and the live hint); empty until loaded. */
+  protected readonly thresholds = this.vitalsService.thresholds;
   protected readonly saving = signal(false);
 
   protected readonly form = this.fb.group({
-    systolic: this.fb.control<number | null>(null, [
-      Validators.min(VITAL_THRESHOLDS.systolic.min),
-      Validators.max(VITAL_THRESHOLDS.systolic.max),
-    ]),
-    diastolic: this.fb.control<number | null>(null, [
-      Validators.min(VITAL_THRESHOLDS.diastolic.min),
-      Validators.max(VITAL_THRESHOLDS.diastolic.max),
-    ]),
-    heartRate: this.fb.control<number | null>(null, [
-      Validators.min(VITAL_THRESHOLDS.heartRate.min),
-      Validators.max(VITAL_THRESHOLDS.heartRate.max),
-    ]),
-    temperature: this.fb.control<number | null>(null, [
-      Validators.min(VITAL_THRESHOLDS.temperature.min),
-      Validators.max(VITAL_THRESHOLDS.temperature.max),
-    ]),
-    spo2: this.fb.control<number | null>(null, [
-      Validators.min(VITAL_THRESHOLDS.spo2.min),
-      Validators.max(VITAL_THRESHOLDS.spo2.max),
-    ]),
-    respiratoryRate: this.fb.control<number | null>(null, [
-      Validators.min(VITAL_THRESHOLDS.respiratoryRate.min),
-      Validators.max(VITAL_THRESHOLDS.respiratoryRate.max),
-    ]),
+    systolic: this.fb.control<number | null>(null),
+    diastolic: this.fb.control<number | null>(null),
+    heartRate: this.fb.control<number | null>(null),
+    temperature: this.fb.control<number | null>(null),
+    spo2: this.fb.control<number | null>(null),
+    respiratoryRate: this.fb.control<number | null>(null),
     painScore: this.fb.control<number | null>(null, [Validators.min(0), Validators.max(10)]),
     context: this.fb.control<'office_exam' | 'ward_round' | 'triage' | 'observation'>(
       'ward_round',
@@ -91,27 +73,23 @@ export class VitalsEntryForm {
 
   private readonly formValue = toSignal(this.form.valueChanges, { initialValue: this.form.value });
 
-  /** Live per-field anomaly, computed with `evaluateVitals` from whatever has been typed so far. */
-  protected readonly liveAnomalies = computed<Partial<Record<VitalType, VitalAnomaly>>>(() => {
-    const v = this.formValue();
-    const draft: VitalSigns = {
-      id: '',
-      patientId: '',
-      recordedAt: new Date().toISOString(),
-      recordedById: '',
-      context: v.context ?? 'ward_round',
-      systolic: v.systolic ?? undefined,
-      diastolic: v.diastolic ?? undefined,
-      heartRate: v.heartRate ?? undefined,
-      temperature: v.temperature ?? undefined,
-      spo2: v.spo2 ?? undefined,
-      respiratoryRate: v.respiratoryRate ?? undefined,
-    };
-    const anomalies = evaluateVitals(draft);
-    const map: Partial<Record<VitalType, VitalAnomaly>> = {};
-    for (const a of anomalies) map[a.type] = a;
-    return map;
-  });
+  /** Live per-field hint against the backend thresholds (the saved anomalies come from the server). */
+  protected readonly liveAnomalies = computed<Partial<Record<VitalType, VitalClassification>>>(
+    () => {
+      const v = this.formValue();
+      const thresholds = this.thresholds();
+      const map: Partial<Record<VitalType, VitalClassification>> = {};
+      for (const field of NUMERIC_FIELDS) {
+        const c = classifyVital(thresholds, field, v[field]);
+        if (c) map[field] = c;
+      }
+      return map;
+    },
+  );
+
+  constructor() {
+    this.vitalsService.loadThresholds().subscribe({ error: () => undefined });
+  }
 
   protected fieldAnomaly(field: VitalType) {
     return this.liveAnomalies()[field];
@@ -137,8 +115,6 @@ export class VitalsEntryForm {
     this.vitalsService
       .addVitals({
         patientId: this.patientId(),
-        recordedAt: new Date().toISOString(),
-        recordedById: this.staffService.currentUser().id,
         context: v.context,
         systolic: v.systolic ?? undefined,
         diastolic: v.diastolic ?? undefined,
@@ -149,22 +125,47 @@ export class VitalsEntryForm {
         painScore: v.painScore ?? undefined,
         notes: v.notes || undefined,
       })
-      .subscribe(({ saved, anomalies }) => {
-        this.saving.set(false);
-        const hasCritical = anomalies.some((a) => a.severity === 'critical');
-        if (anomalies.length === 0) {
-          this.messageService.add({ severity: 'success', summary: 'Pomiar zapisany.' });
-        } else {
-          this.messageService.add({
-            severity: hasCritical ? 'error' : 'warn',
-            summary: hasCritical
-              ? 'Pomiar zapisany. Wykryto odchylenia krytyczne.'
-              : 'Pomiar zapisany. Wykryto odchylenia.',
-          });
-        }
-        this.resetForm();
-        this.saved.emit({ saved, anomalies });
+      .subscribe({
+        next: ({ saved, anomalies }) => {
+          this.saving.set(false);
+          const hasCritical = anomalies.some((a) => a.severity === 'critical');
+          if (anomalies.length === 0) {
+            this.messageService.add({ severity: 'success', summary: 'Pomiar zapisany.' });
+          } else {
+            this.messageService.add({
+              severity: hasCritical ? 'error' : 'warn',
+              summary: hasCritical
+                ? 'Pomiar zapisany. Wykryto odchylenia krytyczne.'
+                : 'Pomiar zapisany. Wykryto odchylenia.',
+            });
+          }
+          this.resetForm();
+          this.saved.emit({ saved, anomalies });
+        },
+        error: (error: unknown) => {
+          this.saving.set(false);
+          this.showSaveError(toApiError(error).fieldErrors);
+        },
       });
+  }
+
+  /** Puts 422 `errors[]` (field = measurement name) on the matching controls; the rest goes to a toast. */
+  private showSaveError(errors: FieldError[]): void {
+    const rest: string[] = [];
+    for (const e of errors) {
+      const control = (this.form.controls as Record<string, AbstractControl | undefined>)[e.field];
+      if (!control) {
+        rest.push(e.message);
+        continue;
+      }
+      control.setErrors({ server: e.message });
+      control.markAsTouched();
+    }
+    this.messageService.add({
+      severity: 'error',
+      summary: 'Nie udało się zapisać pomiaru.',
+      detail: rest.join(' ') || undefined,
+    });
   }
 
   private resetForm(): void {

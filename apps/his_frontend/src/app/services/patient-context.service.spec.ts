@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach } from 'vitest';
+import { afterEach, describe, expect, it, beforeEach } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { firstValueFrom } from 'rxjs';
 import { patientServiceStub } from '../testing/patient-service.stub';
@@ -10,7 +10,14 @@ describe('PatientContextService', () => {
   let ctx: PatientContextService;
   let patientService: PatientService;
 
+  // Storage must not leak into other specs (auth.service.spec asserts it is empty).
+  afterEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+  });
+
   beforeEach(() => {
+    localStorage.clear();
     sessionStorage.clear();
     TestBed.configureTestingModule({ providers: [patientServiceStub, wardServiceStub] });
     ctx = TestBed.inject(PatientContextService);

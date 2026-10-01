@@ -1,93 +1,103 @@
-import { describe, expect, it, beforeEach } from 'vitest';
+import { describe, expect, it, beforeEach, afterEach } from 'vitest';
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { firstValueFrom } from 'rxjs';
-import { MOCK_LATENCY_MS } from '../config/mock-api.config';
-import type { VitalSignsDraft } from '../models';
+import {
+  VITALS_WARD_OVERVIEW_URL,
+  VITAL_THRESHOLDS_URL,
+  patientVitalsLatestUrl,
+  patientVitalsUrl,
+} from '../config/api.config';
+import { VITALS } from '../mock-data/vitals.mock';
+import { VITAL_THRESHOLDS } from '../mock-data/vital-thresholds.mock';
+import type { VitalsRecordResponse, WardVitalsRow } from '../models';
+import type { VitalSignsCreateRequest } from '../models/api';
 import { VitalsService } from './vitals.service';
-import { TeamMessageService } from './team-message.service';
 
 describe('VitalsService', () => {
   let service: VitalsService;
+  let http: HttpTestingController;
 
   beforeEach(() => {
-    TestBed.configureTestingModule({ providers: [{ provide: MOCK_LATENCY_MS, useValue: 0 }] });
+    TestBed.configureTestingModule({
+      providers: [provideHttpClient(), provideHttpClientTesting()],
+    });
     service = TestBed.inject(VitalsService);
+    http = TestBed.inject(HttpTestingController);
   });
 
-  it('getVitals("all") returns ascending-sorted readings for the patient', async () => {
-    const vitals = await firstValueFrom(service.getVitals('pat-001', 'all'));
-    expect(vitals.length).toBeGreaterThan(0);
-    const times = vitals.map((v) => new Date(v.recordedAt).getTime());
-    expect([...times].sort((a, b) => a - b)).toEqual(times);
+  afterEach(() => http.verify());
+
+  it('getVitals GETs the patient readings with the range', async () => {
+    const result = firstValueFrom(service.getVitals('pat-001', '7d'));
+    const req = http.expectOne((r) => r.url === patientVitalsUrl('pat-001'));
+    expect(req.request.method).toBe('GET');
+    expect(req.request.params.get('range')).toBe('7d');
+    req.flush(VITALS.slice(0, 2));
+    expect(await result).toHaveLength(2);
   });
 
-  it('getVitals("24h") only returns readings within the last 24 hours', async () => {
-    const vitals = await firstValueFrom(service.getVitals('pat-001', '24h'));
-    const cutoff = Date.now() - 24 * 3600_000;
-    expect(vitals.every((v) => new Date(v.recordedAt).getTime() >= cutoff)).toBe(true);
+  it('getLatest returns the reading, or undefined on 204 (no readings)', async () => {
+    const found = firstValueFrom(service.getLatest('pat-001'));
+    http.expectOne({ method: 'GET', url: patientVitalsLatestUrl('pat-001') }).flush(VITALS[0]);
+    expect(await found).toEqual(VITALS[0]);
+
+    const none = firstValueFrom(service.getLatest('pat-002'));
+    http
+      .expectOne({ method: 'GET', url: patientVitalsLatestUrl('pat-002') })
+      .flush(null, { status: 204, statusText: 'No Content' });
+    expect(await none).toBeUndefined();
   });
 
-  it('getLatest returns the most recent reading', async () => {
-    const all = await firstValueFrom(service.getVitals('pat-001', 'all'));
-    const latest = await firstValueFrom(service.getLatest('pat-001'));
-    expect(latest?.id).toBe(all.at(-1)?.id);
-  });
-
-  it('addVitals persists the reading and returns computed anomalies', async () => {
-    const before = await firstValueFrom(service.getVitals('pat-003', 'all'));
-    const draft: VitalSignsDraft = {
-      patientId: 'pat-003',
-      recordedAt: new Date().toISOString(),
-      recordedById: 'stf-001',
-      context: 'office_exam',
-      systolic: 150,
-      diastolic: 95,
+  it('addVitals POSTs the draft and returns the saved reading with server anomalies', async () => {
+    const draft: VitalSignsCreateRequest = {
+      patientId: 'pat-001',
+      context: 'ward_round',
+      heartRate: 150,
     };
-    const { saved, anomalies } = await firstValueFrom(service.addVitals(draft));
-    expect(saved.id).toMatch(/^vit-\d+$/);
-    expect(anomalies.some((a) => a.type === 'systolic')).toBe(true);
-
-    const after = await firstValueFrom(service.getVitals('pat-003', 'all'));
-    expect(after.length).toBe(before.length + 1);
+    const response: VitalsRecordResponse = {
+      saved: { ...VITALS[0], id: 'new', heartRate: 150 },
+      anomalies: [
+        {
+          type: 'heartRate',
+          value: 150,
+          severity: 'critical',
+          direction: 'high',
+          message: 'Tętno: wartość krytycznie wysoka (150 /min).',
+          recordedAt: VITALS[0].recordedAt,
+        },
+      ],
+    };
+    const result = firstValueFrom(service.addVitals(draft));
+    const req = http.expectOne({ method: 'POST', url: patientVitalsUrl('pat-001') });
+    expect(req.request.body).toEqual(draft);
+    req.flush(response, { status: 201, statusText: 'Created' });
+    expect(await result).toEqual(response);
   });
 
-  it('addVitals pushes a critical alert via TeamMessageService when an anomaly is critical', async () => {
-    const teamMessageService = TestBed.inject(TeamMessageService);
-    const before = await firstValueFrom(teamMessageService.getAlerts({ patientId: 'pat-003' }));
+  it('getWardOverview GETs the overview with the optional ward filter', async () => {
+    const rows: WardVitalsRow[] = [];
+    const all = firstValueFrom(service.getWardOverview());
+    const first = http.expectOne((r) => r.url === VITALS_WARD_OVERVIEW_URL);
+    expect(first.request.params.has('wardId')).toBe(false);
+    first.flush(rows);
+    await all;
 
-    await firstValueFrom(
-      service.addVitals({
-        patientId: 'pat-003',
-        recordedAt: new Date().toISOString(),
-        recordedById: 'stf-001',
-        context: 'office_exam',
-        spo2: 85,
-      }),
-    );
-
-    const after = await firstValueFrom(teamMessageService.getAlerts({ patientId: 'pat-003' }));
-    expect(after.length).toBe(before.length + 1);
-    expect(after[0].severity).toBe('critical');
+    const ward = firstValueFrom(service.getWardOverview('ward-int'));
+    const second = http.expectOne((r) => r.url === VITALS_WARD_OVERVIEW_URL);
+    expect(second.request.params.get('wardId')).toBe('ward-int');
+    second.flush(rows);
+    expect(await ward).toEqual(rows);
   });
 
-  it('getWardOverview excludes discharged patients with a stale currentAdmission.wardId', async () => {
-    // pat-005 is discharged but its mock currentAdmission still has wardId 'ward-int'.
-    const rows = await firstValueFrom(service.getWardOverview('ward-int'));
-    expect(rows.some((r) => r.patient.id === 'pat-005')).toBe(false);
-  });
+  it('loadThresholds fetches once, caches and exposes thresholds by type', async () => {
+    expect(service.thresholds()).toEqual({});
+    const first = firstValueFrom(service.loadThresholds());
+    http.expectOne({ method: 'GET', url: VITAL_THRESHOLDS_URL }).flush(VITAL_THRESHOLDS);
+    await first;
+    expect(service.thresholds().systolic?.criticalHigh).toBe(180);
 
-  it('getWardOverview populates wardName from ward data', async () => {
-    const rows = await firstValueFrom(service.getWardOverview('ward-int'));
-    expect(rows.length).toBeGreaterThan(0);
-    expect(rows.every((r) => r.patient.wardName === 'Oddział Chorób Wewnętrznych')).toBe(true);
-  });
-
-  it('getWardOverview sorts critical anomalies first', async () => {
-    const rows = await firstValueFrom(service.getWardOverview());
-    expect(rows.length).toBeGreaterThan(0);
-    const ranks = rows.map((r) =>
-      r.anomalies.some((a) => a.severity === 'critical') ? 0 : r.anomalies.length > 0 ? 1 : 2,
-    );
-    expect([...ranks].sort((a, b) => a - b)).toEqual(ranks);
+    expect(await firstValueFrom(service.loadThresholds())).toEqual(VITAL_THRESHOLDS);
   });
 });

@@ -36,6 +36,8 @@ describe('AuthService', () => {
   let navigate: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
     TestBed.configureTestingModule({
       providers: [
         provideRouter([]),

@@ -10,11 +10,13 @@ import {
   AUTH_LOGOUT_URL,
   AUTH_ME_URL,
   AUTH_REGISTER_URL,
+  AUTH_REGISTER_WARDS_URL,
 } from '../config/api.config';
 import type {
   CurrentUser,
   LoginRequest,
   LoginResponse,
+  PublicWard,
   StaffRegistrationRequest,
   StaffRegistrationResponse,
 } from '../models/api';
@@ -75,6 +77,11 @@ export class AuthService {
 
   register(request: StaffRegistrationRequest): Observable<StaffRegistrationResponse> {
     return this.http.post<StaffRegistrationResponse>(AUTH_REGISTER_URL, request);
+  }
+
+  /** Public ward dictionary for the registration form (no JWT needed). */
+  getRegisterWards(): Observable<PublicWard[]> {
+    return this.http.get<PublicWard[]>(AUTH_REGISTER_WARDS_URL);
   }
 
   /** Refreshes the user from `/auth/me`; emits `null` (no request) when there is no token. */

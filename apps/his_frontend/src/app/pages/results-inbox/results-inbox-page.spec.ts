@@ -1,20 +1,18 @@
+import { imagingResultServiceStub } from '../../testing/imaging-result-service.stub';
 import { labResultServiceStub } from '../../testing/lab-result-service.stub';
-import { describe, expect, it, beforeEach } from 'vitest';
+import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { firstValueFrom } from 'rxjs';
-import { MOCK_LATENCY_MS } from '../../config/mock-api.config';
+import { firstValueFrom, of } from 'rxjs';
 import { ResultsInboxPage } from './results-inbox-page';
 import { LabResultService } from '../../services/lab-result.service';
+import { ImagingResultService } from '../../services/imaging-result.service';
+import { IMAGING_RESULTS } from '../../mock-data/imaging-results.mock';
 
 describe('ResultsInboxPage', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [
-        provideRouter([]),
-        labResultServiceStub,
-        { provide: MOCK_LATENCY_MS, useValue: 0 },
-      ],
+      providers: [provideRouter([]), labResultServiceStub, imagingResultServiceStub],
     });
   });
 
@@ -47,5 +45,16 @@ describe('ResultsInboxPage', () => {
     expect(normalResult).toBeDefined();
     expect(rows.length).toBe(allResults.length);
     expect(rows.some((r: { id: string }) => r.id === normalResult!.id)).toBe(true);
+  });
+
+  it('falls back to the patient id when an inbox row has no patient summary', async () => {
+    const result = IMAGING_RESULTS[0];
+    vi.spyOn(TestBed.inject(ImagingResultService), 'getRecent').mockReturnValue(of([result]));
+    const fixture = TestBed.createComponent(ResultsInboxPage);
+    fixture.componentRef.setInput('filter', 'all');
+    await fixture.whenStable();
+    const rows = fixture.componentInstance['imagingRows']();
+    expect(rows).toHaveLength(1);
+    expect(rows[0].patientName).toBe(result.patientId);
   });
 });

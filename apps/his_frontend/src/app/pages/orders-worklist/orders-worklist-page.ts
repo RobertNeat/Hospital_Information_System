@@ -1,3 +1,4 @@
+import type { Observable } from 'rxjs';
 import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
 import { forkJoin, map } from 'rxjs';
@@ -18,6 +19,7 @@ import type { ID, OrderStatus, OrderUrgency, PatientSummary, TableColumn } from 
 import { toApiError } from '../../utils/api-error';
 import { LabOrderService } from '../../services/lab-order.service';
 import { ImagingOrderService } from '../../services/imaging-order.service';
+import { AuthService } from '../../services/auth.service';
 import { PatientService } from '../../services/patient.service';
 
 type WorklistOrderType = 'lab' | 'imaging';
@@ -53,15 +55,24 @@ const LAB_NEXT_STATUSES: Record<OrderStatus, OrderStatus[]> = {
   cancelled: [],
 };
 
-/** Imaging status transitions offered by the "Zmień status" action. */
-const NEXT_STATUSES: Record<OrderStatus, OrderStatus[]> = {
-  ordered: ['scheduled', 'specimen_collected', 'in_progress', 'cancelled'],
-  scheduled: ['specimen_collected', 'in_progress', 'cancelled'],
-  specimen_collected: ['in_progress', 'cancelled'],
-  in_progress: ['completed', 'cancelled'],
+/**
+ * Imaging transitions of the backend state machine (no `specimen_collected`; `scheduled -> completed`
+ * is allowed). Cancelling is a separate doctor action (`/cancel`, patient orders page).
+ */
+const IMAGING_NEXT_STATUSES: Record<OrderStatus, OrderStatus[]> = {
+  ordered: ['scheduled', 'in_progress'],
+  scheduled: ['in_progress', 'completed'],
+  specimen_collected: [],
+  in_progress: ['completed'],
   completed: [],
   cancelled: [],
 };
+
+/** Permissions required by the backend to change the status of an order. */
+const IMAGING_UPDATE_STATUS_PERMISSION = 'imaging-order:update-status';
+const LAB_UPDATE_STATUS_PERMISSION = 'lab-order:update-status';
+/** Nurses may only move a lab order to `specimen_collected`. */
+const LAB_COLLECT_SPECIMEN_PERMISSION = 'lab-order:collect-specimen';
 
 @Component({
   selector: 'app-orders-worklist-page',
@@ -75,6 +86,7 @@ export class OrdersWorklistPage {
   private readonly labOrderService = inject(LabOrderService);
   private readonly imagingOrderService = inject(ImagingOrderService);
   private readonly patientService = inject(PatientService);
+  private readonly auth = inject(AuthService);
   private readonly toast = inject(MessageService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
@@ -124,6 +136,7 @@ export class OrdersWorklistPage {
             orderedAt: o.orderedAt,
             urgency: o.urgency,
             status: o.status,
+            version: o.version,
           }));
           return [...labRows, ...imagingRows].sort((a, b) =>
             b.orderedAt.localeCompare(a.orderedAt),
@@ -170,10 +183,23 @@ export class OrdersWorklistPage {
   ];
 
   protected nextStatusOptions(row: WorklistRow) {
-    return (row.type === 'lab' ? LAB_NEXT_STATUSES : NEXT_STATUSES)[row.status].map((s) => ({
+    return this.allowedStatuses(row).map((s) => ({
       label: ORDER_STATUS_OPTIONS.find((o) => o.value === s)?.label ?? s,
       value: s,
     }));
+  }
+
+  private allowedStatuses(row: WorklistRow): OrderStatus[] {
+    if (row.type === 'imaging') {
+      return this.auth.hasPermission(IMAGING_UPDATE_STATUS_PERMISSION)
+        ? IMAGING_NEXT_STATUSES[row.status]
+        : [];
+    }
+    const next = LAB_NEXT_STATUSES[row.status];
+    if (this.auth.hasPermission(LAB_UPDATE_STATUS_PERMISSION)) return next;
+    return this.auth.hasPermission(LAB_COLLECT_SPECIMEN_PERMISSION)
+      ? next.filter((s) => s === 'specimen_collected')
+      : [];
   }
 
   protected onTypeChange(value: string): void {
@@ -210,12 +236,10 @@ export class OrdersWorklistPage {
       });
       this.ordersResource.reload();
     };
-    if (row.type === 'lab') {
-      this.labOrderService
-        .updateStatus(row.id, newStatus, undefined, row.version)
-        .subscribe({ next: onUpdated, error: onFailed });
-    } else {
-      this.imagingOrderService.updateStatus(row.id, newStatus).subscribe(onUpdated);
-    }
+    const update$: Observable<unknown> =
+      row.type === 'lab'
+        ? this.labOrderService.updateStatus(row.id, newStatus, undefined, row.version)
+        : this.imagingOrderService.updateStatus(row.id, newStatus, undefined, row.version);
+    update$.subscribe({ next: onUpdated, error: onFailed });
   }
 }

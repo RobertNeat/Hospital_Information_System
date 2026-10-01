@@ -1,14 +1,13 @@
 import { drugServiceStub } from '../../testing/drug-service.stub';
 import { describe, expect, it, beforeEach } from 'vitest';
 import { TestBed } from '@angular/core/testing';
-import { MOCK_LATENCY_MS } from '../../config/mock-api.config';
 import type { Drug } from '../../models';
 import { DrugPicker } from './drug-picker';
 
 describe('DrugPicker', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [drugServiceStub, { provide: MOCK_LATENCY_MS, useValue: 0 }],
+      providers: [drugServiceStub],
     });
   });
 

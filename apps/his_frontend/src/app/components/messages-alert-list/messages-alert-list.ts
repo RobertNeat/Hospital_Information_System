@@ -3,6 +3,7 @@ import { RouterLink } from '@angular/router';
 import { Button } from 'primeng/button';
 import { Tag } from 'primeng/tag';
 import type { ClinicalAlert } from '../../models';
+import { alertRoute } from '../../utils/alert-route';
 import { StatusTag } from '../status-tag/status-tag';
 
 @Component({
@@ -18,4 +19,6 @@ export class MessagesAlertList {
   readonly patientLabel = input.required<(patientId: string) => string>();
   readonly alertAgo = input.required<(alert: ClinicalAlert) => string>();
   readonly acknowledge = output<ClinicalAlert>();
+
+  protected readonly route = alertRoute;
 }

@@ -15,10 +15,15 @@ import { LabelPipe } from '../../pipes/label.pipe';
 import type {
   ImagingResult,
   LabResult,
+  PatientSummary,
   ResultAbnormalityFilter,
   ResultWithPatient,
   TableColumn,
 } from '../../models';
+
+/** Inbox rows may lack `patient`; the name then falls back to the patient id. */
+const patientName = (r: { patientId: string; patient?: PatientSummary }): string =>
+  r.patient ? `${r.patient.lastName} ${r.patient.firstName}` : r.patientId;
 
 type LabResultRow = ResultWithPatient<LabResult> & { patientName: string };
 
@@ -74,7 +79,7 @@ export class ResultsInboxPage {
   protected readonly rows = computed<LabResultRow[]>(() =>
     this.results().map((r) => ({
       ...r,
-      patientName: `${r.patient.lastName} ${r.patient.firstName}`,
+      patientName: patientName(r),
     })),
   );
 
@@ -96,7 +101,7 @@ export class ResultsInboxPage {
   protected readonly imagingRows = computed<ImagingResultRow[]>(() =>
     this.imagingResults().map((r) => ({
       ...r,
-      patientName: `${r.patient.lastName} ${r.patient.firstName}`,
+      patientName: patientName(r),
     })),
   );
 
@@ -105,13 +110,13 @@ export class ResultsInboxPage {
   }
 
   protected openPatientResults(row: LabResultRow): void {
-    this.router.navigate(['/patients', row.patient.id, 'results'], {
+    this.router.navigate(['/patients', row.patientId, 'results'], {
       queryParams: { tab: 'lab' },
     });
   }
 
   protected openPatientImagingResults(row: ImagingResultRow): void {
-    this.router.navigate(['/patients', row.patient.id, 'results'], {
+    this.router.navigate(['/patients', row.patientId, 'results'], {
       queryParams: { tab: 'imaging' },
     });
   }

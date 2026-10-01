@@ -1,7 +1,7 @@
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import { Tag } from 'primeng/tag';
-import { VITAL_THRESHOLDS } from '../../constants/vitals-thresholds';
-import type { TagSeverity, VitalSigns, VitalType } from '../../models';
+import type { TagSeverity, VitalSigns, VitalThreshold, VitalType } from '../../models';
+import { VitalsService } from '../../services/vitals.service';
 
 export interface VitalsCompareRow {
   type: VitalType;
@@ -22,8 +22,7 @@ export interface VitalsCompareRow {
  * "rising BP is bad". Comparing distance-to-normal-band before/after gets this right
  * for every vital, including SpO2, with no per-parameter special case.
  */
-function distanceOutsideBand(type: VitalType, value: number): number {
-  const t = VITAL_THRESHOLDS[type];
+function distanceOutsideBand(t: VitalThreshold, value: number): number {
   if (value < t.low) return t.low - value;
   if (value > t.high) return value - t.high;
   return 0;
@@ -58,21 +57,31 @@ const FIELDS: VitalType[] = [
   host: { 'data-component-id': 'vitals-compare-table' },
 })
 export class VitalsCompareTable {
+  private readonly vitalsService = inject(VitalsService);
+
   readonly measurementA = input<VitalSigns | undefined>(undefined);
   readonly measurementB = input<VitalSigns | undefined>(undefined);
 
   protected readonly rows = computed<VitalsCompareRow[]>(() => {
     const a = this.measurementA();
     const b = this.measurementB();
-    return FIELDS.map((type) => this.buildRow(type, a, b));
+    const thresholds = this.vitalsService.thresholds();
+    return FIELDS.flatMap((type) => {
+      const t = thresholds[type];
+      return t ? [this.buildRow(type, t, a, b)] : [];
+    });
   });
+
+  constructor() {
+    this.vitalsService.loadThresholds().subscribe({ error: () => undefined });
+  }
 
   private buildRow(
     type: VitalType,
+    t: VitalThreshold,
     a: VitalSigns | undefined,
     b: VitalSigns | undefined,
   ): VitalsCompareRow {
-    const t = VITAL_THRESHOLDS[type];
     const valueA = a?.[type];
     const valueB = b?.[type];
     const rawDelta = valueA !== undefined && valueB !== undefined ? valueB - valueA : undefined;
@@ -87,8 +96,8 @@ export class VitalsCompareTable {
         arrowSeverity = 'secondary';
       } else {
         arrow = delta > 0 ? 'up' : 'down';
-        const distA = valueA !== undefined ? distanceOutsideBand(type, valueA) : 0;
-        const distB = valueB !== undefined ? distanceOutsideBand(type, valueB) : 0;
+        const distA = valueA !== undefined ? distanceOutsideBand(t, valueA) : 0;
+        const distB = valueB !== undefined ? distanceOutsideBand(t, valueB) : 0;
         arrowSeverity = distB < distA ? 'success' : distB > distA ? 'danger' : 'secondary';
       }
     }

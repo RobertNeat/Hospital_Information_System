@@ -180,12 +180,12 @@ export function prefillForms(forms: RegistrationForms, patient: Patient): void {
     const a = patient.currentAdmission;
     forms.step4.reset({
       admissionType: a.admissionType,
-      wardId: a.wardId,
+      wardId: a.wardId ?? '',
       room: a.room ?? '',
       bed: a.bed ?? '',
-      attendingPhysicianId: a.attendingPhysicianId,
+      attendingPhysicianId: a.attendingPhysicianId ?? '',
       triageLevel: a.triageLevel ?? null,
-      reason: a.reason,
+      reason: a.reason ?? '',
       referralNumber: a.referralNumber ?? '',
       admittedAt: new Date(a.admittedAt),
     });

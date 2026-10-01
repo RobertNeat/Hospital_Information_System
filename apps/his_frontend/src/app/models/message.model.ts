@@ -1,4 +1,4 @@
-import type { Auditable, ID, ISODate, ISODateTime, Priority } from './common.model';
+import type { Auditable, ID, ISODate, ISODateTime, Priority, Versioned } from './common.model';
 
 /**
  * Documentation model (target table `thread_participant`): membership of a staff member in a
@@ -45,7 +45,7 @@ export interface Message {
 
 export type TaskStatus = 'open' | 'in_progress' | 'done' | 'cancelled';
 
-export interface TeamTask extends Partial<Auditable> {
+export interface TeamTask extends Partial<Auditable>, Versioned {
   id: ID;
   title: string;
   description?: string;
@@ -112,7 +112,6 @@ export interface ClinicalAlert {
   acknowledged: boolean;
   acknowledgedById?: ID;
   acknowledgedAt?: ISODateTime;
+  /** The UI derives its route from the target (`alertRoute`); the backend does not know UI routes. */
   target?: AlertTarget;
-  /** @deprecated The UI builds the link from `target`; the backend does not know UI routes. */
-  link?: string;
 }

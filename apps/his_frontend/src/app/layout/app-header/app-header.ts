@@ -11,6 +11,7 @@ import { PatientContextService } from '../../services/patient-context.service';
 import { AuthService } from '../../services/auth.service';
 import { StaffService } from '../../services/staff.service';
 import { TeamMessageService } from '../../services/team-message.service';
+import { RealtimeService } from '../../services/realtime.service';
 import { ThemeService } from '../../services/theme.service';
 import { FullNamePipe } from '../../pipes/full-name.pipe';
 
@@ -32,6 +33,16 @@ export class AppHeader {
   // Eagerly injected (also in app.config.ts's provideAppInitializer) so the
   // toggle button always reflects/controls the live theme mode.
   protected readonly theme = inject(ThemeService);
+
+  protected readonly realtimeStatus = inject(RealtimeService).status;
+  protected readonly realtimeLabel = computed(() => {
+    const labels = {
+      connected: 'Powiadomienia na żywo: połączono',
+      connecting: 'Powiadomienia na żywo: łączenie...',
+      disconnected: 'Powiadomienia na żywo: rozłączono',
+    };
+    return labels[this.realtimeStatus()];
+  });
 
   protected readonly currentUser = this.staffService.currentUser;
   protected readonly unacknowledgedAlertCount = this.teamMessageService.unacknowledgedAlertCount;

@@ -45,8 +45,9 @@ export class WardService {
     return this.load();
   }
 
-  /** Synchronous lookup from the cache, for pipes/templates; falls back to the id. */
-  nameOf(id: string): string {
+  /** Synchronous lookup from the cache, for pipes/templates; falls back to the id ('' when absent). */
+  nameOf(id: string | undefined): string {
+    if (!id) return '';
     if (this.cache() === null && !this.loadFailed && this.auth.isAuthenticated())
       this.load().subscribe({ error: () => undefined });
     return this.byId().get(id)?.name ?? id;

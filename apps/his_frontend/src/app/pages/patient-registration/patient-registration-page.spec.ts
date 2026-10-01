@@ -2,15 +2,22 @@ import { patientServiceStub } from '../../testing/patient-service.stub';
 import { ehrServiceStub } from '../../testing/ehr-service.stub';
 import { staffServiceStub } from '../../testing/staff-service.stub';
 import { wardServiceStub } from '../../testing/ward-service.stub';
-import { describe, expect, it, beforeEach } from 'vitest';
+import { afterEach, describe, expect, it, beforeEach, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { provideRouter, Router } from '@angular/router';
 import { ConfirmationService, MessageService } from 'primeng/api';
+import { PatientService } from '../../services/patient.service';
 import { PatientRegistrationPage } from './patient-registration-page';
-import { MOCK_LATENCY_MS } from '../../config/mock-api.config';
 
 describe('PatientRegistrationPage', () => {
+  // Storage must not leak into other specs (auth.service.spec asserts it is empty).
+  afterEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+  });
+
   beforeEach(() => {
+    localStorage.clear();
     sessionStorage.clear();
     TestBed.configureTestingModule({
       providers: [
@@ -21,7 +28,6 @@ describe('PatientRegistrationPage', () => {
         MessageService,
         ConfirmationService,
         wardServiceStub,
-        { provide: MOCK_LATENCY_MS, useValue: 0 },
       ],
     });
   });
@@ -126,5 +132,25 @@ describe('PatientRegistrationPage', () => {
     expect(instance.isAmbulatoryOnly()).toBe(false);
     instance.step4.controls.admissionType.setValue('outpatient');
     expect(instance.isAmbulatoryOnly()).toBe(true);
+  });
+
+  it('admits an outpatient with type and time only (patient becomes outpatient)', async () => {
+    const fixture = TestBed.createComponent(PatientRegistrationPage);
+    await fixture.whenStable();
+    vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+    const admit = vi.spyOn(TestBed.inject(PatientService), 'admitPatient');
+    const instance = fixture.componentInstance as unknown as {
+      step4: { controls: { admissionType: { setValue: (v: string) => void } } };
+      submit: () => void;
+    };
+    instance.step4.controls.admissionType.setValue('outpatient');
+    instance.submit();
+    expect(admit).toHaveBeenCalledTimes(1);
+    const body = admit.mock.calls[0][1];
+    expect(Object.keys(body).sort()).toEqual(['admissionType', 'admittedAt']);
+    expect(body.admissionType).toBe('outpatient');
+    let status: string | undefined;
+    admit.mock.results[0].value.subscribe((p: { status: string }) => (status = p.status));
+    expect(status).toBe('outpatient');
   });
 });

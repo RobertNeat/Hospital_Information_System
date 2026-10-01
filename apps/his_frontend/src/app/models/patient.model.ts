@@ -69,12 +69,15 @@ export interface Admission extends Versioned {
   status?: AdmissionRecordStatus;
   admissionType: AdmissionType;
   admittedAt: ISODateTime;
-  wardId: ID;
+  /** Absent for `outpatient` admissions (no ward stay). */
+  wardId?: ID;
   room?: string;
   bed?: string;
-  attendingPhysicianId: ID;
+  /** Absent for `outpatient` admissions. */
+  attendingPhysicianId?: ID;
   triageLevel?: TriageLevel;
-  reason: string;
+  /** Absent for `outpatient` admissions. */
+  reason?: string;
   referralNumber?: string;
   dischargedAt?: ISODateTime;
   dischargeDisposition?: DischargeDisposition;

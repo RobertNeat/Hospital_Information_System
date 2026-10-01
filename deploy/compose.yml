@@ -76,7 +76,7 @@ services:
       HIS_SNOWSTORM_READ_TIMEOUT: ${HIS_SNOWSTORM_READ_TIMEOUT:-5s}
       HIS_SNOWSTORM_DISPLAY_LANGUAGE: ${HIS_SNOWSTORM_DISPLAY_LANGUAGE:-pl,en}
       HIS_SNOWSTORM_MAX_PAGE_SIZE: ${HIS_SNOWSTORM_MAX_PAGE_SIZE:-100}
-      # FHIR do/z e-receipt: klucz usługowy (X-Service-Key) autoryzuje wywołania e-* na /fhir/**
+      # FHIR do/z e-receipt, e-laboratory i e-imaging: klucz usługowy (X-Service-Key) autoryzuje wywołania e-* na /fhir/**
       # (pusty = odrzucane; docelowo mTLS). Klient e-receipt domyślnie wyłączony; brak depends_on
       # na e-receipt (jego niedostępność nie blokuje wystawiania recept).
       HIS_FHIR_SERVICE_KEY: ${HIS_FHIR_SERVICE_KEY:-}
@@ -84,6 +84,16 @@ services:
       HIS_ERECEIPT_ENABLED: ${HIS_ERECEIPT_ENABLED:-false}
       HIS_ERECEIPT_CONNECT_TIMEOUT: ${HIS_ERECEIPT_CONNECT_TIMEOUT:-1s}
       HIS_ERECEIPT_READ_TIMEOUT: ${HIS_ERECEIPT_READ_TIMEOUT:-3s}
+      # Klient e-laboratory (zlecenia lab, anulowanie): domyślnie wyłączony, bez depends_on.
+      HIS_ELAB_URL: http://e-laboratory:10422/fhir
+      HIS_ELAB_ENABLED: ${HIS_ELAB_ENABLED:-false}
+      HIS_ELAB_CONNECT_TIMEOUT: ${HIS_ELAB_CONNECT_TIMEOUT:-1s}
+      HIS_ELAB_READ_TIMEOUT: ${HIS_ELAB_READ_TIMEOUT:-3s}
+      # Klient e-imaging (zlecenia obrazowe, anulowanie): domyślnie wyłączony, bez depends_on.
+      HIS_EIMG_URL: http://e-imaging:10423/fhir
+      HIS_EIMG_ENABLED: ${HIS_EIMG_ENABLED:-false}
+      HIS_EIMG_CONNECT_TIMEOUT: ${HIS_EIMG_CONNECT_TIMEOUT:-1s}
+      HIS_EIMG_READ_TIMEOUT: ${HIS_EIMG_READ_TIMEOUT:-3s}
     depends_on:
       postgres:
         condition: service_healthy
@@ -132,6 +142,13 @@ services:
   e-laboratory:
     image: ${REGISTRY:-local}/${E_LABORATORY_IMAGE:-hospital-information-system/e-laboratory}:${IMAGE_TAG:-dev}
     restart: unless-stopped
+    environment:
+      # Wywołanie zwrotne FHIR do his_backend (stan zlecenia, wynik); ten sam klucz co HIS_FHIR_SERVICE_KEY.
+      E_LABORATORY_HIS_URL: http://his-backend:10420/fhir
+      E_LABORATORY_HIS_ENABLED: ${E_LABORATORY_HIS_ENABLED:-false}
+      E_LABORATORY_HIS_SERVICE_KEY: ${HIS_FHIR_SERVICE_KEY:-}
+      E_LABORATORY_HIS_CONNECT_TIMEOUT: ${E_LABORATORY_HIS_CONNECT_TIMEOUT:-1s}
+      E_LABORATORY_HIS_READ_TIMEOUT: ${E_LABORATORY_HIS_READ_TIMEOUT:-3s}
     networks:
       - his-internal
     healthcheck:
@@ -148,6 +165,13 @@ services:
   e-imaging:
     image: ${REGISTRY:-local}/${E_IMAGING_IMAGE:-hospital-information-system/e-imaging}:${IMAGE_TAG:-dev}
     restart: unless-stopped
+    environment:
+      # Wywołanie zwrotne FHIR do his_backend (stan zlecenia, wynik); ten sam klucz co HIS_FHIR_SERVICE_KEY.
+      E_IMAGING_HIS_URL: http://his-backend:10420/fhir
+      E_IMAGING_HIS_ENABLED: ${E_IMAGING_HIS_ENABLED:-false}
+      E_IMAGING_HIS_SERVICE_KEY: ${HIS_FHIR_SERVICE_KEY:-}
+      E_IMAGING_HIS_CONNECT_TIMEOUT: ${E_IMAGING_HIS_CONNECT_TIMEOUT:-1s}
+      E_IMAGING_HIS_READ_TIMEOUT: ${E_IMAGING_HIS_READ_TIMEOUT:-3s}
     networks:
       - his-internal
     healthcheck:

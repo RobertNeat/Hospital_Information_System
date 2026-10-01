@@ -71,9 +71,9 @@ Katalogi są danymi z migracji (mock), bez endpointów zapisu.
 - `analytes`: anality pacjenta z wartością liczbową, wg nazwy.
 - **Acknowledge**: idempotentne; pierwsze potwierdzenie zapisuje `reviewedAt` i `reviewedById` (aktor z tokenu), kolejne zwracają wynik bez zmian. Brak 409 (wynik nie ma wersji).
 
-## Zapis wyniku poza HTTP
+## Zapis wyniku poza REST
 
-Brak endpointu `POST` wyniku. `LabResultRecordingService.recordResult(RecordLabResultCommand)` (dla laboranta lub usługi `e-laboratory`) wymusza:
+Brak endpointu `POST` wyniku w `/api/v1`. Wynik wchodzi przez `LabResultRecordingService.recordResult(RecordLabResultCommand)`, wywoływany z `POST /fhir/DiagnosticReport` (usługa `e-laboratory`, klucz usługowy; mapowanie i idempotencja: [rest-api-fhir.md](rest-api-fhir.md#badania-laboratoryjne-e-laboratory)). Reguły zapisu:
 
 | Reguła | Skutek |
 | --- | --- |
@@ -86,3 +86,5 @@ Brak endpointu `POST` wyniku. `LabResultRecordingService.recordResult(RecordLabR
 | `performerName` | z polecenia, inaczej imię zalogowanego pracownika; brak obu -> 422 |
 | Zdarzenie | `LabResultRecorded` (`critical` gdy któraś flaga `LL`/`HH`) -> alert ([events.md](events.md)) |
 | Auto-`completed` | gdy wynik jest zatwierdzony (`final`/`corrected`) i **wszystkie** pozycje zlecenia mają zatwierdzony wynik, zlecenie przechodzi do `completed` (note "Wszystkie wyniki zatwierdzone (automatycznie)", aktor = rejestrujący lub systemowy `null`) i publikuje `LabOrderStatusChanged` |
+
+Zlecenie nowo utworzone (`POST /patients/{id}/lab-orders`) jest po commicie wysyłane do e-laboratory (gdy integracja włączona), a anulowanie w HIS (`/cancel`) przekazywane; stan zlecenia zmienia też e-laboratory przez `PUT /fhir/ServiceRequest/{id}` z zachowaniem tej samej maszyny stanów ([rest-api-fhir.md](rest-api-fhir.md#badania-laboratoryjne-e-laboratory)).

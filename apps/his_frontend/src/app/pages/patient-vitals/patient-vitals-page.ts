@@ -19,17 +19,13 @@ import {
   VitalsEntryForm,
   type VitalsSaveResult,
 } from '../../components/vitals-entry-form/vitals-entry-form';
-import { VITAL_THRESHOLDS } from '../../constants/vitals-thresholds';
-import type {
-  ResultFlag,
-  TableColumn,
-  VitalAnomaly,
-  VitalSigns,
-  VitalsRange,
-  VitalType,
-} from '../../models';
+import type { ResultFlag, TableColumn, VitalSigns, VitalsRange, VitalType } from '../../models';
 import { VitalsService } from '../../services/vitals.service';
-import { evaluateVitals } from '../../utils/vitals-anomaly';
+import {
+  classifyVital,
+  type VitalClassification,
+  type VitalThresholds,
+} from '../../utils/vitals-anomaly';
 
 const VALID_RANGES: VitalsRange[] = ['24h', '7d', '30d', 'all'];
 const DEFAULT_RANGE: VitalsRange = '7d';
@@ -54,28 +50,48 @@ const RANGE_OPTIONS: { label: string; value: VitalsRange }[] = [
   { label: 'Wszystko', value: 'all' },
 ];
 
-/** Maps an anomaly's severity/direction to a `ResultFlag` so `TrendChartCard` colors the point red. */
-function anomalyToFlag(anomaly: VitalAnomaly | undefined): ResultFlag | undefined {
+/** Maps a classification's severity/direction to a `ResultFlag` so `TrendChartCard` colors the point red. */
+function anomalyToFlag(anomaly: VitalClassification | undefined): ResultFlag | undefined {
   if (!anomaly) return undefined;
   if (anomaly.severity === 'critical') return anomaly.direction === 'low' ? 'LL' : 'HH';
   return anomaly.direction === 'low' ? 'L' : 'H';
 }
 
-function toSeries(label: string, type: VitalType, vitals: VitalSigns[]): TrendSeries {
+function toSeries(
+  label: string,
+  type: VitalType,
+  vitals: VitalSigns[],
+  thresholds: VitalThresholds,
+): TrendSeries {
   return {
     label,
     points: vitals
       .filter((v) => v[type] !== undefined)
       .map((v) => {
-        const anomaly = evaluateVitals(v).find((a) => a.type === type);
+        const anomaly = classifyVital(thresholds, type, v[type]);
         return { at: v.recordedAt, value: v[type] as number, flag: anomalyToFlag(anomaly) };
       }),
   };
 }
 
-function anomalyLevelsOf(v: VitalSigns): Partial<Record<VitalType, 'warning' | 'critical'>> {
+const CLASSIFIED_TYPES: VitalType[] = [
+  'systolic',
+  'diastolic',
+  'heartRate',
+  'temperature',
+  'spo2',
+  'respiratoryRate',
+];
+
+function anomalyLevelsOf(
+  v: VitalSigns,
+  thresholds: VitalThresholds,
+): Partial<Record<VitalType, 'warning' | 'critical'>> {
   const map: Partial<Record<VitalType, 'warning' | 'critical'>> = {};
-  for (const a of evaluateVitals(v)) map[a.type] = a.severity;
+  for (const type of CLASSIFIED_TYPES) {
+    const c = classifyVital(thresholds, type, v[type]);
+    if (c) map[type] = c.severity;
+  }
   return map;
 }
 
@@ -115,8 +131,12 @@ export class PatientVitalsPage {
     return VALID_RANGES.includes(r as VitalsRange) ? (r as VitalsRange) : DEFAULT_RANGE;
   });
 
+  constructor() {
+    this.vitalsService.loadThresholds().subscribe({ error: () => undefined });
+  }
+
   protected readonly rangeOptions = RANGE_OPTIONS;
-  protected readonly thresholds = VITAL_THRESHOLDS;
+  protected readonly thresholds = this.vitalsService.thresholds;
 
   private readonly refreshTick = signal(0);
   protected readonly lastSaveResult = signal<VitalsSaveResult | null>(null);
@@ -171,20 +191,20 @@ export class PatientVitalsPage {
   }
 
   protected readonly bpSeries = computed<TrendSeries[]>(() => [
-    toSeries('Skurczowe', 'systolic', this.history()),
-    toSeries('Rozkurczowe', 'diastolic', this.history()),
+    toSeries('Skurczowe', 'systolic', this.history(), this.thresholds()),
+    toSeries('Rozkurczowe', 'diastolic', this.history(), this.thresholds()),
   ]);
   protected readonly hrSeries = computed<TrendSeries[]>(() => [
-    toSeries('Tętno', 'heartRate', this.history()),
+    toSeries('Tętno', 'heartRate', this.history(), this.thresholds()),
   ]);
   protected readonly tempSeries = computed<TrendSeries[]>(() => [
-    toSeries('Temperatura', 'temperature', this.history()),
+    toSeries('Temperatura', 'temperature', this.history(), this.thresholds()),
   ]);
   protected readonly spo2Series = computed<TrendSeries[]>(() => [
-    toSeries('SpO₂', 'spo2', this.history()),
+    toSeries('SpO₂', 'spo2', this.history(), this.thresholds()),
   ]);
   protected readonly rrSeries = computed<TrendSeries[]>(() => [
-    toSeries('Oddechy', 'respiratoryRate', this.history()),
+    toSeries('Oddechy', 'respiratoryRate', this.history(), this.thresholds()),
   ]);
 
   protected readonly historyRows = computed<HistoryRow[]>(() =>
@@ -198,7 +218,7 @@ export class PatientVitalsPage {
       temperature: v.temperature ?? null,
       spo2: v.spo2 ?? null,
       respiratoryRate: v.respiratoryRate ?? null,
-      anomalyLevels: anomalyLevelsOf(v),
+      anomalyLevels: anomalyLevelsOf(v, this.thresholds()),
     })),
   );
 

@@ -186,6 +186,10 @@ export function buildPatientUpdate(input: DraftInput): PatientUpdateRequest {
 }
 
 export function buildAdmission(s4: RegistrationValues['s4']): AdmitPatientRequest {
+  // Outpatient admission carries only type and time (no ward stay); the time is submit time.
+  if (s4.admissionType === 'outpatient') {
+    return { admissionType: 'outpatient', admittedAt: new Date().toISOString() };
+  }
   return {
     admissionType: s4.admissionType,
     admittedAt: s4.admittedAt.toISOString(),

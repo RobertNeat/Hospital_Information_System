@@ -7,178 +7,188 @@
 
   <p-tabs id="patient-history-p-tabs" [value]="activeTab()" (valueChange)="onTabChange($event)">
     <p-tablist id="patient-history-p-tablist">
-      <p-tab id="patient-history-p-tab" value="overview">Przegląd</p-tab>
-      <p-tab id="patient-history-p-tab-2" value="encounters">Wizyty i epizody leczenia</p-tab>
-      <p-tab id="patient-history-p-tab-3" value="notes">Notatki kliniczne</p-tab>
+      @if (canReadFull()) {
+        <p-tab id="patient-history-p-tab" value="overview">Przegląd</p-tab>
+        <p-tab id="patient-history-p-tab-2" value="encounters">Wizyty i epizody leczenia</p-tab>
+        <p-tab id="patient-history-p-tab-3" value="notes">Notatki kliniczne</p-tab>
+      }
       <p-tab id="patient-history-p-tab-4" value="diagnoses">Rozpoznania</p-tab>
       <p-tab id="patient-history-p-tab-5" value="treatments">Leczenie / Terapia</p-tab>
       <p-tab id="patient-history-p-tab-6" value="allergies">Alergie i przeciwwskazania</p-tab>
     </p-tablist>
 
     <p-tabpanels id="patient-history-p-tabpanels">
-      <!-- Przegląd -->
-      <p-tabpanel id="patient-history-p-tabpanel" value="overview">
-        @if (summary(); as s) {
-          <app-ehr-summary-cards
-            id="patient-history-app-ehr-summary-cards"
-            [summary]="s"
-            [encounters]="encounters()"
-          />
-        } @else {
-          <app-empty-state
-            id="patient-history-app-empty-state"
-            title="Brak danych"
-            message="Ładowanie danych pacjenta..."
-          />
-        }
-      </p-tabpanel>
+      @if (canReadFull()) {
+        <!-- Przegląd -->
+        <p-tabpanel id="patient-history-p-tabpanel" value="overview">
+          @if (summary(); as s) {
+            <app-ehr-summary-cards
+              id="patient-history-app-ehr-summary-cards"
+              [summary]="s"
+              [encounters]="encounters()"
+            />
+          } @else {
+            <app-empty-state
+              id="patient-history-app-empty-state"
+              title="Brak danych"
+              message="Ładowanie danych pacjenta..."
+            />
+          }
+        </p-tabpanel>
 
-      <!-- Wizyty i epizody leczenia -->
-      <p-tabpanel id="patient-history-p-tabpanel-2" value="encounters">
-        @if (episodeGroups().length) {
-          <div id="patient-history-episode-groups" class="his-episode-groups">
-            @for (group of episodeGroups(); track trackEpisode($index, group); let idx0 = $index) {
-              <div [id]="'patient-history-section-' + idx0" class="his-section his-episode-group">
-                <app-section-header
-                  [id]="'patient-history-app-section-header-' + idx0"
-                  [title]="group.episode?.title ?? 'Wizyty bez przypisanego epizodu'"
-                  icon="pi pi-calendar-clock"
-                  [variant]="group.episode?.status === 'active' ? 'warn' : 'navy'"
-                />
-                <div
-                  [id]="'patient-history-episode-group-body-' + idx0"
-                  class="his-episode-group__body"
-                >
-                  <p-timeline
-                    [id]="'patient-history-p-timeline-' + idx0"
-                    [value]="group.encounters"
-                    align="left"
+        <!-- Wizyty i epizody leczenia -->
+        <p-tabpanel id="patient-history-p-tabpanel-2" value="encounters">
+          @if (episodeGroups().length) {
+            <div id="patient-history-episode-groups" class="his-episode-groups">
+              @for (
+                group of episodeGroups();
+                track trackEpisode($index, group);
+                let idx0 = $index
+              ) {
+                <div [id]="'patient-history-section-' + idx0" class="his-section his-episode-group">
+                  <app-section-header
+                    [id]="'patient-history-app-section-header-' + idx0"
+                    [title]="group.episode?.title ?? 'Wizyty bez przypisanego epizodu'"
+                    icon="pi pi-calendar-clock"
+                    [variant]="group.episode?.status === 'active' ? 'warn' : 'navy'"
+                  />
+                  <div
+                    [id]="'patient-history-episode-group-body-' + idx0"
+                    class="his-episode-group__body"
                   >
-                    <ng-template pTemplate="content" let-encounter>
-                      <div
-                        [id]="'patient-history-timeline-entry-' + idx0 + '-' + encounter.id"
-                        class="his-timeline-entry"
-                      >
+                    <p-timeline
+                      [id]="'patient-history-p-timeline-' + idx0"
+                      [value]="group.encounters"
+                      align="left"
+                    >
+                      <ng-template pTemplate="content" let-encounter>
                         <div
-                          [id]="
-                            'patient-history-timeline-entry-header-' + idx0 + '-' + encounter.id
-                          "
-                          class="his-timeline-entry__header"
+                          [id]="'patient-history-timeline-entry-' + idx0 + '-' + encounter.id"
+                          class="his-timeline-entry"
                         >
-                          <strong>{{ encounter.type | label: 'encounterType' }}</strong>
-                          <app-status-tag
-                            [id]="'patient-history-app-status-tag-' + idx0 + '-' + encounter.id"
-                            kind="encounterStatus"
-                            [value]="encounter.status"
-                          />
-                        </div>
-                        <div
-                          [id]="'patient-history-muted-' + idx0 + '-' + encounter.id"
-                          class="his-muted"
-                        >
-                          {{ encounter.startAt | date: 'dd.MM.yyyy HH:mm' }}
-                          @if (departmentName(encounter.wardId); as dept) {
-                            · {{ dept }}
-                          }
-                        </div>
-                        <div [id]="'patient-history-div-' + idx0 + '-' + encounter.id">
-                          {{ encounter.practitionerId | staffName }}
-                        </div>
-                        @if (encounter.summary) {
-                          <p [id]="'patient-history-p-' + idx0 + '-' + encounter.id">
-                            {{ encounter.summary }}
-                          </p>
-                        } @else {
-                          <p
-                            [id]="'patient-history-muted-2-' + idx0 + '-' + encounter.id"
+                          <div
+                            [id]="
+                              'patient-history-timeline-entry-header-' + idx0 + '-' + encounter.id
+                            "
+                            class="his-timeline-entry__header"
+                          >
+                            <strong>{{ encounter.type | label: 'encounterType' }}</strong>
+                            <app-status-tag
+                              [id]="'patient-history-app-status-tag-' + idx0 + '-' + encounter.id"
+                              kind="encounterStatus"
+                              [value]="encounter.status"
+                            />
+                          </div>
+                          <div
+                            [id]="'patient-history-muted-' + idx0 + '-' + encounter.id"
                             class="his-muted"
                           >
-                            {{ encounter.reason }}
-                          </p>
-                        }
-                      </div>
-                    </ng-template>
-                  </p-timeline>
-                </div>
-              </div>
-            }
-          </div>
-        } @else {
-          <app-empty-state
-            id="patient-history-app-empty-state-2"
-            icon="pi pi-calendar-clock"
-            title="Brak wizyt"
-            message="Nie odnotowano wizyt ani epizodów leczenia."
-          />
-        }
-      </p-tabpanel>
-
-      <!-- Notatki kliniczne -->
-      <p-tabpanel id="patient-history-p-tabpanel-3" value="notes">
-        <div id="patient-history-toolbar" class="his-toolbar">
-          <p-select
-            id="patient-history-notes-filter"
-            [options]="noteCategoryOptions"
-            [(ngModel)]="noteCategoryFilterValue"
-            optionLabel="label"
-            optionValue="value"
-            placeholder="Wszystkie kategorie"
-            [showClear]="true"
-            class="his-notes-filter"
-          />
-          <p-button
-            id="patient-history-p-button"
-            label="Dodaj notatkę"
-            icon="pi pi-plus"
-            ariaLabel="Dodaj notatkę kliniczną"
-            (onClick)="openNoteDialog()"
-          />
-        </div>
-
-        @if (filteredNotes().length) {
-          <div id="patient-history-notes-list" class="his-notes-list">
-            @for (note of filteredNotes(); track note.id; let idx0 = $index) {
-              <div [id]="'patient-history-card-' + idx0" class="his-card his-note-card">
-                <div
-                  [id]="'patient-history-note-card-header-' + idx0"
-                  class="his-note-card__header"
-                >
-                  <span [id]="'patient-history-chip-' + idx0" class="his-chip">{{
-                    note.category | label: 'noteCategory'
-                  }}</span>
-                  <span [id]="'patient-history-muted-3-' + idx0" class="his-muted">{{
-                    note.createdAt | date: 'dd.MM.yyyy HH:mm'
-                  }}</span>
-                </div>
-                <h4 [id]="'patient-history-h4-' + idx0">{{ note.title }}</h4>
-                <p [id]="'patient-history-p-2-' + idx0">{{ note.content }}</p>
-                @if (note.symptoms?.length) {
-                  <div
-                    [id]="'patient-history-note-card-symptoms-' + idx0"
-                    class="his-note-card__symptoms"
-                  >
-                    @for (s of note.symptoms; track s; let idx1 = $index) {
-                      <span [id]="'patient-history-chip-2-' + idx0 + '-' + idx1" class="his-chip">{{
-                        s
-                      }}</span>
-                    }
+                            {{ encounter.startAt | date: 'dd.MM.yyyy HH:mm' }}
+                            @if (departmentName(encounter.wardId); as dept) {
+                              · {{ dept }}
+                            }
+                          </div>
+                          <div [id]="'patient-history-div-' + idx0 + '-' + encounter.id">
+                            {{ encounter.practitionerId | staffName }}
+                          </div>
+                          @if (encounter.summary) {
+                            <p [id]="'patient-history-p-' + idx0 + '-' + encounter.id">
+                              {{ encounter.summary }}
+                            </p>
+                          } @else {
+                            <p
+                              [id]="'patient-history-muted-2-' + idx0 + '-' + encounter.id"
+                              class="his-muted"
+                            >
+                              {{ encounter.reason }}
+                            </p>
+                          }
+                        </div>
+                      </ng-template>
+                    </p-timeline>
                   </div>
-                }
-                <div [id]="'patient-history-muted-4-' + idx0" class="his-muted">
-                  {{ note.authorId | staffName }}
                 </div>
-              </div>
-            }
+              }
+            </div>
+          } @else {
+            <app-empty-state
+              id="patient-history-app-empty-state-2"
+              icon="pi pi-calendar-clock"
+              title="Brak wizyt"
+              message="Nie odnotowano wizyt ani epizodów leczenia."
+            />
+          }
+        </p-tabpanel>
+
+        <!-- Notatki kliniczne -->
+        <p-tabpanel id="patient-history-p-tabpanel-3" value="notes">
+          <div id="patient-history-toolbar" class="his-toolbar">
+            <p-select
+              id="patient-history-notes-filter"
+              [options]="noteCategoryOptions"
+              [(ngModel)]="noteCategoryFilterValue"
+              optionLabel="label"
+              optionValue="value"
+              placeholder="Wszystkie kategorie"
+              [showClear]="true"
+              class="his-notes-filter"
+            />
+            <p-button
+              id="patient-history-p-button"
+              label="Dodaj notatkę"
+              icon="pi pi-plus"
+              ariaLabel="Dodaj notatkę kliniczną"
+              (onClick)="openNoteDialog()"
+            />
           </div>
-        } @else {
-          <app-empty-state
-            id="patient-history-app-empty-state-3"
-            icon="pi pi-comments"
-            title="Brak notatek"
-            message="Brak notatek w tej kategorii."
-          />
-        }
-      </p-tabpanel>
+
+          @if (filteredNotes().length) {
+            <div id="patient-history-notes-list" class="his-notes-list">
+              @for (note of filteredNotes(); track note.id; let idx0 = $index) {
+                <div [id]="'patient-history-card-' + idx0" class="his-card his-note-card">
+                  <div
+                    [id]="'patient-history-note-card-header-' + idx0"
+                    class="his-note-card__header"
+                  >
+                    <span [id]="'patient-history-chip-' + idx0" class="his-chip">{{
+                      note.category | label: 'noteCategory'
+                    }}</span>
+                    <span [id]="'patient-history-muted-3-' + idx0" class="his-muted">{{
+                      note.createdAt | date: 'dd.MM.yyyy HH:mm'
+                    }}</span>
+                  </div>
+                  <h4 [id]="'patient-history-h4-' + idx0">{{ note.title }}</h4>
+                  <p [id]="'patient-history-p-2-' + idx0">{{ note.content }}</p>
+                  @if (note.symptoms?.length) {
+                    <div
+                      [id]="'patient-history-note-card-symptoms-' + idx0"
+                      class="his-note-card__symptoms"
+                    >
+                      @for (s of note.symptoms; track s; let idx1 = $index) {
+                        <span
+                          [id]="'patient-history-chip-2-' + idx0 + '-' + idx1"
+                          class="his-chip"
+                          >{{ s }}</span
+                        >
+                      }
+                    </div>
+                  }
+                  <div [id]="'patient-history-muted-4-' + idx0" class="his-muted">
+                    {{ note.authorId | staffName }}
+                  </div>
+                </div>
+              }
+            </div>
+          } @else {
+            <app-empty-state
+              id="patient-history-app-empty-state-3"
+              icon="pi pi-comments"
+              title="Brak notatek"
+              message="Brak notatek w tej kategorii."
+            />
+          }
+        </p-tabpanel>
+      }
 
       <!-- Rozpoznania -->
       <p-tabpanel id="patient-history-p-tabpanel-4" value="diagnoses">

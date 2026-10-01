@@ -32,6 +32,12 @@ import { DEFAULT, Table, type Changeset, type SqlFile } from './sql';
 import { IdRegistry } from './uuid';
 import { addDaysToT0Date, relDate, TIME_ZONE, ts, tsOpt } from './time';
 
+/** Mock admissions are ward stays; wardId/attendingPhysicianId are optional only for outpatients. */
+function required(value: string | undefined, what: string): string {
+  if (value === undefined) throw new Error(`mock admission without ${what}`);
+  return value;
+}
+
 /** Everything the generator reads from the frontend mocks (loaded after the clock is pinned). */
 export interface Mocks {
   STAFF: StaffMember[];
@@ -56,7 +62,7 @@ export interface Mocks {
   DRUGS: Drug[];
   PRESCRIPTIONS: Prescription[];
   VITALS: VitalSigns[];
-  VITAL_THRESHOLDS: Record<string, VitalThreshold>;
+  VITAL_THRESHOLDS: VitalThreshold[];
   MESSAGE_THREADS: MessageThread[];
   MESSAGES: Message[];
   ALERTS: ClinicalAlert[];
@@ -549,9 +555,9 @@ ${values}
           status: a.dischargedAt ? 'finished' : 'in_progress',
           startAt: a.admittedAt,
           endAt: a.dischargedAt,
-          wardId: a.wardId,
-          practitionerId: a.attendingPhysicianId,
-          reason: a.reason,
+          wardId: required(a.wardId, 'wardId'),
+          practitionerId: required(a.attendingPhysicianId, 'attendingPhysicianId'),
+          reason: required(a.reason, 'reason'),
         };
         encounters.push(enc);
       }
@@ -615,10 +621,13 @@ ${values}
         status: discharged ? 'discharged' : 'active',
         admission_type: a.admissionType,
         admitted_at: ts(a.admittedAt),
-        ward_id: ids.ref('ward', a.wardId),
+        ward_id: ids.ref('ward', required(a.wardId, 'wardId')),
         room: a.room ?? null,
         bed: a.bed ?? null,
-        attending_physician_id: ids.ref('staff_member', a.attendingPhysicianId),
+        attending_physician_id: ids.ref(
+          'staff_member',
+          required(a.attendingPhysicianId, 'attendingPhysicianId'),
+        ),
         triage_level: a.triageLevel ?? null,
         reason: a.reason,
         referral_number: a.referralNumber ?? null,

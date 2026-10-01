@@ -38,7 +38,7 @@
           @case ('patientName') {
             <a
               [id]="'results-inbox-a-' + row.id"
-              [routerLink]="['/patients', row.patient.id, 'results']"
+              [routerLink]="['/patients', row.patientId, 'results']"
               [queryParams]="{ tab: 'lab' }"
               (click)="$event.stopPropagation()"
             >
@@ -55,7 +55,7 @@
           [id]="'results-inbox-p-button-' + row.id"
           type="button"
           class="p-button p-button-text p-button-sm"
-          [routerLink]="['/patients', row.patient.id, 'results']"
+          [routerLink]="['/patients', row.patientId, 'results']"
           [queryParams]="{ tab: 'lab' }"
           aria-label="Otwórz wyniki pacjenta"
           pTooltip="Otwórz wyniki pacjenta"
@@ -92,7 +92,7 @@
           @case ('patientName') {
             <a
               [id]="'results-inbox-a-2-' + row.id"
-              [routerLink]="['/patients', row.patient.id, 'results']"
+              [routerLink]="['/patients', row.patientId, 'results']"
               [queryParams]="{ tab: 'imaging' }"
               (click)="$event.stopPropagation()"
             >
@@ -109,7 +109,7 @@
           [id]="'results-inbox-p-button-2-' + row.id"
           type="button"
           class="p-button p-button-text p-button-sm"
-          [routerLink]="['/patients', row.patient.id, 'results']"
+          [routerLink]="['/patients', row.patientId, 'results']"
           [queryParams]="{ tab: 'imaging' }"
           aria-label="Otwórz wyniki pacjenta"
           pTooltip="Otwórz wyniki pacjenta"

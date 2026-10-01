@@ -62,6 +62,12 @@ a `REGISTRY`/`IMAGE_TAG` domyślnie `local`/`dev`; zgodność defaultów z
   a `e-receipt` odsyła zmianę stanu na `http://his-backend:10420/fhir` z nagłówkiem klucza usługowego
   (`HIS_FHIR_SERVICE_KEY`, ta sama wartość po obu stronach; docelowo mTLS). Przełączniki
   `HIS_ERECEIPT_ENABLED` i `ERECEIPT_HIS_ENABLED` (domyślnie `false`) ustawić w `config.env`.
+- Integracja FHIR badań laboratoryjnych: `his-backend` wysyła zlecenia do `http://e-laboratory:10422/fhir`
+  (`HIS_ELAB_ENABLED`), a `e-laboratory` odsyła zmianę stanu i wynik na `http://his-backend:10420/fhir`
+  z tym samym kluczem usługowym (`E_LABORATORY_HIS_ENABLED`; obie flagi domyślnie `false`, ustawić w `config.env`).
+- Integracja FHIR badań obrazowych działa tak samo: `his-backend` wysyła zlecenia do `http://e-imaging:10423/fhir`
+  (`HIS_EIMG_ENABLED`), a `e-imaging` odsyła zmianę stanu i wynik na `http://his-backend:10420/fhir`
+  z tym samym kluczem usługowym (`E_IMAGING_HIS_ENABLED`; obie flagi domyślnie `false`, ustawić w `config.env`).
 - `deploy/compose.dev.yml` - nakładka lokalna (tylko różnice deweloperskie: `build:` z tymi
   samymi build-args co `create_docker_image.sh`, porty na `127.0.0.1`, postgres na `127.0.0.1:5432`,
   Snowstorm na `127.0.0.1:8080`); `deploy/local.env` - lokalne wartości (bez sekretów).
@@ -84,7 +90,8 @@ Zmienne do ręcznego dopisania w zdalnym `config.env` (istniejący plik nie jest
 je jako `${HIS_JWT_SECRET:-}`), opcjonalnie `HIS_JWT_TTL`, `HIS_JWT_ISSUER`,
 `HIS_LOCKOUT_MAX_ATTEMPTS`, `HIS_LOCKOUT_DURATION`, `HIS_CORS_ALLOWED_ORIGINS`,
 `HIS_WS_ALLOWED_ORIGINS`, `HIS_LIQUIBASE_CONTEXTS`, `HIS_SNOWSTORM_*`, `HIS_FHIR_SERVICE_KEY`,
-`HIS_ERECEIPT_ENABLED`, `ERECEIPT_HIS_ENABLED`, `COMPOSE_PROFILES=terminology`
+`HIS_ERECEIPT_ENABLED`, `ERECEIPT_HIS_ENABLED`, `HIS_ELAB_ENABLED`, `E_LABORATORY_HIS_ENABLED`,
+`HIS_EIMG_ENABLED`, `E_IMAGING_HIS_ENABLED`, `COMPOSE_PROFILES=terminology`
 (wzór: `.env.example`).
 
 ## PostgreSQL

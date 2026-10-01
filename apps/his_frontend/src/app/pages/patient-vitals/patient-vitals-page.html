@@ -52,21 +52,24 @@
       title="Tętno"
       unit="/min"
       [series]="hrSeries()"
-      [referenceRange]="{ low: thresholds.heartRate.low, high: thresholds.heartRate.high }"
+      [referenceRange]="{ low: thresholds().heartRate?.low, high: thresholds().heartRate?.high }"
     />
     <app-trend-chart-card
       id="patient-vitals-app-trend-chart-card-3"
       title="Temperatura"
       unit="°C"
       [series]="tempSeries()"
-      [referenceRange]="{ low: thresholds.temperature.low, high: thresholds.temperature.high }"
+      [referenceRange]="{
+        low: thresholds().temperature?.low,
+        high: thresholds().temperature?.high,
+      }"
     />
     <app-trend-chart-card
       id="patient-vitals-app-trend-chart-card-4"
       title="SpO₂"
       unit="%"
       [series]="spo2Series()"
-      [referenceRange]="{ low: thresholds.spo2.low, high: thresholds.spo2.high }"
+      [referenceRange]="{ low: thresholds().spo2?.low, high: thresholds().spo2?.high }"
     />
     <app-trend-chart-card
       id="patient-vitals-app-trend-chart-card-5"
@@ -74,8 +77,8 @@
       unit="/min"
       [series]="rrSeries()"
       [referenceRange]="{
-        low: thresholds.respiratoryRate.low,
-        high: thresholds.respiratoryRate.high,
+        low: thresholds().respiratoryRate?.low,
+        high: thresholds().respiratoryRate?.high,
       }"
     />
   </div>

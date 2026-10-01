@@ -1,14 +1,14 @@
 import { describe, expect, it, beforeEach } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { MOCK_LATENCY_MS } from '../../config/mock-api.config';
+import { imagingOrderServiceStub } from '../../testing/imaging-order-service.stub';
 import { SlotPicker } from './slot-picker';
 import type { ScheduleSlot } from '../../models';
 
 describe('SlotPicker', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [provideRouter([]), { provide: MOCK_LATENCY_MS, useValue: 0 }],
+      providers: [provideRouter([]), imagingOrderServiceStub],
     });
   });
 

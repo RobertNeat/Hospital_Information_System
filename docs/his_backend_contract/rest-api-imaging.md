@@ -64,9 +64,9 @@ Osobna niż laboratoryjna (`specimen_collected` nie występuje). `completed`/`ca
 - Acknowledge: idempotentne; ustawia `reviewedAt`/`reviewedById` raz; brak 409.
 - Brak plików/DICOM; wynik niesie tylko `imageCount`.
 
-## Zapis wyniku poza HTTP
+## Zapis wyniku poza REST
 
-Brak endpointu `POST` wyniku. `ImagingResultRecordingService.recordResult(RecordImagingResultCommand)` (dla radiologa lub usługi `e-imaging`):
+Brak endpointu `POST` wyniku w `/api/v1`. `ImagingResultRecordingService.recordResult(RecordImagingResultCommand)` wywołuje `POST /fhir/DiagnosticReport` (usługa `e-imaging`, klucz usługowy; mapowanie i idempotencja: [rest-api-fhir.md](rest-api-fhir.md#badania-obrazowe-e-imaging)). Reguły zapisu:
 
 | Reguła | Skutek |
 | --- | --- |
@@ -78,3 +78,5 @@ Brak endpointu `POST` wyniku. `ImagingResultRecordingService.recordResult(Record
 | `critical` | ustawia radiolog (nie jest wyliczane z opisu) |
 | Zdarzenie | `ImagingResultRecorded` (`critical`) -> alert ([events.md](events.md)) |
 | Auto-`completed` | wynik `final` przenosi zlecenie do `completed` (note "Wynik ostateczny zapisany (automatycznie)"), publikuje `ImagingOrderStatusChanged`; wynik `preliminary` nie |
+
+Zlecenie nowo utworzone (`POST /patients/{id}/imaging-orders`) jest po commicie wysyłane do e-imaging (gdy integracja włączona), a anulowanie w HIS (`/cancel`) przekazywane; stan zlecenia zmienia też e-imaging przez `PUT /fhir/ServiceRequest/{id}` z zachowaniem tej samej maszyny stanów (anulowanie zwalnia slot; [rest-api-fhir.md](rest-api-fhir.md#badania-obrazowe-e-imaging)). W zapisie wyniku z e-imaging nie ma sesji pracownika: `radiologistName` pochodzi z `performer.display` (domyślnie "e-imaging"), `radiologistId` jest pusty.

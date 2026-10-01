@@ -5,8 +5,7 @@
     icon="pi pi-comments"
   />
   <p-message id="messages-banner" severity="info" [closable]="false" class="his-messages__banner">
-    Tryb demonstracyjny: wiadomości nie są dostarczane w czasie rzeczywistym. Komunikacja na żywo
-    (WebSocket) zostanie dodana w kolejnej wersji. Dostęp ograniczony do personelu medycznego
+    Wiadomości, zadania i alerty aktualizują się na żywo. Dostęp ograniczony do personelu medycznego
     (lekarze, pielęgniarki).
   </p-message>
   <p-tabs id="messages-p-tabs" [value]="activeTab()" (valueChange)="onTabChange($event)">
@@ -97,7 +96,7 @@
           >
             <ng-template #rowActions let-row>
               <div [id]="'messages-row-actions-' + row.id" class="his-messages__row-actions">
-                @if (row.status === 'open') {
+                @if (row.canChangeStatus && row.status === 'open') {
                   <p-button
                     [id]="'messages-p-button-3-' + row.id"
                     icon="pi pi-play"
@@ -108,7 +107,9 @@
                     (onClick)="taskTab.startTask(row)"
                   />
                 }
-                @if (row.status === 'open' || row.status === 'in_progress') {
+                @if (
+                  row.canChangeStatus && (row.status === 'open' || row.status === 'in_progress')
+                ) {
                   <p-button
                     [id]="'messages-p-button-4-' + row.id"
                     icon="pi pi-check"

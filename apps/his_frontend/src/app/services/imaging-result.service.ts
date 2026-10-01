@@ -1,69 +1,48 @@
+import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { map } from 'rxjs';
 import type { Observable } from 'rxjs';
-import { MOCK_LATENCY_MS } from '../config/mock-api.config';
-import { IMAGING_RESULTS } from '../mock-data/imaging-results.mock';
-import { PATIENTS } from '../mock-data/patients.mock';
-import { WARDS } from '../mock-data/wards.mock';
-import type {
-  ID,
-  ImagingResult,
-  PatientSummary,
-  ResultAbnormalityFilter,
-  ResultWithPatient,
-} from '../models';
-import { mockError, mockResponse } from '../utils/mock-response';
-import { toPatientSummary } from '../utils/patient-summary';
-import { StaffService } from './staff.service';
+import {
+  IMAGING_RESULTS_URL,
+  imagingResultAcknowledgeUrl,
+  imagingResultUrl,
+  patientImagingResultsUrl,
+} from '../config/api.config';
+import type { ID, ImagingResult, ResultAbnormalityFilter, ResultWithPatient } from '../models';
+import type { Page } from '../models/api';
+import { toHttpParams } from '../utils/http-params';
+import { MAX_PAGE_SIZE, readAllPages } from '../utils/read-all-pages';
 
+/**
+ * Imaging results backed by `/imaging-results` and `/patients/{id}/imaging-results`. Read-only:
+ * the backend has no POST (results come from the imaging simulator / internal recording service).
+ * `critical` is the only abnormality flag, so `abnormal` and `critical` filters are equivalent.
+ */
 @Injectable({ providedIn: 'root' })
 export class ImagingResultService {
-  private readonly latency = inject(MOCK_LATENCY_MS);
-  private readonly results: ImagingResult[] = structuredClone(IMAGING_RESULTS);
-  private readonly staffService = inject(StaffService);
-  private readonly patients = structuredClone(PATIENTS);
+  private readonly http = inject(HttpClient);
 
-  getResults(pid: ID): Observable<ImagingResult[]> {
-    return mockResponse(
-      this.results.filter((r) => r.patientId === pid),
-      this.latency,
-    );
+  /** Patient's results, newest first; `filter` narrows to critical ones. */
+  getResults(pid: ID, filter?: ResultAbnormalityFilter): Observable<ImagingResult[]> {
+    return this.http.get<ImagingResult[]>(patientImagingResultsUrl(pid), {
+      params: toHttpParams({ filter }),
+    });
   }
 
   getResultById(id: ID): Observable<ImagingResult> {
-    const found = this.results.find((r) => r.id === id);
-    if (!found) return mockError(`Nie znaleziono wyniku o id ${id}`, this.latency);
-    return mockResponse(found, this.latency);
+    return this.http.get<ImagingResult>(imagingResultUrl(id));
   }
 
+  /** Idempotent; the backend ignores `version` and takes the reviewer from the token. */
   acknowledgeResult(id: ID): Observable<ImagingResult> {
-    const index = this.results.findIndex((r) => r.id === id);
-    if (index === -1) return mockError(`Nie znaleziono wyniku o id ${id}`, this.latency);
-    const updated: ImagingResult = {
-      ...this.results[index],
-      reviewedAt: new Date().toISOString(),
-      reviewedById: this.staffService.currentUser().id,
-    };
-    this.results[index] = updated;
-    return mockResponse(updated, this.latency);
+    return this.http.post<ImagingResult>(imagingResultAcknowledgeUrl(id), {});
   }
 
-  // mock-only: backend authoritative (patient join is done server-side)
+  /** Inbox: all results with the patient summary, newest first (every page is read). */
   getRecent(filter: ResultAbnormalityFilter): Observable<ResultWithPatient<ImagingResult>[]> {
-    return mockResponse(this.results, this.latency).pipe(
-      map((results) =>
-        results
-          // ImagingResult has no per-finding severity: `critical` is its only abnormality
-          // flag, so 'abnormal' and 'critical' both narrow to flagged results.
-          .filter((r) => (filter === 'all' ? true : r.critical))
-          .map((r) => {
-            const patient = this.patients.find((p) => p.id === r.patientId);
-            return {
-              ...r,
-              patient: patient ? toPatientSummary(patient, WARDS) : ({} as PatientSummary),
-            };
-          }),
-      ),
+    return readAllPages((page) =>
+      this.http.get<Page<ResultWithPatient<ImagingResult>>>(IMAGING_RESULTS_URL, {
+        params: toHttpParams({ filter, page, size: MAX_PAGE_SIZE }),
+      }),
     );
   }
 }

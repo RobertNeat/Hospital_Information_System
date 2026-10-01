@@ -1,7 +1,9 @@
 import { computed, inject, signal, type Signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import type { TaskDialogResult } from '../../components/task-dialog/task-dialog';
 import type { PatientSummary, TableColumn, TeamTask } from '../../models';
 import { TeamMessageService } from '../../services/team-message.service';
+import { toApiError } from '../../utils/api-error';
 import type { MessagesContext } from './messages.context';
 
 export type TaskFilter = 'assignedToMe' | 'createdByMe' | 'all';
@@ -15,6 +17,9 @@ export interface TaskRow extends Record<string, unknown> {
   patientId?: string;
   patientLabel: string;
   overdue: boolean;
+  version?: number;
+  /** Only the assignee or the creator may change the status (the backend enforces it, 403). */
+  canChangeStatus: boolean;
 }
 
 const TASK_FILTER_OPTIONS: { label: string; value: TaskFilter }[] = [
@@ -64,11 +69,13 @@ export function createTasksState(
         patientId: t.patientId,
         patientLabel: t.patientId ? patients.label(t.patientId) : '—',
         overdue: !!t.dueAt && new Date(t.dueAt).getTime() < now && t.status !== 'done',
+        version: t.version,
+        canChangeStatus: t.assignedToId === me || t.createdById === me,
       }));
   });
 
-  const load = (): void => {
-    tasksLoading.set(true);
+  const load = (silent = false): void => {
+    if (!silent) tasksLoading.set(true);
     service.getTasks().subscribe((list) => {
       tasks.set(list);
       tasksLoading.set(false);
@@ -78,13 +85,29 @@ export function createTasksState(
     });
   };
 
+  service.pushed$.pipe(takeUntilDestroyed()).subscribe((push) => {
+    if (push.kind === 'task' || push.kind === 'resync') load(true);
+  });
+
   const updateStatus = (row: TaskRow, status: 'in_progress' | 'done', summary: string): void => {
-    service.updateTaskStatus(row.id, status).subscribe({
+    service.updateTaskStatus(row.id, status, row.version).subscribe({
       next: () => {
         load();
         toast.add({ severity: status === 'done' ? 'success' : 'info', summary });
       },
-      error: () => toast.add({ severity: 'error', summary: 'Nie udało się zaktualizować zadania' }),
+      error: (error: unknown) => {
+        const api = toApiError(error);
+        toast.add({
+          severity: 'error',
+          summary: 'Nie udało się zaktualizować zadania',
+          detail:
+            api.status === 403
+              ? 'Status zadania może zmienić tylko osoba przypisana lub twórca.'
+              : undefined,
+        });
+        // 409: stale version or forbidden transition - reload to show the current state.
+        if (api.status === 409) load();
+      },
     });
   };
 
@@ -110,10 +133,8 @@ export function createTasksState(
           description: result.description,
           patientId: result.patientId,
           assignedToId: result.assignedToId,
-          createdById: ctx.currentUser().id,
           dueAt: result.dueAt,
           priority: result.priority,
-          status: 'open',
         })
         .subscribe({
           next: () => {

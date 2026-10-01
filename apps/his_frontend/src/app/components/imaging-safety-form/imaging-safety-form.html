@@ -93,6 +93,7 @@
     id="imaging-safety-form-app-form-field-15"
     label="Potwierdzam weryfikację bezpieczeństwa pacjenta"
     [required]="true"
+    [control]="form().controls.confirmed"
   >
     <p-checkbox id="imaging-safety-form-confirmed" [binary]="true" formControlName="confirmed" />
   </app-form-field>

@@ -6,7 +6,6 @@ import { TestBed } from '@angular/core/testing';
 import { MessageService } from 'primeng/api';
 import { provideRouter, RedirectCommand, type ActivatedRouteSnapshot } from '@angular/router';
 import { isObservable, firstValueFrom } from 'rxjs';
-import { MOCK_LATENCY_MS } from '../config/mock-api.config';
 import { PatientContextService } from '../services/patient-context.service';
 import { patientResolver } from './patient.resolver';
 
@@ -25,7 +24,6 @@ describe('patientResolver', () => {
         wardServiceStub,
         MessageService,
         provideRouter([]),
-        { provide: MOCK_LATENCY_MS, useValue: 0 },
       ],
     });
   });

@@ -12,6 +12,8 @@ describe('ThemeService', () => {
   afterEach(() => {
     document.documentElement.classList.remove('app-dark');
     vi.restoreAllMocks();
+    localStorage.clear();
+    sessionStorage.clear();
   });
 
   it('defaults to light mode when nothing is stored and matchMedia is unavailable/false', () => {

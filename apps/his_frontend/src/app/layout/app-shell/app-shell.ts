@@ -1,6 +1,8 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { AppHeader } from '../app-header/app-header';
+import { RealtimeService } from '../../services/realtime.service';
+import { TeamMessageService } from '../../services/team-message.service';
 import { AppSidebar } from '../app-sidebar/app-sidebar';
 
 /**
@@ -22,4 +24,11 @@ import { AppSidebar } from '../app-sidebar/app-sidebar';
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { 'data-component-id': 'app-shell' },
 })
-export class AppShell {}
+export class AppShell {
+  constructor() {
+    // Initial load of the header/sidebar badges (unread threads, unacknowledged alerts).
+    inject(TeamMessageService).refresh();
+    // Starts the STOMP push connection for the signed-in session.
+    inject(RealtimeService);
+  }
+}

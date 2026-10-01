@@ -1,8 +1,17 @@
 /** Base path of the REST API; proxied to the backend by the dev server and by nginx. */
 export const API_BASE_URL = '/api/v1';
 
+/** STOMP endpoint (plain WebSocket, no SockJS); proxied like the REST API. */
+export const REALTIME_WS_PATH = '/ws';
+
+/** Absolute `ws://`/`wss://` URL of the STOMP endpoint for the given page location. */
+export const realtimeWsUrl = (location: Pick<Location, 'protocol' | 'host'>): string =>
+  `${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}${REALTIME_WS_PATH}`;
+
 export const AUTH_LOGIN_URL = `${API_BASE_URL}/auth/login`;
 export const AUTH_REGISTER_URL = `${API_BASE_URL}/auth/register`;
+/** Public ward list for the registration form (no JWT). */
+export const AUTH_REGISTER_WARDS_URL = `${AUTH_REGISTER_URL}/wards`;
 export const AUTH_LOGOUT_URL = `${API_BASE_URL}/auth/logout`;
 export const AUTH_ME_URL = `${API_BASE_URL}/auth/me`;
 

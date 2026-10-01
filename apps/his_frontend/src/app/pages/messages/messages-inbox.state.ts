@@ -1,4 +1,5 @@
 import { computed, inject, signal, type Signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, Validators } from '@angular/forms';
 import type { Message as TeamMessage, MessageThread, PatientSummary } from '../../models';
 import { StaffService } from '../../services/staff.service';
@@ -37,8 +38,10 @@ export function createInboxState(
   const selectThread = (threadId: string): void => {
     selectedThreadId.set(threadId);
     reloadMessages(threadId);
-    service.markThreadRead(threadId, ctx.currentUser().id).subscribe((updated) => {
-      threads.update((list) => list.map((t) => (t.id === updated.id ? updated : t)));
+    service.markThreadRead(threadId).subscribe({
+      next: (updated) =>
+        threads.update((list) => list.map((t) => (t.id === updated.id ? updated : t))),
+      error: () => undefined,
     });
   };
 
@@ -49,16 +52,71 @@ export function createInboxState(
     });
   };
 
+  const reloadThreads = (): void => {
+    service.getThreads().subscribe({
+      next: (list) => {
+        threads.set(list);
+        for (const t of list) {
+          if (t.patientId) patients.resolve(t.patientId);
+        }
+      },
+      error: () => undefined,
+    });
+  };
+
+  // Push: keep the open conversation and the thread list current without resetting the selection.
+  service.pushed$.pipe(takeUntilDestroyed()).subscribe((push) => {
+    if (push.kind === 'thread') {
+      threads.update((list) =>
+        list.some((t) => t.id === push.thread.id)
+          ? list.map((t) => (t.id === push.thread.id ? push.thread : t))
+          : [push.thread, ...list],
+      );
+    } else if (push.kind === 'message' && push.message.threadId === selectedThreadId()) {
+      reloadMessages(push.message.threadId);
+      service.markThreadRead(push.message.threadId).subscribe({
+        next: (updated) =>
+          threads.update((list) => list.map((t) => (t.id === updated.id ? updated : t))),
+        error: () => undefined,
+      });
+    } else if (push.kind === 'resync') {
+      reloadThreads();
+      const open = selectedThreadId();
+      if (open) reloadMessages(open);
+    }
+  });
+
   const load = (): void => {
     threadsLoading.set(true);
-    service.getThreads(ctx.currentUser().id).subscribe((list) => {
-      threads.set(list);
-      threadsLoading.set(false);
-      for (const t of list) {
-        if (t.patientId) patients.resolve(t.patientId);
-      }
-      const preselect = preselectedThread() ?? list[0]?.id ?? null;
-      if (preselect) selectThread(preselect);
+    service.getThreads().subscribe({
+      next: (list) => {
+        threads.set(list);
+        threadsLoading.set(false);
+        for (const t of list) {
+          if (t.patientId) patients.resolve(t.patientId);
+        }
+        const wanted = preselectedThread();
+        if (wanted && !list.some((t) => t.id === wanted)) {
+          // A thread outside the list (e.g. a deep link): fetch it; 403/404 fall back to the first.
+          service.getThread(wanted).subscribe({
+            next: (thread) => {
+              threads.update((current) => [thread, ...current]);
+              selectThread(thread.id);
+            },
+            error: () => {
+              toast.add({ severity: 'warn', summary: 'Wątek jest niedostępny' });
+              if (list[0]) selectThread(list[0].id);
+            },
+          });
+          return;
+        }
+        const preselect = wanted ?? list[0]?.id ?? null;
+        if (preselect) selectThread(preselect);
+      },
+      error: () => {
+        threadsLoading.set(false);
+        toast.add({ severity: 'error', summary: 'Nie udało się pobrać wątków' });
+      },
     });
   };
 

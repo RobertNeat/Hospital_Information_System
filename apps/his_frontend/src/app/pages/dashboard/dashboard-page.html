@@ -91,12 +91,13 @@
       <ul id="dashboard-alert-list" class="his-dashboard__alert-list">
         @for (alert of criticalAlerts(); track alert.id; let idx0 = $index) {
           <li [id]="'dashboard-li-' + idx0">
-            @if (alert.link) {
-              <a [id]="'dashboard-a-' + idx0" [routerLink]="alert.link">{{ alert.message }}</a>
-            } @else if (alert.patientId) {
-              <a [id]="'dashboard-a-2-' + idx0" [routerLink]="['/patients', alert.patientId]">{{
-                alert.message
-              }}</a>
+            @if (alertLink(alert); as link) {
+              <a
+                [id]="'dashboard-a-' + idx0"
+                [routerLink]="link.commands"
+                [queryParams]="link.queryParams"
+                >{{ alert.message }}</a
+              >
             } @else {
               <span [id]="'dashboard-span-' + idx0">{{ alert.message }}</span>
             }
@@ -197,7 +198,10 @@
               [id]="'dashboard-a-5-' + idx0"
               [routerLink]="['/patients', r.patientId, 'results', 'lab', r.id]"
             >
-              {{ r.testName }} — {{ r.patient | fullName }}
+              {{ r.testName }}
+              @if (resultPatientName(r); as name) {
+                — {{ name }}
+              }
             </a>
             <span [id]="'dashboard-muted-5-' + idx0" class="his-muted">{{
               r.resultedAt | date: 'dd.MM.yyyy HH:mm'

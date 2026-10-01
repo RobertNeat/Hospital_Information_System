@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { switchMap } from 'rxjs';
+import { catchError, of, switchMap } from 'rxjs';
 import { Button } from 'primeng/button';
 import type { ImagingModality, ISODate, ScheduleSlot } from '../../models';
 import { ImagingOrderService } from '../../services/imaging-order.service';
@@ -25,14 +25,22 @@ export class SlotPicker {
   readonly modality = input.required<ImagingModality>();
   readonly date = input.required<ISODate>();
   readonly selectedSlotId = input<string | null>(null);
+  /** Change to refetch the slots (e.g. after a 409 on a slot taken in the meantime). */
+  readonly refreshKey = input(0);
 
   readonly slotSelected = output<ScheduleSlot>();
 
-  private readonly params = computed(() => ({ modality: this.modality(), date: this.date() }));
+  private readonly params = computed(() => ({
+    modality: this.modality(),
+    date: this.date(),
+    refresh: this.refreshKey(),
+  }));
 
   private readonly slotsSignal = toSignal(
     toObservable(this.params).pipe(
-      switchMap(({ modality, date }) => this.imagingOrderService.getSlots(modality, date)),
+      switchMap(({ modality, date }) =>
+        this.imagingOrderService.getSlots(modality, date).pipe(catchError(() => of([]))),
+      ),
     ),
     { initialValue: undefined },
   );

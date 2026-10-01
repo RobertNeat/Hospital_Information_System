@@ -1,5 +1,5 @@
 import { wardServiceStub } from '../../testing/ward-service.stub';
-import { describe, expect, it, beforeEach, vi } from 'vitest';
+import { afterEach, describe, expect, it, beforeEach, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import { of } from 'rxjs';
@@ -22,7 +22,14 @@ const SUMMARY: PatientSummary = {
 };
 
 describe('PatientPickerPage', () => {
+  // Storage must not leak into other specs (auth.service.spec asserts it is empty).
+  afterEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+  });
+
   beforeEach(() => {
+    localStorage.clear();
     sessionStorage.clear();
     TestBed.configureTestingModule({
       providers: [

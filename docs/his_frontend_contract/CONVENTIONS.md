@@ -23,7 +23,7 @@ Istniejące typy `*Draft` zostają jako aliasy oznaczone `@deprecated`.
 
 ## Identyfikatory
 
-`ID` to nieprzezroczysty string (w bazie UUID, w Javie `UUID`). Klient go nie parsuje ani nie zakłada formatu (mocki używają np. `pat-001`).
+`ID` to nieprzezroczysty string (w bazie UUID, w Javie `UUID`). Klient go nie parsuje ani nie zakłada formatu (dane testowe używają np. `pat-001`).
 
 ## Daty
 
@@ -70,7 +70,7 @@ Backend mapuje takie wartości przez `@JsonValue` na nazwy poprawne w Javie (np.
 
 ## Błędy
 
-Błędy mają postać `ProblemDetail` (RFC 9457, zgodny ze Springowym `ProblemDetail`) z opcjonalnymi `code: ApiErrorCode` i `errors: FieldError[]` (walidacja pól). Po stronie frontendu reprezentuje je `ApiError` (`utils/mock-response.ts`, pole `problem`); `mockError(message, latencyMs, problem?)` domyślnie zwraca 404 `NOT_FOUND`.
+Błędy mają postać `ProblemDetail` (RFC 9457, zgodny ze Springowym `ProblemDetail`) z opcjonalnymi `code: ApiErrorCode` i `errors: FieldError[]` (walidacja pól). Po stronie frontendu reprezentuje je `ApiError` (`utils/api-error.ts`, pole `problem`; `toApiError` mapuje `HttpErrorResponse`, a interceptor błędów robi to dla wszystkich wywołań `/api/`).
 
 ## Listy
 
@@ -78,7 +78,7 @@ Backend zwraca `Page<T>` i przyjmuje `PageQuery` (`sort` w formacie `field,asc`,
 
 ## Logika po stronie serwera
 
-Backend jest źródłem prawdy (authoritative) dla: anomalii parametrów, `DrugSafetyWarning`, `EhrSummary`, `WardVitalsRow`. Kod frontendu realizujący te obliczenia to wyłącznie implementacja mocka i nie stanowi specyfikacji.
+Backend jest źródłem prawdy (authoritative) dla: anomalii parametrów, `DrugSafetyWarning`, `EhrSummary`, `WardVitalsRow`, `DashboardStats`. Frontend ich nie wylicza; wyjątek wyświetleniowy: `classifyVital` koloruje historię pomiarów progami z `GET /vital-thresholds`.
 
 ## Reguły mapowania enumów na Javę
 
@@ -100,12 +100,12 @@ Dotyczy wszystkich unii ze `models/` (np. `StaffRole`, `OrderStatus`, `Admission
 - **Pacjent bez PESEL.** `pesel: string | null` + `noPeselReason`, unikalność PESEL częściowa (tylko gdy niepusty); `mrn` nadaje backend.
 - **Akcje domenowe zamiast edycji statusu.** Zlecenia: `POST .../status` i `POST .../cancel` (`OrderStatusUpdateRequest`, `OrderCancelRequest`); `status` i `statusHistory` nie są polami żądań tworzenia ani PATCH. Recepty: `POST .../cancel`. Wypis: `POST /patients/{id}/discharge`.
 - **Potwierdzenie wyniku (`ResultReview`).** Wyniki lab i obrazowe są niezmienne poza `reviewedAt`/`reviewedById`, ustawianymi przez `POST .../acknowledge` (`ResultAcknowledgeRequest`); aktor z sesji.
-- **Alerty.** `ClinicalAlert.target: AlertTarget` (`kind`, `id`, `patientId?`) zastępuje `link` (`@deprecated`, backend nie zna tras UI). Alerty tworzy wyłącznie backend (`AlertCreateRequest` jest wewnętrzny). Stan potwierdzenia jest `@viewerScoped` (tabela `alert_acknowledgement`).
+- **Alerty.** `ClinicalAlert.target: AlertTarget` (`kind`, `id`, `patientId?`) zastępuje `link` (usunięte; backend nie zna tras UI, mapowanie na trasę: `utils/alert-route.ts`). Alerty tworzy wyłącznie backend (`AlertCreateRequest` jest wewnętrzny). Stan potwierdzenia jest `@viewerScoped` (tabela `alert_acknowledgement`).
 - **Wiadomości.** Stan odczytu w `ThreadParticipant.lastReadAt`; `Message.readByIds` i `MessageThread.participantIds`/`unreadCount` to projekcje. `markRead` ma puste ciało (`ThreadMarkReadRequest`).
 - **Parametry życiowe.** `VitalSigns` to niezmienny płaski wiersz z nullable kolumnami (korekta = nowy odczyt); `POST /patients/{id}/vitals` zwraca `VitalsRecordResponse` (`saved` + `anomalies`). Progi: konfiguracja `VitalThreshold`.
 - **Snapshoty.** Nazwy z katalogów (`testName`, `analyteName`, `examName`, `modality`, `bodyRegion`, `drugName`, `activeSubstance`, `strength`, `form`, `performerName`, `radiologistName`) są `@snapshot` - zapisywane w wierszu w chwili zdarzenia, backend kopiuje je z katalogu (klient może je wysyłać, ale serwer je nadpisuje).
 - **Pola nadawane przez backend** (nie wysyłane przez klienta): `id`, `mrn`, audyt, `version`, `status` początkowy, `statusHistory`, `accessCode`, `eRxKey`, `orderedAt`, `issuedAt`, `cancelledAt`, `reviewed*`, `acknowledged*`.
-- **Aktor z sesji.** Pola `orderedById`, `prescriberId`, `recordedById`, `authorId`, `senderId`, `createdById`, `fromId`, `acknowledgedById`, `reviewedById`, `StatusChange.byId` pochodzą z sesji. Niektóre typy żądań (`LabOrderCreateRequest`, `ImagingOrderCreateRequest`, `PrescriptionCreateRequest`, `VitalSignsCreateRequest`, `ClinicalNoteCreateRequest`, `TaskCreateRequest`, `HandoffNoteCreateRequest`) nadal zawierają to pole, bo UI je wysyła: backend je ignoruje.
-- **Aliasy `*Draft`** (`PatientDraft`, `LabOrderDraft`, `ImagingOrderDraft`, `PrescriptionDraft`, `VitalSignsDraft`) są `@deprecated`; nowy kod używa `*CreateRequest` z `models/api`.
+- **Aktor z sesji.** Pola `orderedById`, `prescriberId`, `recordedById`, `authorId`, `senderId`, `createdById`, `fromId`, `acknowledgedById`, `reviewedById`, `StatusChange.byId` pochodzą z sesji. Niektóre typy żądań (`LabOrderCreateRequest`, `ImagingOrderCreateRequest`, `PrescriptionCreateRequest`, `ClinicalNoteCreateRequest`) nadal zawierają to pole, bo UI je wysyła: backend je ignoruje. `VitalSignsCreateRequest`, `TaskCreateRequest` i `HandoffNoteCreateRequest` pola aktora (ani `status` zadania) już nie mają.
+- **Aliasy `*Draft`** (`PatientDraft`, `LabOrderDraft`, `ImagingOrderDraft`, `PrescriptionDraft`) są `@deprecated`; nowy kod używa `*CreateRequest` z `models/api`.
 - **Ścieżki.** `/api/v1`, rzeczowniki w liczbie mnogiej, `/patients/{patientId}/...` dla zasobów pacjenta, akcje jako `POST .../{akcja}`; pełna lista w [API.md](API.md).
 - **Kody błędów.** Niedozwolone przejście stanu (np. anulowanie zakończonego zlecenia) = 409 `CONFLICT`, tak jak konflikt `version`; błędy pól = 422 `VALIDATION_FAILED`.

@@ -9,7 +9,7 @@ import {
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { FormBuilder } from '@angular/forms';
-import { EMPTY, catchError, of, switchMap, throwError } from 'rxjs';
+import { EMPTY, catchError, switchMap, throwError } from 'rxjs';
 import { MessageService } from 'primeng/api';
 import { StepperModule } from 'primeng/stepper';
 
@@ -279,18 +279,14 @@ export class PatientRegistrationPage implements HasUnsavedChanges {
       return;
     }
 
-    const needsAdmission = s4.admissionType !== 'outpatient';
-
     this.patientService
       .createPatient(buildPatientDraft(input))
       .pipe(
         switchMap((patient) =>
-          needsAdmission
-            ? this.patientService.admitPatient(patient.id, buildAdmission(s4)).pipe(
-                // The patient already exists; a retry would only hit the duplicate-PESEL check.
-                catchError((err: unknown) => throwError(() => new AdmissionFailed(patient, err))),
-              )
-            : of(patient),
+          this.patientService.admitPatient(patient.id, buildAdmission(s4)).pipe(
+            // The patient already exists; a retry would only hit the duplicate-PESEL check.
+            catchError((err: unknown) => throwError(() => new AdmissionFailed(patient, err))),
+          ),
         ),
       )
       .subscribe({

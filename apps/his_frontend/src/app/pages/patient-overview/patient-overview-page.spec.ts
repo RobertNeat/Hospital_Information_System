@@ -1,18 +1,25 @@
 import { patientServiceStub } from '../../testing/patient-service.stub';
 import { ehrServiceStub } from '../../testing/ehr-service.stub';
 import { wardServiceStub } from '../../testing/ward-service.stub';
+import { vitalsServiceStub } from '../../testing/vitals-service.stub';
 import { staffServiceStub } from '../../testing/staff-service.stub';
-import { describe, expect, it, beforeEach } from 'vitest';
+import { afterEach, describe, expect, it, beforeEach } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { PatientOverviewPage } from './patient-overview-page';
-import { MOCK_LATENCY_MS } from '../../config/mock-api.config';
 import { PatientContextService } from '../../services/patient-context.service';
 import { PatientService } from '../../services/patient.service';
 
 describe('PatientOverviewPage', () => {
+  // Storage must not leak into other specs (auth.service.spec asserts it is empty).
+  afterEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+  });
+
   beforeEach(() => {
+    localStorage.clear();
     sessionStorage.clear();
     TestBed.configureTestingModule({
       providers: [
@@ -23,7 +30,7 @@ describe('PatientOverviewPage', () => {
         provideRouter([]),
         MessageService,
         ConfirmationService,
-        { provide: MOCK_LATENCY_MS, useValue: 0 },
+        vitalsServiceStub,
       ],
     });
   });

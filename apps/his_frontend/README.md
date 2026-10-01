@@ -10,9 +10,11 @@ This project was generated using [Angular CLI](https://github.com/angular/angula
 - The session also ends automatically at `expiresAt` (TTL 8 h). Logout (header menu) calls `POST /auth/logout` best-effort and clears the state.
 - Routes: `authGuard` protects the whole app shell, `guestGuard` protects `/login` and `/register`.
 - New accounts (`/register`) are created as `pending`; an administrator must activate them before the first login.
-- Demo accounts (login = password): `admin`, `user` (doctor), `doctor`, `nurse`, `lab-tech`, `radiologist`, `pharmacist`, `registrar`; mock accounts `EMP-0001` ... `EMP-0010` / `HisDemo2026!`.
+- Demo accounts (login = password): `admin`, `user` (doctor), `doctor`, `nurse`, `lab-tech`, `radiologist`, `pharmacist`, `registrar`; seeded accounts `EMP-0001` ... `EMP-0010` / `HisDemo2026!`.
 - Dev proxy: `proxy.conf.json` forwards `/api` and `/ws` to `http://localhost:10420` (his_backend); nginx does the same in the container. Start the backend first, then `pnpm start`.
-- Only authentication talks to the backend so far; patient/lab/imaging/... services are still mocks.
+- All domain services (patients, EHR, lab, imaging, prescriptions, vitals, messaging, dashboard) call his_backend over REST; realtime updates arrive over STOMP (`RealtimeService`). The register page loads wards from the public `GET /api/v1/auth/register/wards`.
+- `src/app/mock-data/` is not a data source of the app: it feeds the `testing/` stubs, unit tests and the SQL generator (`pnpm export:mocks`, see `scripts/export-mocks/README.md`).
+- The production build warns that the initial bundle exceeds the 500 kB budget (Angular, PrimeNG and Chart.js dominate it); the limit is left unchanged.
 
 ## Development server
 

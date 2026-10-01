@@ -2,8 +2,8 @@ import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import { AppHeader } from './app-header';
-import { MOCK_LATENCY_MS } from '../../config/mock-api.config';
 import { AuthService } from '../../services/auth.service';
+import { realtimeServiceStub } from '../../testing/realtime-service.stub';
 
 type HeaderInternals = {
   clearPatientContext: () => void;
@@ -13,7 +13,7 @@ type HeaderInternals = {
 describe('AppHeader', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [provideRouter([]), { provide: MOCK_LATENCY_MS, useValue: 0 }],
+      providers: [provideRouter([]), realtimeServiceStub],
     });
   });
 

@@ -12,7 +12,7 @@ import robert_neat.his_backend.common.order.OrderStatus;
  * mock: `ordered -> specimen_collected`, `specimen_collected -> completed`). `completed` i `cancelled` sa koncowe.
  * Anulowanie jest dozwolone z kazdego stanu niekoncowego, ale wylacznie akcja `/cancel` (wymaga powodu).
  */
-final class LabOrderStateMachine {
+public final class LabOrderStateMachine {
 
     private static final Map<OrderStatus, Set<OrderStatus>> TRANSITIONS = new EnumMap<>(OrderStatus.class);
 
@@ -30,7 +30,7 @@ final class LabOrderStateMachine {
     private LabOrderStateMachine() {
     }
 
-    static boolean canTransition(OrderStatus from, OrderStatus to) {
+    public static boolean canTransition(OrderStatus from, OrderStatus to) {
         return TRANSITIONS.get(from).contains(to);
     }
 }

@@ -1,15 +1,21 @@
-import { describe, expect, it, beforeEach } from 'vitest';
+import { afterEach, describe, expect, it, beforeEach } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { Router, UrlTree } from '@angular/router';
-import { MOCK_LATENCY_MS } from '../config/mock-api.config';
 import { PatientContextService } from '../services/patient-context.service';
 import { patientScopedRedirect } from './patient-scoped-redirect';
 
 describe('patientScopedRedirect', () => {
+  // Storage must not leak into other specs (auth.service.spec asserts it is empty).
+  afterEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+  });
+
   beforeEach(() => {
+    localStorage.clear();
     sessionStorage.clear();
     TestBed.configureTestingModule({
-      providers: [{ provide: MOCK_LATENCY_MS, useValue: 0 }],
+      providers: [],
     });
   });
 

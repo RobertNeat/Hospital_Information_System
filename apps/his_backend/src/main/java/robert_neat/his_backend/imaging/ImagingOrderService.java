@@ -33,6 +33,7 @@ import robert_neat.his_backend.common.order.OrderStatusUpdateRequest;
 import robert_neat.his_backend.common.order.Urgency;
 import robert_neat.his_backend.common.security.CurrentActor;
 import robert_neat.his_backend.ehr.Coding;
+import robert_neat.his_backend.imaging.events.ImagingOrderPlaced;
 import robert_neat.his_backend.imaging.events.ImagingOrderStatusChanged;
 import robert_neat.his_backend.patient.EncounterRepository;
 import robert_neat.his_backend.patient.PatientRepository;
@@ -43,7 +44,7 @@ import robert_neat.his_backend.patient.PatientRepository;
  * slotu rezerwuje go (`available=false`, zlecenie od razu `scheduled`); zajety slot = 409. Status zmieniaja
  * wylacznie akcje `status` i `cancel` wg {@link ImagingOrderStateMachine} (niedozwolone przejscie lub niezgodna
  * `version` = 409, `specimen_collected` = 422); kazda zmiana dopisuje wpis historii i publikuje
- * {@link ImagingOrderStatusChanged} (konsument: AlertEventListener). Anulowanie zwalnia slot. DTO mapowane w transakcji.
+ * {@link ImagingOrderStatusChanged} (konsument: AlertEventListener); utworzenie publikuje {@link ImagingOrderPlaced} (konsument: integracja e-imaging). Anulowanie zwalnia slot. DTO mapowane w transakcji.
  */
 @Service
 @Transactional(readOnly = true)
@@ -167,6 +168,7 @@ public class ImagingOrderService {
             // wyscig na `uq_imaging_order_slot_id` (poza blokada slotu) - ten sam skutek co zajety slot
             throw new ConflictException("Slot jest juz zajety");
         }
+        events.publishEvent(new ImagingOrderPlaced(saved.getId(), saved.getPatientId(), actor, now));
         return ImagingOrderMapper.toResponse(saved);
     }
 

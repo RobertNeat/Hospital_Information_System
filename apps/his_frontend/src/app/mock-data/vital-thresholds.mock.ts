@@ -1,7 +1,7 @@
-// Mock-only: thresholds will come from the API (GET /vital-thresholds); backend authoritative.
+// Fixture mirroring the backend's default `GET /vital-thresholds` rows (tests and stubs only).
 import type { VitalThreshold, VitalType } from '../models';
 
-export const VITAL_THRESHOLDS: Record<VitalType, VitalThreshold> = {
+const BY_TYPE: Record<VitalType, VitalThreshold> = {
   systolic: {
     type: 'systolic',
     label: 'Ciśnienie skurczowe',
@@ -69,3 +69,5 @@ export const VITAL_THRESHOLDS: Record<VitalType, VitalThreshold> = {
     max: 60,
   },
 };
+
+export const VITAL_THRESHOLDS: VitalThreshold[] = Object.values(BY_TYPE);

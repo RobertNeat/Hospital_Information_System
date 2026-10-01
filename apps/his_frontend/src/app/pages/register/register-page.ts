@@ -15,7 +15,6 @@ import { ACADEMIC_TITLE_OPTIONS, SPECIALIZATION_OPTIONS } from '../../constants/
 import { STAFF_ROLE_OPTIONS } from '../../constants/labels';
 import { registerErrorMessage, REGISTER_PENDING_MESSAGE } from '../../constants/auth-messages';
 import { AuthService } from '../../services/auth.service';
-import { WardService } from '../../services/ward.service';
 import { passwordMatchValidator } from '../../validators/password-match.validator';
 import { phoneValidator } from '../../validators/phone.validator';
 import { employeeIdValidator, pwzValidator } from '../../validators/staff-identifiers.validator';
@@ -51,16 +50,14 @@ export class RegisterPage {
   protected readonly titleOptions = ACADEMIC_TITLE_OPTIONS;
   protected readonly specializationOptions = SPECIALIZATION_OPTIONS;
   protected readonly wardsError = signal(false);
-  // The ward list may be unavailable before sign-in (401/403): keep the select empty and warn.
+  // Public dictionary; on failure keep the select empty and warn.
   protected readonly wards = toSignal(
-    inject(WardService)
-      .getWards()
-      .pipe(
-        catchError(() => {
-          this.wardsError.set(true);
-          return of([]);
-        }),
-      ),
+    this.auth.getRegisterWards().pipe(
+      catchError(() => {
+        this.wardsError.set(true);
+        return of([]);
+      }),
+    ),
     { initialValue: [] },
   );
 

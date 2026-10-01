@@ -46,4 +46,17 @@ describe('PatientContextBar', () => {
     (fixture.componentInstance as unknown as { emit: (a: string) => void }).emit('vitals');
     expect(emitted).toBe('vitals');
   });
+
+  it('renders an outpatient admission without ward and physician', async () => {
+    const fixture = TestBed.createComponent(PatientContextBar);
+    fixture.componentRef.setInput('patient', {
+      ...PATIENT,
+      status: 'outpatient',
+      currentAdmission: { admissionType: 'outpatient', admittedAt: '2026-01-01T00:00:00Z' },
+    });
+    await fixture.whenStable();
+    const text = (fixture.nativeElement as HTMLElement).textContent;
+    expect(text).toContain('Kowalski');
+    expect(text).not.toContain('Lekarz prowadzący');
+  });
 });

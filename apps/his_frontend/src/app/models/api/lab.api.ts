@@ -33,5 +33,8 @@ export interface LabResultQuery extends PageQuery {
   filter?: ResultAbnormalityFilter;
 }
 
-/** @projection Result enriched with a patient summary for inbox-style views. */
-export type ResultWithPatient<T> = T & { patient: PatientSummary };
+/**
+ * @projection Result enriched with a patient summary for inbox-style views. `patient` can be
+ * absent when the backend finds no summary for `patientId`; consumers fall back to the id.
+ */
+export type ResultWithPatient<T> = T & { patient?: PatientSummary };

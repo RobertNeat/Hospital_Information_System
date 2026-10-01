@@ -159,18 +159,18 @@ Proces administracyjny ADT. Pacjent ma wiele przyjęć (historia), **co najwyże
 | status | `AdmissionRecordStatus?` | enum `active`/`discharged`/`cancelled` | S; nie mylić z `Patient.status` (`AdmissionStatus`) |
 | admissionType | `AdmissionType` | enum `planned`/`emergency`/`transfer`/`outpatient` | |
 | admittedAt | `ISODateTime` | `Instant` | |
-| wardId | `ID` | FK `ward.id` | |
+| wardId | `ID?` | FK `ward.id` null | nieobecne dla `outpatient` |
 | room, bed | `string?` | `varchar(20)` null | patrz Bed |
-| attendingPhysicianId | `ID` | FK `staff_member.id` | rola `doctor` |
+| attendingPhysicianId | `ID?` | FK `staff_member.id` null | rola `doctor`; nieobecne dla `outpatient` |
 | triageLevel | `TriageLevel?` | enum `red`/`orange`/`yellow`/`green`/`blue` | |
-| reason | `string` | `text` | |
+| reason | `string?` | `text` null | nieobecne dla `outpatient` |
 | referralNumber | `string?` | `varchar(50)` null | |
 | dischargedAt | `ISODateTime?` | `Instant` null | S (z `DischargePatientRequest`) |
 | dischargeDisposition | `DischargeDisposition?` | enum `home`/`transfer`/`deceased`/`against_advice`/`other` | |
 | dischargeSummaryNoteId | `ID?` | FK `clinical_note.id` null | epikryza (notatka `discharge`) |
 | version | `number?` | `@Version` | |
 
-Reguły stanu (backend): przyjęcie (`admitPatient`) ustawia `Patient.status` = `outpatient` (dla `admissionType='outpatient'`) albo `admitted`; wypis -> `discharged`. Przyjęcie pacjenta, który ma aktywne przyjęcie: 409 `CONFLICT` (mock zamyka poprzednie - nie jest specyfikacją). `currentAdmission` jest **projekcją** - zwracana w `Patient` i nigdy zapisywana. Historia: `GET /patients/{id}/admissions`. `AdmitPatientRequest` = Admission bez `id, patientId, encounterId, status, dischargedAt, dischargeDisposition, dischargeSummaryNoteId, version`.
+Reguły stanu (backend): przyjęcie (`admitPatient`) ustawia `Patient.status` = `outpatient` (dla `admissionType='outpatient'`) albo `admitted`; wypis -> `discharged`. Przyjęcie pacjenta, który ma aktywne przyjęcie: 409 `CONFLICT`. `currentAdmission` jest **projekcją** - zwracana w `Patient` i nigdy zapisywana. Historia: `GET /patients/{id}/admissions`. `AdmitPatientRequest` = Admission bez `id, patientId, encounterId, status, dischargedAt, dischargeDisposition, dischargeSummaryNoteId, version`.
 
 ---
 
@@ -359,7 +359,7 @@ Typy pochodne: `TrendPoint`, `AnalyteTrend` - projekcje (sekcja 11). `ResultAbno
 | items | `PrescriptionItem[]` | 1:N `prescription_item` | |
 | status | `PrescriptionStatus` | enum | S: `issued`, `partially_dispensed`, `dispensed`, `cancelled`, `expired` (`expired` może być projekcją od `validUntil`) |
 | accessCode | `string` | `char(4)` | S, 4 cyfry |
-| eRxKey | `string` | `char(44)` | S, mock klucz; w produkcji z P1/e-recepty |
+| eRxKey | `string` | `char(44)` | S, klucz lokalny (e-receipt); docelowo z P1/e-recepty |
 | notes | `string?` | | |
 | cancelledAt, cancelReason | `?` | null | S (akcja `cancel`) |
 
@@ -420,7 +420,7 @@ PK złożony (`threadId`, `staffId`): `threadId` FK, `staffId` FK, `lastReadAt?`
 
 ### ClinicalAlert (`clinical_alert`) + AlertAcknowledgement (`alert_acknowledgement`)
 
-`ClinicalAlert`: `id`, `type` (`AlertType`: `critical_result`, `vital_anomaly`, `order_status`, `task`, `system`), `severity` (`AlertSeverity`: `info`/`warning`/`critical`), `patientId?` FK, `message`, `createdAt` (S), `target?` (`AlertTarget` `[E]`: `kind` `AlertTargetKind` = `lab_result`/`imaging_result`/`patient_vitals`/`lab_order`/`imaging_order`/`task`/`patient`, `id`, `patientId?`; `[N]`; typowany wskaźnik bez ścieżek UI), `link?` (`@deprecated`; backend nie zna tras UI - nie zapisuje), `acknowledged` (`@viewerScoped`), `acknowledgedById?`, `acknowledgedAt?` (`@viewerScoped` - dane potwierdzenia zalogowanego użytkownika).
+`ClinicalAlert`: `id`, `type` (`AlertType`: `critical_result`, `vital_anomaly`, `order_status`, `task`, `system`), `severity` (`AlertSeverity`: `info`/`warning`/`critical`), `patientId?` FK, `message`, `createdAt` (S), `target?` (`AlertTarget` `[E]`: `kind` `AlertTargetKind` = `lab_result`/`imaging_result`/`patient_vitals`/`lab_order`/`imaging_order`/`task`/`patient`, `id`, `patientId?`; `[N]`; typowany wskaźnik bez ścieżek UI; trasę wylicza frontend), `acknowledged` (`@viewerScoped`), `acknowledgedById?`, `acknowledgedAt?` (`@viewerScoped` - dane potwierdzenia zalogowanego użytkownika).
 
 `AlertAcknowledgement` (encja backendowa): PK (`alertId`, `staffId`), `acknowledgedAt`. Potwierdzenie jest per użytkownik (alert potwierdzony przez jednego użytkownika pozostaje aktywny dla innych). `AlertCreateRequest` jest wewnętrzny (server-to-server), klient nie tworzy alertów.
 
@@ -452,7 +452,7 @@ Typy żądań i zapytań (`models/api`) - opisane w [API.md](API.md): `LoginRequ
 
 ## 11. Projekcje i widoki (nie tabele)
 
-Backend jest autorytatywny (kod w mockach to tylko implementacja przykładowa).
+Backend jest autorytatywny (stuby w `testing/` to tylko przykładowa implementacja).
 
 | Typ | Opis | Z czego backend składa |
 | --- | --- | --- |
@@ -465,7 +465,7 @@ Backend jest autorytatywny (kod w mockach to tylko implementacja przykładowa).
 | `DrugSafetyWarning` | `type, severity, drugId?, message` | alergie (`Allergy.substance`/`atcCodes`), aktywne leki (duplikat substancji, interakcje `Drug.interactsWithAtc`), `Drug.maxDailyDose` vs `DosageInstruction` |
 | `DashboardStats` | liczniki: `admittedPatients`, `newResults`, `criticalAlerts`, `openTasks`, `pendingOrders`, `vitalsAnomalies` | zliczenia z Patient, LabResult (nowe), ClinicalAlert (`critical`, niepotwierdzone przez usera), TeamTask (`open`, przypisane do usera), LabOrder+ImagingOrder w toku, `WardVitalsRow` z anomaliami |
 | `AnalyteTrend`, `TrendPoint` | seria wartości (`points`) jednego analitu pacjenta (`at`, `value`, `flag?`) + zakres referencyjny | `LabResult.observations` (tylko wartości liczbowe), posortowane po `collectedAt` |
-| `ResultWithPatient<T>` | wynik + `patient: PatientSummary` (inbox) | join Patient |
+| `ResultWithPatient<T>` | wynik + `patient?: PatientSummary` (inbox; pole może być nieobecne, klient wtedy pokazuje `patientId`) | join Patient |
 | `CurrentUser` | `StaffMember` + `permissions?` | sesja |
 | `MessageThread.participantIds/unreadCount`, `Message.readByIds`, `Patient.currentAdmission`, `StaffMember.online` | pola-projekcje w encjach | j.w. |
 

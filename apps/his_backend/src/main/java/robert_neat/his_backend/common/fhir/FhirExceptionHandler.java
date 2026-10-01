@@ -31,7 +31,7 @@ class FhirExceptionHandler {
 
     @ExceptionHandler(OptimisticLockingFailureException.class)
     ResponseEntity<String> optimisticLock(OptimisticLockingFailureException e) {
-        return outcome(HttpStatus.CONFLICT, IssueType.CONFLICT, "Recepta zostala zmodyfikowana rownolegle");
+        return outcome(HttpStatus.CONFLICT, IssueType.CONFLICT, "Zasob zostal zmodyfikowany rownolegle");
     }
 
     private ResponseEntity<String> outcome(HttpStatus status, IssueType type, String message) {
