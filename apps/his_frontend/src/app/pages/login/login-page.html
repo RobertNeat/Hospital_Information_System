@@ -26,7 +26,7 @@
             id="employeeId"
             formControlName="employeeId"
             autocomplete="username"
-            placeholder="np. HIS-000123"
+            placeholder="np. EMP-0001"
           />
         </app-form-field>
         <app-form-field
@@ -46,12 +46,16 @@
             autocomplete="current-password"
           />
         </app-form-field>
+        @if (errorMessage(); as message) {
+          <small id="login-error" class="his-auth__error" role="alert">{{ message }}</small>
+        }
         <button
           id="login-submit"
           type="submit"
           pButton
-          label="Zaloguj się"
-          icon="pi pi-sign-in"
+          [label]="loading() ? 'Logowanie…' : 'Zaloguj się'"
+          [icon]="loading() ? 'pi pi-spin pi-spinner' : 'pi pi-sign-in'"
+          [disabled]="loading()"
         ></button>
       </form>
 

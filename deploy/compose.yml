@@ -1,16 +1,168 @@
+# Kanoniczny stos HIS: produkcja i lokalnie.
+#  - produkcja: deploy_compose_ssh.sh kopiuje na host TYLKO ten plik (+ config.env,
+#    projects.env); obrazy z rejestru, brak `build:`.
+#  - lokalnie: nakładka compose.dev.yml (build, porty na loopback) + local.env:
+#      docker compose -f deploy/compose.yml -f deploy/compose.dev.yml --env-file deploy/local.env up -d --build
+# Wartości domyślne `:-` (obrazy/porty = projects.json) pozwalają uruchamiać stos
+# bez projects.env; zgodność z projects.json pilnuje validate_projects.sh.
+# Nowe zmienne mają domyślne wartości (bez `:?`), żeby nie wywrócić `compose config`
+# na hostach, których config.env nie został jeszcze uzupełniony.
 name: hospital-information-system
 
 services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${HIS_DB_NAME:?HIS_DB_NAME is required in config.env}
+      POSTGRES_USER: ${HIS_DB_USER:?HIS_DB_USER is required in config.env}
+      POSTGRES_PASSWORD: ${HIS_DB_PASSWORD:?HIS_DB_PASSWORD is required in config.env}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - his-internal
+
   his-frontend:
-    image: ${REGISTRY}/${HIS_FRONTEND_IMAGE}:${IMAGE_TAG}
+    image: ${REGISTRY:-local}/${HIS_FRONTEND_IMAGE:-hospital-information-system/his-frontend}:${IMAGE_TAG:-dev}
     restart: unless-stopped
     ports:
-      - "${HIS_FRONTEND_HOST_PORT}:${HIS_FRONTEND_CONTAINER_PORT}"
+      - "${HIS_FRONTEND_HOST_PORT:-10400}:${HIS_FRONTEND_CONTAINER_PORT:-10400}"
+    # nginx:alpine ma busybox wget; nasłuch tylko IPv4, stąd 127.0.0.1.
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:${HIS_FRONTEND_CONTAINER_PORT:-10400}/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
 
   his-backend:
-    image: ${REGISTRY}/${HIS_BACKEND_IMAGE}:${IMAGE_TAG}
+    image: ${REGISTRY:-local}/${HIS_BACKEND_IMAGE:-hospital-information-system/his-backend}:${IMAGE_TAG:-dev}
     restart: unless-stopped
     env_file:
-      - config.env
+      - path: config.env
+        required: false
+    environment:
+      HIS_DB_URL: jdbc:postgresql://postgres:5432/${HIS_DB_NAME:-his}
+      HIS_DB_USER: ${HIS_DB_USER:-his}
+      HIS_DB_PASSWORD: ${HIS_DB_PASSWORD:-his}
+      HIS_LIQUIBASE_CONTEXTS: ${HIS_LIQUIBASE_CONTEXTS:-reference}
+      # WYMAGANY klucz JWT (min. 32 bajty). Celowo `:-` zamiast `:?` (nie psuje
+      # `compose config` na hostach bez wpisu); pusty = backend nie wystartuje.
+      # Wartość musi być w config.env (produkcja) lub deploy/local.env (lokalnie).
+      HIS_JWT_SECRET: ${HIS_JWT_SECRET:-}
+      HIS_JWT_TTL: ${HIS_JWT_TTL:-8h}
+      # Terminologia jest opcjonalna: brak depends_on na snowstorm-lite, backend
+      # działa bez niego (HIS_SNOWSTORM_ENABLED=false domyślnie).
+      HIS_SNOWSTORM_URL: http://snowstorm-lite:8080/fhir
+      HIS_SNOWSTORM_ENABLED: ${HIS_SNOWSTORM_ENABLED:-false}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - default
+      - his-internal
     ports:
-      - "${HIS_BACKEND_HOST_PORT}:${HIS_BACKEND_CONTAINER_PORT}"
+      - "${HIS_BACKEND_HOST_PORT:-10420}:${HIS_BACKEND_CONTAINER_PORT:-10420}"
+    # Obraz eclipse-temurin nie ma curl/wget - curl doinstalowany w spring.Dockerfile.
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:${HIS_BACKEND_CONTAINER_PORT:-10420}/actuator/health/readiness > /dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+
+  # Usługi e-* są niezależne i bez portów na hoście (porty z projects.json to
+  # tylko rezerwacja); dostępne w sieci his-internal.
+  e-receipt:
+    image: ${REGISTRY:-local}/${E_RECEIPT_IMAGE:-hospital-information-system/e-receipt}:${IMAGE_TAG:-dev}
+    restart: unless-stopped
+    networks:
+      - his-internal
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:${E_RECEIPT_CONTAINER_PORT:-10421}/actuator/health/readiness > /dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+
+  e-laboratory:
+    image: ${REGISTRY:-local}/${E_LABORATORY_IMAGE:-hospital-information-system/e-laboratory}:${IMAGE_TAG:-dev}
+    restart: unless-stopped
+    networks:
+      - his-internal
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:${E_LABORATORY_CONTAINER_PORT:-10422}/actuator/health/readiness > /dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+
+  e-imaging:
+    image: ${REGISTRY:-local}/${E_IMAGING_IMAGE:-hospital-information-system/e-imaging}:${IMAGE_TAG:-dev}
+    restart: unless-stopped
+    networks:
+      - his-internal
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:${E_IMAGING_CONTAINER_PORT:-10423}/actuator/health/readiness > /dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+
+  # Wolumen tworzony przez Docker jest własnością root, a obraz działa jako
+  # uid 1000 i nie ma katalogu /app/lucene-index - bez tego Lite kończy się
+  # AccessDeniedException. Jednorazowy init na tym samym obrazie (bez sieci/internetu).
+  snowstorm-lite-init:
+    profiles: ["terminology"]
+    image: snomedinternational/snowstorm-lite:2.7.0
+    user: "0:0"
+    entrypoint: ["chown", "1000:1000", "/app/lucene-index"]
+    restart: "no"
+    network_mode: none
+    volumes:
+      - snowstorm-lite-data:/app/lucene-index
+
+  # Serwer terminologii SNOMED CT (Snowstorm Lite). Opcjonalny: startuje tylko z
+  # profilem `terminology` (--profile terminology lub COMPOSE_PROFILES=terminology
+  # w config.env). Bez portu na hoście; dostępny dla backendu w sieci his-internal
+  # (lokalnie port 127.0.0.1 dodaje compose.dev.yml).
+  # Nie potrzebuje internetu. Import RF2 ręcznie - zob. production_deployment.md.
+  snowstorm-lite:
+    profiles: ["terminology"]
+    # Tag przypięty do wydania; obraz jest wieloarchitekturowy (amd64/arm64).
+    image: snomedinternational/snowstorm-lite:2.7.0
+    restart: unless-stopped
+    command: ["--index.path=lucene-index/data"]
+    depends_on:
+      snowstorm-lite-init:
+        condition: service_completed_successfully
+    environment:
+      ADMIN_USERNAME: ${HIS_SNOWSTORM_ADMIN_USER:-admin}
+      # Celowo `:-` zamiast `:?`: Compose interpoluje zmienne także dla usług
+      # nieaktywnych profili, więc `:?` wywalałoby `compose config`/`up` bez profilu.
+      # Domyślna wartość jest tylko zapchajdziurą - na serwerze ustawić własne hasło.
+      ADMIN_PASSWORD: ${HIS_SNOWSTORM_ADMIN_PASSWORD:-change-me}
+    volumes:
+      - snowstorm-lite-data:/app/lucene-index
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/fhir/metadata > /dev/null || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+    networks:
+      - his-internal
+
+networks:
+  his-internal:
+    internal: true
+
+volumes:
+  postgres-data:
+  snowstorm-lite-data:

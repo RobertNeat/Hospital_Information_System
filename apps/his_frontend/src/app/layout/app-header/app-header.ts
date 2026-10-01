@@ -8,6 +8,7 @@ import { Popover } from 'primeng/popover';
 import { Tooltip } from 'primeng/tooltip';
 import { LayoutStateService } from '../layout-state.service';
 import { PatientContextService } from '../../services/patient-context.service';
+import { AuthService } from '../../services/auth.service';
 import { StaffService } from '../../services/staff.service';
 import { TeamMessageService } from '../../services/team-message.service';
 import { ThemeService } from '../../services/theme.service';
@@ -26,6 +27,7 @@ export class AppHeader {
   private readonly router = inject(Router);
   protected readonly ctx = inject(PatientContextService);
   protected readonly staffService = inject(StaffService);
+  private readonly auth = inject(AuthService);
   protected readonly teamMessageService = inject(TeamMessageService);
   // Eagerly injected (also in app.config.ts's provideAppInitializer) so the
   // toggle button always reflects/controls the live theme mode.
@@ -48,9 +50,9 @@ export class AppHeader {
 
   protected readonly userMenuItems: MenuItem[] = [
     {
-      label: 'Wyloguj (demo)',
+      label: 'Wyloguj',
       icon: 'pi pi-sign-out',
-      routerLink: '/login',
+      command: () => this.auth.logoutAndRedirect(),
     },
   ];
 

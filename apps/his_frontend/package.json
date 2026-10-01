@@ -10,7 +10,8 @@
     "typecheck": "tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.spec.json --noEmit",
     "format": "prettier --write \"src/**/*.{ts,html,css}\"",
     "format:check": "prettier --check \"src/**/*.{ts,html,css}\"",
-    "test": "ng test --watch=false"
+    "test": "ng test --watch=false",
+    "export:mocks": "vitest run --config vitest.export.config.mts"
   },
   "private": true,
   "packageManager": "pnpm@11.17.0",

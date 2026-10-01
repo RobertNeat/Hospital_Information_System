@@ -1,0 +1,91 @@
+# Nakładka lokalna (tylko różnice deweloperskie względem compose.yml):
+#   docker compose -f deploy/compose.yml -f deploy/compose.dev.yml --env-file deploy/local.env up -d --build
+#   (+ --profile terminology dla Snowstorm Lite)
+# Tryb IDE (backend z IntelliJ, profil dev): uruchamiać tylko `up -d postgres`
+# (opcjonalnie e-*, --profile terminology) - NIE startować kontenera his-backend
+# (konflikt portu 10420).
+# Budowanie odwzorowuje .github/steps/create_docker_image.sh (te same build-args).
+
+x-spring-build: &spring-build
+  context: ..
+  dockerfile: .github/docker/spring.Dockerfile
+  args: &spring-args
+    RUNTIME_VERSION: "25"
+    BUILD_OUTPUT: target/*.jar
+    START_COMMAND: java -jar /app/app.jar
+
+services:
+  postgres:
+    # internal: true nie publikuje portów - dopięcie do sieci default.
+    networks:
+      - default
+    ports:
+      - "127.0.0.1:${HIS_DB_HOST_PORT:-5432}:5432"
+
+  his-frontend:
+    build:
+      context: ..
+      dockerfile: .github/docker/angular.Dockerfile
+      args:
+        RUNTIME_VERSION: "22"
+        PROJECT_PATH: apps/his_frontend
+        PACKAGE_NAME: his-frontend
+        BUILD_OUTPUT: apps/his_frontend/dist/his_frontend/browser
+        SERVER_CONFIG: apps/his_frontend/nginx.conf
+        APP_PORT: "10400"
+    # Tylko loopback zamiast 0.0.0.0 (!override zastępuje listę z compose.yml).
+    ports: !override
+      - "127.0.0.1:${HIS_FRONTEND_HOST_PORT:-10400}:${HIS_FRONTEND_CONTAINER_PORT:-10400}"
+
+  his-backend:
+    build:
+      <<: *spring-build
+      args:
+        <<: *spring-args
+        PROJECT_PATH: apps/his_backend
+        APP_PORT: "10420"
+    ports: !override
+      - "127.0.0.1:${HIS_BACKEND_HOST_PORT:-10420}:${HIS_BACKEND_CONTAINER_PORT:-10420}"
+
+  # e-*: opcjonalnie na loopback do debugowania (sieć default potrzebna do publikacji).
+  e-receipt:
+    build:
+      <<: *spring-build
+      args:
+        <<: *spring-args
+        PROJECT_PATH: apps/e-receipt
+        APP_PORT: "10421"
+    networks:
+      - default
+    ports:
+      - "127.0.0.1:${E_RECEIPT_HOST_PORT:-10421}:${E_RECEIPT_CONTAINER_PORT:-10421}"
+
+  e-laboratory:
+    build:
+      <<: *spring-build
+      args:
+        <<: *spring-args
+        PROJECT_PATH: apps/e-laboratory
+        APP_PORT: "10422"
+    networks:
+      - default
+    ports:
+      - "127.0.0.1:${E_LABORATORY_HOST_PORT:-10422}:${E_LABORATORY_CONTAINER_PORT:-10422}"
+
+  e-imaging:
+    build:
+      <<: *spring-build
+      args:
+        <<: *spring-args
+        PROJECT_PATH: apps/e-imaging
+        APP_PORT: "10423"
+    networks:
+      - default
+    ports:
+      - "127.0.0.1:${E_IMAGING_HOST_PORT:-10423}:${E_IMAGING_CONTAINER_PORT:-10423}"
+
+  snowstorm-lite:
+    networks:
+      - default
+    ports:
+      - "127.0.0.1:${HIS_SNOWSTORM_HOST_PORT:-8080}:8080"

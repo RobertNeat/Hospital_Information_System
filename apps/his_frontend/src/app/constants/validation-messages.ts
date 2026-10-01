@@ -28,6 +28,8 @@ export const VALIDATION_MESSAGES: Record<string, (error?: unknown) => string> = 
   phone: () => 'Nieprawidłowy numer telefonu.',
   pwz: () => 'Numer PWZ składa się z 7 cyfr.',
   employeeId: () => 'Dozwolone: litery, cyfry i myślnik (4–20 znaków).',
+  /** Error returned by the API for this field (`{ server: message }`). */
+  server: (error) => (typeof error === 'string' ? error : DEFAULT_VALIDATION_MESSAGE),
   passwordMismatch: () => 'Hasła muszą być takie same.',
   dateRange: () => 'Nieprawidłowy zakres dat.',
 };

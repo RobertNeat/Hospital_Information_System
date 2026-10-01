@@ -15,6 +15,7 @@ RUN --mount=type=cache,id=maven-repo,target=/root/.m2/repository \
 FROM eclipse-temurin:${RUNTIME_VERSION}-jre
 RUN apt-get update \
     && apt-get upgrade -y \
+    && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/*
 ARG BUILD_OUTPUT
 ARG APP_PORT

@@ -5,7 +5,7 @@
   "scripts": {
     "start": "pnpm --filter his-frontend start",
     "start:frontend": "pnpm --filter his-frontend start",
-    "start:backend": "cd apps/his_backend && mvnw spring-boot:run",
+    "start:backend": "cd apps/his_backend && mvnw spring-boot:run \"-Dspring-boot.run.profiles=dev\"",
     "build": "pnpm build:frontend && pnpm build:backend",
     "build:frontend": "pnpm --filter his-frontend build",
     "build:backend": "cd apps/his_backend && mvnw -DskipTests package",
@@ -16,6 +16,9 @@
     "test": "pnpm test:frontend && pnpm test:backend",
     "test:frontend": "pnpm --filter his-frontend test",
     "test:backend": "cd apps/his_backend && mvnw test",
+    "stack:up": "docker compose -f deploy/compose.yml -f deploy/compose.dev.yml --env-file deploy/local.env up -d --build",
+    "stack:down": "docker compose -f deploy/compose.yml -f deploy/compose.dev.yml --env-file deploy/local.env down",
+    "stack:db": "docker compose -f deploy/compose.yml -f deploy/compose.dev.yml --env-file deploy/local.env up -d postgres",
     "verify": "pnpm lint && pnpm typecheck && pnpm format:check && pnpm test"
   }
 }

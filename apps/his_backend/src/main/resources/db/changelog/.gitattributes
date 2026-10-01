@@ -1,0 +1,2 @@
+# Liquibase changelogs are hashed: keep LF regardless of core.autocrlf
+*.sql text eol=lf

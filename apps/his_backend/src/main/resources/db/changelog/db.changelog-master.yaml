@@ -1,0 +1,17 @@
+databaseChangeLog:
+  - includeAll:
+      path: db/changelog/schema/
+      relativeToChangelogFile: false
+      errorIfMissingOrEmpty: false
+  - includeAll:
+      path: db/changelog/reference/
+      relativeToChangelogFile: false
+      errorIfMissingOrEmpty: false
+  - includeAll:
+      path: db/changelog/demo/
+      relativeToChangelogFile: false
+      errorIfMissingOrEmpty: false
+  - includeAll:
+      path: db/changelog/mock/
+      relativeToChangelogFile: false
+      errorIfMissingOrEmpty: false

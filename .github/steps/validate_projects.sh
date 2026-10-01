@@ -89,3 +89,34 @@ diff -u "$discovered_paths" "$declared_paths" || {
   echo "projects.json must cover every directory from pipeline.project_roots exactly once" >&2
   exit 2
 }
+
+# Domyślne wartości zmiennych w Compose (`${VAR:-default}`) muszą być zgodne z
+# projects.json: pozwalają uruchamiać stos lokalnie bez projects.env.
+compose_dir="$(dirname "$(jq -er '.deploy.compose_file' "$cfg")")"
+compose_files=("$(jq -er '.deploy.compose_file' "$cfg")")
+test -f "$compose_dir/compose.dev.yml" && compose_files+=("$compose_dir/compose.dev.yml")
+
+while IFS=$'\t' read -r prefix image host_port container_port; do
+  for compose_file in "${compose_files[@]}"; do
+    for var in "IMAGE:$image" "HOST_PORT:$host_port" "CONTAINER_PORT:$container_port"; do
+      suffix="${var%%:*}"
+      expected="\${${prefix}_${suffix}:-${var#*:}}"
+      found="$(grep -o "\${${prefix}_${suffix}[^}]*}" "$compose_file" | sort -u || true)"
+      # A variable may be unused (e-* host ports are only reserved; compose.dev.yml
+      # has no images), but when present it must match projects.json. Image and
+      # container port are mandatory in the main compose file.
+      if [ -z "$found" ]; then
+        if [ "$compose_file" = "${compose_files[0]}" ] && [ "$suffix" != "HOST_PORT" ]; then
+          echo "$compose_file does not reference ${prefix}_${suffix}" >&2
+          exit 2
+        fi
+        continue
+      fi
+      [ "$found" = "$expected" ] || {
+        echo "$compose_file: expected only $expected but found: $found" >&2
+        exit 2
+      }
+    done
+  done
+done < <(jq -r '.projects[] |
+  [(.name | ascii_upcase | gsub("[^A-Z0-9]"; "_")), .image, (.ports.host | tostring), (.ports.container | tostring)] | @tsv' "$cfg")

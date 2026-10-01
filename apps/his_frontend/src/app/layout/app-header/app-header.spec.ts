@@ -3,8 +3,12 @@ import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import { AppHeader } from './app-header';
 import { MOCK_LATENCY_MS } from '../../config/mock-api.config';
+import { AuthService } from '../../services/auth.service';
 
-type HeaderInternals = { clearPatientContext: () => void };
+type HeaderInternals = {
+  clearPatientContext: () => void;
+  userMenuItems: { command?: () => void }[];
+};
 
 describe('AppHeader', () => {
   beforeEach(() => {
@@ -31,5 +35,12 @@ describe('AppHeader', () => {
     const { navigate, header } = setup('/dashboard');
     header.clearPatientContext();
     expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it('the logout menu item signs out and redirects', () => {
+    const { header } = setup('/dashboard');
+    const logout = vi.spyOn(TestBed.inject(AuthService), 'logoutAndRedirect').mockReturnValue();
+    header.userMenuItems[0].command?.();
+    expect(logout).toHaveBeenCalled();
   });
 });

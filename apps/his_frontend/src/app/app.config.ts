@@ -1,5 +1,6 @@
 import { registerLocaleData } from '@angular/common';
 import localePl from '@angular/common/locales/pl';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import {
   ApplicationConfig,
   LOCALE_ID,
@@ -22,6 +23,8 @@ import { MOCK_LATENCY_MS } from './config/mock-api.config';
 import { PRIMENG_PL } from './config/primeng-pl';
 import { HisPreset } from './config/theme-preset';
 import { routes } from './app.routes';
+import { authInterceptor } from './interceptors/auth.interceptor';
+import { errorInterceptor } from './interceptors/error.interceptor';
 import { ThemeService } from './services/theme.service';
 
 registerLocaleData(localePl);
@@ -36,6 +39,7 @@ export const appConfig: ApplicationConfig = {
       withRouterConfig({ paramsInheritanceStrategy: 'always' }),
       withInMemoryScrolling({ scrollPositionRestoration: 'top' }),
     ),
+    provideHttpClient(withInterceptors([authInterceptor, errorInterceptor])),
     providePrimeNG({
       theme: {
         preset: HisPreset,

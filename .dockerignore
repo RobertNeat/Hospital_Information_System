@@ -1,0 +1,14 @@
+**/node_modules
+**/target
+**/dist
+**/.angular
+**/.git
+.git
+**/.env
+**/.env.*
+**/.idea
+**/.vscode
+**/.claude
+**/*.log
+**/.DS_Store
+**/HELP.md

@@ -1,7 +1,8 @@
-import { describe, expect, it, beforeEach } from 'vitest';
+import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { firstValueFrom } from 'rxjs';
 import { MOCK_LATENCY_MS } from '../config/mock-api.config';
+import { AuthService } from './auth.service';
 import { StaffService } from './staff.service';
 
 describe('StaffService', () => {
@@ -15,6 +16,20 @@ describe('StaffService', () => {
   it('currentUser is stf-001 (lek. Anna Nowak)', () => {
     expect(service.currentUser().id).toBe('stf-001');
     expect(service.currentUser().lastName).toBe('Nowak');
+  });
+
+  it('currentUser follows the signed-in AuthService user', () => {
+    const user = {
+      id: 'api-1',
+      title: 'lek.',
+      firstName: 'Jan',
+      lastName: 'Zalogowany',
+      role: 'doctor' as const,
+      wardId: 'w1',
+      online: true,
+    };
+    vi.spyOn(TestBed.inject(AuthService), 'currentUser').mockReturnValue(user);
+    expect(service.currentUser().lastName).toBe('Zalogowany');
   });
 
   it('returns all staff when no role filter is given', async () => {

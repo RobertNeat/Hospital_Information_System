@@ -206,12 +206,16 @@
         </div>
 
         <div id="register-actions" class="his-auth__full-row">
+          @if (errorMessage(); as message) {
+            <small id="register-error" class="his-auth__error" role="alert">{{ message }}</small>
+          }
           <button
             id="register-submit"
             type="submit"
             pButton
-            label="Wyślij wniosek"
-            icon="pi pi-user-plus"
+            [label]="loading() ? 'Wysyłanie…' : 'Wyślij wniosek'"
+            [icon]="loading() ? 'pi pi-spin pi-spinner' : 'pi pi-user-plus'"
+            [disabled]="loading()"
           ></button>
         </div>
       </form>
