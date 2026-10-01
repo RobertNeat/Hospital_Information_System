@@ -33,7 +33,7 @@ import robert_neat.his_backend.staff.StaffMemberRepository;
  * Watki i wiadomosci. Aktor zawsze z tokenu (nadawca/tworca z zadania nie istnieje lub jest ignorowany); dostep do
  * watku ma wylacznie jego uczestnik (nie-uczestnik = 403, brak watku = 404). `unreadCount` i `readByIds` liczy backend
  * z kursorow {@link ThreadParticipant#getLastReadAt()} dla biezacego uzytkownika. Kazda wyslana wiadomosc (takze
- * pierwsza w nowym watku) publikuje {@link MessageSent} (bez konsumenta). DTO mapowane w transakcji.
+ * pierwsza w nowym watku) publikuje {@link MessageSent} (konsument: RealtimePublisher). DTO mapowane w transakcji.
  */
 @Service
 @Transactional(readOnly = true)

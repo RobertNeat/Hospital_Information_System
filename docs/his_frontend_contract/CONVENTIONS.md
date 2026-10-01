@@ -62,7 +62,7 @@ Backend mapuje takie wartości przez `@JsonValue` na nazwy poprawne w Javie (np.
 
 ## Audyt
 
-`Auditable` (`createdAt`, `createdById`, `updatedAt`, `updatedById`) wypełnia backend na podstawie sesji. Klient nigdy tych pól nie wysyła. Aktor akcji (`byId`, `recordedById`, `orderedById` itp.) docelowo także pochodzi z sesji, a nie z żądania.
+`Auditable` (`createdAt`, `createdById`, `updatedAt`, `updatedById`) wypełnia backend na podstawie sesji. Klient nigdy tych pól nie wysyła. Aktor akcji (`byId`, `recordedById`, `orderedById` itp.) pochodzi z sesji (tokenu), a nie z żądania.
 
 ## Wersjonowanie
 
@@ -92,9 +92,9 @@ Backend jest źródłem prawdy (authoritative) dla: anomalii parametrów, `DrugS
 
 Dotyczy wszystkich unii ze `models/` (np. `StaffRole`, `OrderStatus`, `AdmissionStatus`, `AdmissionRecordStatus`, `AlertTargetKind`); pełne listy wartości są w [ERD.md](ERD.md) przy właściwych encjach.
 
-## Decyzje z kroków 2-11
+## Ustalenia
 
-- **Role.** `StaffRole` obejmuje: `doctor`, `nurse`, `lab_technician`, `radiologist`, `pharmacist`, `registrar`, `admin`. UI komunikacji (adresaci, wykonawcy zadań) używa na razie tylko `doctor` i `nurse`. Macierz uprawnień: [API.md](API.md#12-autoryzacja-i-role-propozycja-do-potwierdzenia). `StaffMember.accountStatus` (`pending`/`active`/`locked`) jest opcjonalne; rejestracja kończy się `pending`.
+- **Role.** `StaffRole` obejmuje: `doctor`, `nurse`, `lab_technician`, `radiologist`, `pharmacist`, `registrar`, `admin`. UI komunikacji (adresaci, wykonawcy zadań) używa tylko `doctor` i `nurse`. Macierz uprawnień: [API.md](API.md#12-autoryzacja-i-role). `StaffMember.accountStatus` (`pending`/`active`/`locked`) jest opcjonalne; rejestracja kończy się `pending`.
 - **Konta.** Login = `employeeId` (unikalny); `pwz` unikalny, jeśli podany. `UserAccount` jest encją tylko backendową (hasło nigdy nie jest w odpowiedzi). `CurrentUser` = `StaffMember` + `permissions` (`@viewerScoped`).
 - **Admission jako encja.** `Admission` jest encją ADT (historia, co najwyżej jedno `active`), właścicielem relacji 1:1 z `Encounter` typu `hospitalization` (`encounterId`). `Patient.currentAdmission` to projekcja aktywnego przyjęcia; `Patient.status` (`AdmissionStatus`) jest pochodną stanu przyjęć (stored, utrzymywana przez backend), odrębną od `Admission.status` (`AdmissionRecordStatus`).
 - **Pacjent bez PESEL.** `pesel: string | null` + `noPeselReason`, unikalność PESEL częściowa (tylko gdy niepusty); `mrn` nadaje backend.
@@ -105,7 +105,7 @@ Dotyczy wszystkich unii ze `models/` (np. `StaffRole`, `OrderStatus`, `Admission
 - **Parametry życiowe.** `VitalSigns` to niezmienny płaski wiersz z nullable kolumnami (korekta = nowy odczyt); `POST /patients/{id}/vitals` zwraca `VitalsRecordResponse` (`saved` + `anomalies`). Progi: konfiguracja `VitalThreshold`.
 - **Snapshoty.** Nazwy z katalogów (`testName`, `analyteName`, `examName`, `modality`, `bodyRegion`, `drugName`, `activeSubstance`, `strength`, `form`, `performerName`, `radiologistName`) są `@snapshot` - zapisywane w wierszu w chwili zdarzenia, backend kopiuje je z katalogu (klient może je wysyłać, ale serwer je nadpisuje).
 - **Pola nadawane przez backend** (nie wysyłane przez klienta): `id`, `mrn`, audyt, `version`, `status` początkowy, `statusHistory`, `accessCode`, `eRxKey`, `orderedAt`, `issuedAt`, `cancelledAt`, `reviewed*`, `acknowledged*`.
-- **Aktor z sesji.** Pola `orderedById`, `prescriberId`, `recordedById`, `authorId`, `senderId`, `createdById`, `fromId`, `acknowledgedById`, `reviewedById`, `StatusChange.byId` pochodzą z sesji. Niektóre typy żądań (`LabOrderCreateRequest`, `ImagingOrderCreateRequest`, `PrescriptionCreateRequest`, `VitalSignsCreateRequest`, `ClinicalNoteCreateRequest`, `TaskCreateRequest`, `HandoffNoteCreateRequest`) nadal zawierają to pole, bo UI je wysyła: backend je ignoruje lub waliduje względem sesji (422 przy niezgodności - do potwierdzenia).
+- **Aktor z sesji.** Pola `orderedById`, `prescriberId`, `recordedById`, `authorId`, `senderId`, `createdById`, `fromId`, `acknowledgedById`, `reviewedById`, `StatusChange.byId` pochodzą z sesji. Niektóre typy żądań (`LabOrderCreateRequest`, `ImagingOrderCreateRequest`, `PrescriptionCreateRequest`, `VitalSignsCreateRequest`, `ClinicalNoteCreateRequest`, `TaskCreateRequest`, `HandoffNoteCreateRequest`) nadal zawierają to pole, bo UI je wysyła: backend je ignoruje.
 - **Aliasy `*Draft`** (`PatientDraft`, `LabOrderDraft`, `ImagingOrderDraft`, `PrescriptionDraft`, `VitalSignsDraft`) są `@deprecated`; nowy kod używa `*CreateRequest` z `models/api`.
 - **Ścieżki.** `/api/v1`, rzeczowniki w liczbie mnogiej, `/patients/{patientId}/...` dla zasobów pacjenta, akcje jako `POST .../{akcja}`; pełna lista w [API.md](API.md).
 - **Kody błędów.** Niedozwolone przejście stanu (np. anulowanie zakończonego zlecenia) = 409 `CONFLICT`, tak jak konflikt `version`; błędy pól = 422 `VALIDATION_FAILED`.

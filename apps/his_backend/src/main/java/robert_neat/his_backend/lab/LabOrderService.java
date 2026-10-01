@@ -43,7 +43,7 @@ import robert_neat.his_backend.patient.PatientRepository;
  * Zlecenia laboratoryjne. Aktor zawsze z sesji (`orderedById` z zadania jest ignorowany); `patientId` w ciele musi
  * byc zgodny ze sciezka (422). Nazwa badania i material zapisywane jako snapshot z katalogu. Status zmieniaja
  * wylacznie akcje `status` i `cancel` wg {@link LabOrderStateMachine} (niedozwolone przejscie lub niezgodna `version`
- * = 409); kazda zmiana dopisuje wpis historii i publikuje {@link LabOrderStatusChanged} (bez konsumenta). Pielegniarka
+ * = 409); kazda zmiana dopisuje wpis historii i publikuje {@link LabOrderStatusChanged} (konsument: AlertEventListener). Pielegniarka
  * (`lab-order:collect-specimen`) moze ustawic wylacznie `specimen_collected`. DTO mapowane w transakcji.
  */
 @Service

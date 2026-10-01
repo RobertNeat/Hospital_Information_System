@@ -5,7 +5,7 @@ import java.util.UUID;
 
 import robert_neat.his_backend.ehr.NoteCategory;
 
-/** Zdarzenie domenowe: dodano notatke kliniczna (publikowane w transakcji; konsumenci w kolejnych etapach). */
+/** Zdarzenie domenowe: dodano notatke kliniczna (publikowane w transakcji, brak konsumenta). */
 public record ClinicalNoteCreated(
         UUID noteId,
         UUID patientId,

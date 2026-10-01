@@ -11,8 +11,9 @@ import robert_neat.his_backend.alert.AlertType;
 /**
  * Zdarzenie domenowe: utworzono alert (publikowane w transakcji zrodlowej). Nosi dane rozgloszeniowe, ktorych
  * nie przechowuje model alertu: `wardId` (oddzial aktywnego przyjecia pacjenta albo `null`) i `recipientIds`
- * (zlecajacy, lekarz prowadzacy, osoba przypisana do zadania). Push STOMP (`/user/queue/alerts` dla
- * `recipientIds`, `/topic/alerts/{wardId}`) nalezy wpiac przez `@TransactionalEventListener(AFTER_COMMIT)`.
+ * (zlecajacy, lekarz prowadzacy, osoba przypisana do zadania). Konsument: `realtime/RealtimePublisher`
+ * (`@TransactionalEventListener(AFTER_COMMIT)`) - push STOMP `/user/queue/alerts` dla `recipientIds` i
+ * `/topic/alerts/{wardId}`.
  */
 public record AlertCreated(
         UUID alertId,

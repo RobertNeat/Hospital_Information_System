@@ -6,8 +6,9 @@ import java.util.UUID;
 import robert_neat.his_backend.messaging.Priority;
 
 /**
- * Zdarzenie domenowe: utworzono zadanie przypisane do pracownika (publikowane w transakcji, bez konsumenta -
- * alert `task` dla `assignedToId` i push `/user/queue/tasks` w kolejnych etapach).
+ * Zdarzenie domenowe: utworzono zadanie przypisane do pracownika (publikowane w transakcji). Konsumenci:
+ * `alert/AlertEventListener` (synchronicznie, alert `task` dla `assignedToId`) i `realtime/RealtimePublisher`
+ * (AFTER_COMMIT, push `/user/queue/tasks`).
  */
 public record TaskAssigned(
         UUID taskId,

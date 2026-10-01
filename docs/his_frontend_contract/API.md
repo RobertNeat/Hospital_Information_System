@@ -9,7 +9,7 @@
 - Tworzenie zasobów pacjenta jest zagnieżdżone (`POST /patients/{patientId}/lab-orders`); `patientId` w ciele (typy żądań go zawierają) musi być zgodne ze ścieżką, w przeciwnym razie 422 (ścieżka jest autorytatywna).
 - **Błędy** wszędzie jako `ProblemDetail` (RFC 9457). Wspólne dla każdego wiersza: 401 (`UNAUTHENTICATED`), 403 (`FORBIDDEN`), 500 (`INTERNAL`) - nie powtarzane w kolumnie. W kolumnie: 404 `NOT_FOUND`, 409 `CONFLICT` (konflikt `version` lub niedozwolone przejście stanu), 422 `VALIDATION_FAILED` (z `errors: FieldError[]`).
 - **Pag.** = paginacja `Page<T>` + `PageQuery` (`page` od 0, `size`, `sort=pole,asc`): T/N. Serwisy frontendu zwracają `T[]` (mock = `items`); po podłączeniu backendu serwis rozpakuje `items`.
-- **Sesja** = aktor pochodzi z sesji (klient go docelowo nie wysyła; pole w typie żądania jest ignorowane lub walidowane).
+- **Sesja** = aktor pochodzi z sesji (tokenu); pole aktora w typie żądania jest ignorowane przez backend.
 - `{xxx}` w ścieżce = ID (UUID) albo kod katalogowy (`code`).
 
 ## 1. Auth i kadry
@@ -27,7 +27,7 @@
 | `WardService.nameOf`                | - (cache klienta po `GET /wards`) | -                                                    | `string`                                                    | -                                                        | -    | -                                                          |
 | `DashboardService.getStats`         | `GET /dashboard/stats`            | -                                                    | `DashboardStats`                                            | -                                                        | N    | T (liczniki per użytkownik: `openTasks`, `criticalAlerts`) |
 
-`/auth/register` jest publiczny (bez sesji); konto powstaje jako `pending`. Aktywacja przez administratora: `POST /staff/{staffId}/activate` i `/lock` (propozycja, brak typu TS ani metody serwisu - do dodania wraz z panelem admina).
+`/auth/register` jest publiczny (bez sesji); konto powstaje jako `pending`. Aktywacja przez administratora: `POST /staff/{staffId}/activate` i `/lock` (brak typu TS ani metody serwisu; backend wystawia oba endpointy).
 
 ## 2. Pacjent i przyjęcie
 
@@ -53,12 +53,12 @@ Uwagi: lista pacjentów filtruje `wardId` po aktywnym `Admission` (pacjent musi 
 | `EhrService.getEncounters`        | `GET /patients/{patientId}/encounters`        | -                                                                               | `Encounter[]`                  | 404      | N    | N                     |
 | `EhrService.getEpisodes`          | `GET /patients/{patientId}/episodes`          | -                                                                               | `TreatmentEpisode[]`           | 404      | N    | N                     |
 | `EhrService.getNotes`             | `GET /patients/{patientId}/clinical-notes`    | -                                                                               | `ClinicalNote[]`               | 404      | N    | N                     |
-| `EhrService.addNote`              | `POST /patients/{patientId}/clinical-notes`   | `ClinicalNoteCreateRequest` (zawiera `authorId` -> docelowo sesja)              | 201 `ClinicalNote`             | 404, 422 | N    | T (`authorId`, audyt) |
+| `EhrService.addNote`              | `POST /patients/{patientId}/clinical-notes`   | `ClinicalNoteCreateRequest` (zawiera `authorId` - ignorowane, aktor z sesji)              | 201 `ClinicalNote`             | 404, 422 | N    | T (`authorId`, audyt) |
 | `EhrService.getDiagnoses`         | `GET /patients/{patientId}/diagnoses`         | -                                                                               | `Diagnosis[]`                  | 404      | N    | N                     |
 | `EhrService.getAllergies`         | `GET /patients/{patientId}/allergies`         | -                                                                               | `Allergy[]`                    | 404      | N    | N                     |
 | `EhrService.getContraindications` | `GET /patients/{patientId}/contraindications` | -                                                                               | `Contraindication[]`           | 404      | N    | N                     |
 | `EhrService.getTreatments`        | `GET /patients/{patientId}/treatments`        | -                                                                               | `Treatment[]`                  | 404      | N    | N                     |
-| `EhrService.getIcd10Dictionary`   | `GET /dictionaries/icd-10`                    | (opcjonalnie w przyszłości `term`, `size`; obecnie brak parametrów - ~40 kodów) | `Coding[]` (`system:'ICD-10'`) | -        | N    | N                     |
+| `EhrService.getIcd10Dictionary`   | `GET /dictionaries/icd-10`                    | (UI nie przekazuje parametrów; backend akceptuje opcjonalne `term`, `size` - ~40 kodów) | `Coding[]` (`system:'ICD-10'`) | -        | N    | N                     |
 
 ## 4. Laboratorium
 
@@ -116,7 +116,7 @@ Załączniki DICOM, obrazy i pliki załączników z założenia nie są implemen
 | `PrescriptionService.issuePrescription`    | `POST /patients/{patientId}/prescriptions`     | `PrescriptionCreateRequest` (= `PrescriptionDraft`; `prescriberId` ignorowane -> sesja; snapshot leku kopiuje backend z `drugId`)                    | 201 `Prescription` (`status:'issued'`, `accessCode`, `eRxKey`)       | 404, 422 (daty, `items` puste, nieznany `drugId`)                 | N                            | T (`prescriberId`, `issuedAt`, audyt) |
 | `PrescriptionService.cancel`               | `POST /prescriptions/{prescriptionId}/cancel`  | `PrescriptionCancelRequest` (`reason?`, `version?`)                                                                                                  | `Prescription` (`status:'cancelled'`, `cancelledAt`, `cancelReason`) | 404, 409 (status `dispensed`/`cancelled`/`expired` lub `version`) | N                            | T                                     |
 
-Ostrzeżenia `DrugSafetyWarning` mają charakter doradczy: `issuePrescription` ich nie blokuje (decyzja do potwierdzenia: czy `danger` wymaga pola "powód przełamania").
+Ostrzeżenia `DrugSafetyWarning` mają charakter doradczy: `issuePrescription` ich nie blokuje (pole "powód przełamania" dla `danger` nie występuje).
 
 Implementacja backendu (moduł `prescription`): `status:'expired'` jest wyliczany przy odczycie (zapisany `issued`/`partially_dispensed` z `validUntil` < dziś, data UTC; nic nie jest zapisywane, filtr `status` działa na statusie efektywnym); `accessCode` = losowe 4 cyfry (`SecureRandom`), `eRxKey` = lokalny losowy klucz 44 znaków `A-Z0-9` (do podmiany przez integrację e-receipt); `POST /drug-safety-checks` przyjmuje `drugId` + `dosage?` albo `items[]` (`drugId`, `dosage?`) i sprawdza alergie (ATC/substancja), duplikaty substancji (aktywne leki i pozycje), interakcje (`interactsWithAtc`, w obie strony) oraz `maxDailyDose` (ta sama jednostka); aktywne leki = pozycje recept `issued`/`partially_dispensed` z `validUntil` >= dziś.
 
@@ -163,7 +163,7 @@ Te serwisy/metody nie mają odpowiednika w API (świadome pominięcie wierszy):
 
 ## 10. WebSocket / STOMP (wiadomości i alerty)
 
-W mocku: `TeamMessageService.realtimeMode = 'mock'` (TODO: transport STOMP/Socket zamiast `Subject`). Propozycja backendu:
+W mocku: `TeamMessageService.realtimeMode = 'mock'` (transport `Subject` w pamięci). Oczekiwania frontendu wobec backendu:
 
 - Endpoint: `/ws` (SockJS opcjonalnie); uwierzytelnienie tą samą sesją (cookie) albo nagłówkiem `Authorization` w ramce CONNECT. Autoryzacja subskrypcji w `ChannelInterceptor`.
 - Wysyłanie nadal przez REST (`POST .../messages`), bez `/app/**`. STOMP służy tylko do powiadomień serwer -> klient.
@@ -183,9 +183,9 @@ Pola `@viewerScoped` w broadcastach nie mogą zawierać stanu innych użytkownik
 
 Reguły i wyjątki (`'100%'`, `'0+'`, `'ICD-10'`, `'USG'` itd.) są w [CONVENTIONS.md](CONVENTIONS.md#enumy-tabela-mapowania). Skrót: stringowa unia TS = `enum` w Javie z `@JsonValue` zwracającym dokładnie wartość z TS; nazwy stałych SCREAMING_SNAKE (`specimen_collected` -> `SPECIMEN_COLLECTED`, `'100%'` -> `PERCENT_100`). Kolumna w bazie przechowuje wartość z `@JsonValue` (`varchar` + `CHECK`), nie `ordinal`.
 
-## 12. Autoryzacja i role (propozycja, do potwierdzenia)
+## 12. Autoryzacja i role
 
-Role: `doctor`, `nurse`, `lab_technician`, `radiologist`, `pharmacist`, `registrar`, `admin`. R = odczyt, W = zapis/akcja, - = brak. Autoryzacja po stronie backendu (`@PreAuthorize`/uprawnienia w `CurrentUser.permissions`); UI tylko ukrywa akcje.
+Role: `doctor`, `nurse`, `lab_technician`, `radiologist`, `pharmacist`, `registrar`, `admin`. R = odczyt, W = zapis/akcja, - = brak. Autoryzacja po stronie backendu (`@PreAuthorize`/uprawnienia w `CurrentUser.permissions`); UI tylko ukrywa akcje. Macierz opisuje oczekiwania frontendu; faktyczne uprawnienia i różnice: [../his_backend_contract/README.md#odstępstwa-od-his_frontend_contract](../his_backend_contract/README.md#odstępstwa-od-his_frontend_contract) i [auth-and-security.md](../his_backend_contract/auth-and-security.md).
 
 | Zasób / akcja                                     | doctor                | nurse                                 | lab_technician  | radiologist        | pharmacist       | registrar           | admin                  |
 | ------------------------------------------------- | --------------------- | ------------------------------------- | --------------- | ------------------ | ---------------- | ------------------- | ---------------------- |
@@ -195,7 +195,7 @@ Role: `doctor`, `nurse`, `lab_technician`, `radiologist`, `pharmacist`, `registr
 | EHR: odczyt (diagnozy, alergie, notatki, epizody) | R                     | R                                     | R (ograniczone) | R (ograniczone)    | R (alergie/leki) | -                   | R                      |
 | EHR: notatki kliniczne (zapis)                    | W                     | W (`nursing`, `observation`)          | -               | W (`consultation`) | -                | -                   | -                      |
 | EHR: diagnozy, alergie (zapis)                    | W                     | W (alergie)                           | -               | -                  | -                | -                   | -                      |
-| Zlecenia lab: utworzenie / anulowanie             | W                     | - (propozycja: zlecanie tylko lekarz) | R               | -                  | -                | -                   | R                      |
+| Zlecenia lab: utworzenie / anulowanie             | W                     | - (zlecanie tylko lekarz) | R               | -                  | -                | -                   | R                      |
 | Zlecenia lab: zmiana statusu (`status`)           | -                     | W (`specimen_collected`)              | W               | -                  | -                | -                   | W                      |
 | Wyniki lab: odczyt / `acknowledge`                | R + W (ack)           | R                                     | R               | -                  | -                | -                   | R                      |
 | Wyniki lab: wprowadzenie (poza kontraktem UI)     | -                     | -                                     | W               | -                  | -                | -                   | -                      |
@@ -215,7 +215,7 @@ Role: `doctor`, `nurse`, `lab_technician`, `radiologist`, `pharmacist`, `registr
 | `dashboard/stats`                                 | R                     | R                                     | R               | R                  | R                | R                   | R                      |
 | Aktywacja/blokada kont                            | -                     | -                                     | -               | -                  | -                | -                   | W                      |
 
-Uwagi: komunikacja w UI obejmuje dziś tylko `doctor` i `nurse` (adresaci, wykonawcy zadań) - pozostałe role rozszerzone w kontrakcie (`StaffRole`). Dostęp do danych pacjenta powinien uwzględniać oddział (`wardId`), co jest tematem późniejszej decyzji (RBAC + ABAC).
+Uwagi: komunikacja w UI obejmuje tylko `doctor` i `nurse` (adresaci, wykonawcy zadań) - pozostałe role są w `StaffRole`. Dostęp do danych pacjenta wynika z roli (RBAC); ograniczenie po oddziale (`wardId`) dotyczy wyłącznie subskrypcji `/topic/alerts/{wardId}`.
 
 ## 13. Rekomendowana kolejność implementacji backendu
 
@@ -231,7 +231,7 @@ Uwagi: komunikacja w UI obejmuje dziś tylko `doctor` i `nurse` (adresaci, wykon
 | 8   | Parametry życiowe   | `VitalSigns`, anomalie, `ward-overview`, `vital-thresholds`                                                                                                                                                      | 2, 4                               |
 | 9   | Komunikacja         | `MessageThread`/`ThreadParticipant`/`Message`, `ClinicalAlert`/`AlertAcknowledgement`, `TeamTask`, `HandoffNote`, STOMP, zdarzenia przekrojowe (sekcja 14), `dashboard/stats`                                    | 1-8 (źródła alertów)               |
 
-Zdarzenia przekrojowe (alerty) implementować w etapie 9; wcześniejsze etapy publikują zdarzenia domenowe (`ApplicationEventPublisher`) bez konsumenta.
+Zdarzenia przekrojowe (alerty) implementować w etapie 9; etapy 2-8 publikują zdarzenia domenowe (`ApplicationEventPublisher`); konsumenci: [../his_backend_contract/events.md](../his_backend_contract/events.md).
 
 ## 14. Zdarzenia przekrojowe (backend)
 
@@ -240,29 +240,30 @@ Zdarzenia przekrojowe (alerty) implementować w etapie 9; wcześniejsze etapy pu
 | Zapis wyniku lab z `LabObservation.flag` = `LL`/`HH`                     | utwórz `ClinicalAlert` `type:'critical_result'`, `severity:'critical'`, `patientId`, `target {kind:'lab_result', id: resultId, patientId}`; adresaci: `orderedById` zlecenia, lekarz prowadzący z aktywnego `Admission`; push na `/user/queue/alerts` i `/topic/alerts/{wardId}`                          |
 | Zapis `ImagingResult` z `critical:true`                                  | j.w., `target {kind:'imaging_result', ...}`                                                                                                                                                                                                                                                               |
 | `POST /patients/{id}/vitals` z anomalią `critical` (wg `VitalThreshold`) | zapisz odczyt, w tej samej transakcji (lub po commit) utwórz `ClinicalAlert` `type:'vital_anomaly'`, `severity:'critical'`, `target {kind:'patient_vitals', id: patientId}`; odpowiedź zawiera `anomalies` niezależnie od alertu. Anomalia `warning` nie tworzy alertu (mock tworzy tylko dla `critical`) |
-| Zmiana statusu zlecenia (`/status`, `/cancel`)                           | dopisz `StatusChange` (`at`, `byId` z sesji, `note`); utwórz `ClinicalAlert` `type:'order_status'`, `severity:'info'` (dla `cancelled` lub `completed`; propozycja) dla zlecającego, `target {kind:'lab_order'\|'imaging_order', id}`                                                                     |
-| Zapis wyniku dla zlecenia                                                | ustaw `status:'completed'` zlecenia (z `StatusChange`) - propozycja: automatycznie, gdy wszystkie `items` mają `final`                                                                                                                                                                                    |
+| Zmiana statusu zlecenia (`/status`, `/cancel`)                           | dopisz `StatusChange` (`at`, `byId` z sesji, `note`); utwórz `ClinicalAlert` `type:'order_status'`, `severity:'info'` (dla `cancelled` lub `completed`) dla zlecającego, `target {kind:'lab_order'\|'imaging_order', id}`                                                                     |
+| Zapis wyniku dla zlecenia                                                | ustaw `status:'completed'` zlecenia (z `StatusChange`) - automatycznie po wyniku ostatecznym (reguły: [rest-api-lab.md](../his_backend_contract/rest-api-lab.md), [rest-api-imaging.md](../his_backend_contract/rest-api-imaging.md))                                                                                                                                                                                    |
 | Przypisanie zadania                                                      | `ClinicalAlert` `type:'task'` dla `assignedToId` + `/user/queue/tasks`                                                                                                                                                                                                                                    |
 | Przyjęcie / wypis                                                        | aktualizacja `Patient.status`, `currentAdmission`; przyjęcie 409, gdy już aktywne; wypis zamyka `Encounter` (`finished`)                                                                                                                                                                                  |
 | Nowa wiadomość                                                           | `/user/queue/messages` dla uczestników, aktualizacja `lastMessageAt`, wzrost `unreadCount` adresatów                                                                                                                                                                                                      |
 
-## 15. Otwarte decyzje
+## 15. Przyjęte rozstrzygnięcia
 
-| Temat                                                                                                                                                                                           | Stan                                                                                                                                  |
-| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| Typ ID                                                                                                                                                                                          | ustalone: UUID (na drucie opaque string); `LabPanel.id` w TS to `string` - dopuszczalny klucz naturalny, do potwierdzenia             |
-| Generowanie klienta/typów z OpenAPI (springdoc, openapi-typescript)                                                                                                                             | brak decyzji - wymaga akceptacji użytkownika (CLAUDE.md pkt 3); nie zakładamy                                                         |
-| Test kontraktu (np. walidacja odpowiedzi względem TS)                                                                                                                                           | krok warunkowy, później                                                                                                               |
-| Kod błędu dla niedozwolonego przejścia stanu                                                                                                                                                    | dziś tylko `CONFLICT`; ewentualnie nowy `ApiErrorCode` (`INVALID_STATE`) jako nowa wartość unii (dodanie wartości jest zgodne wstecz) |
-| Semantyka potwierdzenia alertu (per użytkownik vs globalnie)                                                                                                                                    | propozycja: per użytkownik (`AlertAcknowledgement`)                                                                                   |
-| Metoda `PATCH` vs akcje `POST` dla `TeamTask`                                                                                                                                                   | propozycja: `POST /tasks/{id}/status`                                                                                                 |
-| Paginacja `getMessages`, `getAlerts`                                                                                                                                                            | dziś `T[]`; kandydaci do kursora                                                                                                      |
-| `DrugSafetyWarning` jako blokada wystawienia                                                                                                                                                    | dziś doradcze                                                                                                                         |
-| Endpointy bez metod serwisu: `POST/GET /patients/{id}/diagnoses`, `/allergies` (typy `DiagnosisCreateRequest`, `AllergyCreateRequest` istnieją), `/auth/*`, `/vital-thresholds`, aktywacja kont | zaplanowane, UI jeszcze nie woła; ścieżki propozycja                                                                                  |
-| Typ odpowiedzi `getTrendableAnalytes`                                                                                                                                                           | brak typu TS; opcjonalnie dodać `LabAnalyteRef { code, name }`                                                                        |
-| Przyjęcie `outpatient`: czy tworzy `Encounter` `visit`                                                                                                                                          | do potwierdzenia                                                                                                                      |
-| Model autoryzacji (RBAC vs ABAC po oddziale)                                                                                                                                                    | sekcja 12 to propozycja                                                                                                               |
+| Temat | Rozstrzygnięcie (zgodne z `his_backend`) |
+| --- | --- |
+| Typ ID | UUID (na drucie opaque string), także `LabPanel.id` (`LabPanelResponse.id` = UUID; w TS `string`) |
+| Generowanie klienta/typów z OpenAPI | nie stosowane; backend nie zawiera springdoc, kontrakt = ten katalog i [`../his_backend_contract`](../his_backend_contract/README.md) |
+| Test kontraktu (walidacja odpowiedzi względem TS) | brak automatycznego testu zgodności TS <-> API |
+| Kod błędu dla niedozwolonego przejścia stanu | `409 CONFLICT` (jak konflikt `version`); brak osobnego kodu `INVALID_STATE` |
+| Semantyka potwierdzenia alertu | per użytkownik (`alert_acknowledgement`); `acknowledged*` w `ClinicalAlert` to projekcja dla zalogowanego (`@viewerScoped`) |
+| Zmiana statusu `TeamTask` | `POST /tasks/{taskId}/status` (bez `PATCH`); status zmienia osoba przypisana lub twórca (403 inaczej), niedozwolone przejście lub niezgodna `version` = 409; `open -> done` dozwolone |
+| Paginacja `getMessages`, `getAlerts` | `T[]` bez paginacji (`GET /message-threads/{id}/messages`, `GET /alerts`); paginowana jest lista wątków (`GET /message-threads`) |
+| `DrugSafetyWarning` a wystawienie recepty | ostrzeżenia doradcze, nie blokują `issuePrescription`; brak pola "powód przełamania" |
+| Endpointy bez metod serwisu (`diagnoses`, `allergies`, `/auth/*`, `/vital-thresholds`, aktywacja/blokada kont) | zaimplementowane w backendzie pod ścieżkami z API.md; UI ich jeszcze nie woła |
+| Typ odpowiedzi `getTrendableAnalytes` | `LabAnalyteRef { code, name }` (`GET /patients/{patientId}/lab-results/analytes`); brak typu TS, klient mapuje na `SelectOption` |
+| Przyjęcie `outpatient` | tworzy `Encounter` typu `visit`, status pacjenta `outpatient`; pozostałe typy tworzą `hospitalization` i status `admitted` |
+| Aktor akcji | zawsze z tokenu (`staffId`); pola aktora w żądaniach (`orderedById`, `authorId`, `recordedById`, ...) są ignorowane |
+| Model autoryzacji | RBAC: uprawnienia wynikają z roli (claim w tokenie); brak ABAC po oddziale poza `/topic/alerts/{wardId}`; różnice względem sekcji 12: [../his_backend_contract/README.md#odstępstwa-od-his_frontend_contract](../his_backend_contract/README.md#odstępstwa-od-his_frontend_contract) |
 
 ## 16. Kompletność względem kodu
 
-Liczba publicznych metod serwisów objętych kontraktem (bez `ThemeService`, `PatientContextService`, `ReportDownloadService`) oraz liczba wierszy z `Service.method` w sekcjach 1-8 są zweryfikowane grepem (wynik w raporcie kroku 12). Świadome pominięcia: sygnały/właściwości (`unreadCount`, `alerts`, `unacknowledgedAlertCount`, `realtimeMode`, `currentUser`) - opisane w sekcjach 1, 8 i 10.
+Liczba publicznych metod serwisów objętych kontraktem (bez `ThemeService`, `PatientContextService`, `ReportDownloadService`) oraz liczba wierszy z `Service.method` w sekcjach 1-8 są zweryfikowane grepem. Świadome pominięcia: sygnały/właściwości (`unreadCount`, `alerts`, `unacknowledgedAlertCount`, `realtimeMode`, `currentUser`) - opisane w sekcjach 1, 8 i 10.

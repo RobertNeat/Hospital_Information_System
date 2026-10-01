@@ -29,7 +29,7 @@ import robert_neat.his_backend.patient.TreatmentEpisodeRepository;
 /**
  * EHR pacjenta: odczyty list, `ehr-summary` (projekcja backendu) oraz zapis notatek, diagnoz i alergii. Aktor zawsze
  * z sesji (pola `authorId`/`diagnosedById`/`recordedById` z zadania sa ignorowane); `patientId` w ciele musi byc
- * zgodny ze sciezka (422). Zdarzenia domenowe publikowane w transakcji, bez konsumenta (konsumenci w kolejnych etapach).
+ * zgodny ze sciezka (422). Zdarzenia domenowe publikowane w transakcji, brak konsumenta.
  * DTO mapowane w transakcji (open-in-view wylaczone).
  */
 @Service

@@ -8,7 +8,7 @@ import robert_neat.his_backend.vitals.VitalAnomaly;
 
 /**
  * Zdarzenie domenowe: zapisany odczyt ma anomalie `critical` (publikowane w transakcji zapisu, tylko gdy jest co
- * najmniej jedna anomalia krytyczna; bez konsumenta - alert `vital_anomaly` w kolejnych etapach). `anomalies` zawiera
+ * najmniej jedna anomalia krytyczna; konsument: `alert/AlertEventListener` - synchronicznie w transakcji zrodlowej, alert `vital_anomaly`). `anomalies` zawiera
  * wylacznie anomalie krytyczne; `actorId` = rejestrujacy.
  */
 public record VitalAnomalyDetected(

@@ -27,8 +27,8 @@ import robert_neat.his_backend.staff.StaffMemberRepository;
 
 /**
  * Zadania zespolu. Aktor z tokenu (`createdById` z zadania jest ignorowany). Utworzenie publikuje
- * {@link TaskAssigned}; zmiana statusu ({@link TeamTaskStateMachine}) publikuje {@link TaskStatusChanged} (bez
- * konsumentow). Status moze zmienic wylacznie osoba przypisana albo tworca (403); niedozwolone przejscie lub niezgodna
+ * {@link TaskAssigned}; zmiana statusu ({@link TeamTaskStateMachine}) publikuje {@link TaskStatusChanged}
+ * (konsument: RealtimePublisher). Status moze zmienic wylacznie osoba przypisana albo tworca (403); niedozwolone przejscie lub niezgodna
  * `version` = 409. Lista bez paginacji (`T[]`, jak w kontrakcie), sort: `createdAt` malejaco.
  */
 @Service

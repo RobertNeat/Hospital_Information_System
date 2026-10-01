@@ -7,8 +7,8 @@ import java.util.UUID;
 import robert_neat.his_backend.lab.ResultStatus;
 
 /**
- * Zdarzenie domenowe: zapisano wynik laboratoryjny (publikowane w transakcji zapisu, bez konsumenta - alert
- * `critical_result` w kolejnych etapach). `critical` = jakakolwiek obserwacja z flaga LL/HH (kody w
+ * Zdarzenie domenowe: zapisano wynik laboratoryjny (publikowane w transakcji zapisu; konsument:
+ * `alert/AlertEventListener` - synchronicznie w transakcji zrodlowej, alert `critical_result`). `critical` = jakakolwiek obserwacja z flaga LL/HH (kody w
  * `criticalAnalyteCodes`). `orderedById` = zlecajacy (adresat alertu) albo `null` dla wyniku bez zlecenia;
  * `actorId` = rejestrujacy albo `null` (aktor systemowy).
  */

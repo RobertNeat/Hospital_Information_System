@@ -7,8 +7,8 @@ import java.util.UUID;
 import robert_neat.his_backend.messaging.Priority;
 
 /**
- * Zdarzenie domenowe: wyslano wiadomosc (takze pierwsza przy zakladaniu watku; publikowane w transakcji, bez
- * konsumenta). `recipientIds` = uczestnicy watku poza nadawca (adresaci STOMP `/user/queue/messages`).
+ * Zdarzenie domenowe: wyslano wiadomosc (takze pierwsza przy zakladaniu watku; publikowane w transakcji;
+ * konsument: `realtime/RealtimePublisher`, AFTER_COMMIT). `recipientIds` = uczestnicy watku poza nadawca (adresaci STOMP `/user/queue/messages`).
  */
 public record MessageSent(
         UUID messageId,

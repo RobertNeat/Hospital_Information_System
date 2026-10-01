@@ -28,11 +28,9 @@ docker compose -f deploy/compose.yml -f deploy/compose.dev.yml --env-file deploy
 pnpm start:backend
 ```
 
-Uwaga: `deploy/compose.dev.yml` jest teraz tylko nakładką na `deploy/compose.yml` (wcześniej osobna
-definicja projektu `his-dev`). Stare woluminy `his-dev_postgres-dev-data` i `his-dev_snowstorm-lite-dev-data`
-zostają osierocone; nowy stos używa `hospital-information-system_postgres-data` i
-`hospital-information-system_snowstorm-lite-data` (baza i indeks Snowstorm zaczynają od zera - indeks
-wymaga ponownego importu RF2). Stare woluminy można usunąć `docker volume rm`, gdy nie są już potrzebne.
+Wolumeny stosu: `hospital-information-system_postgres-data` (baza) i
+`hospital-information-system_snowstorm-lite-data` (indeks Snowstorm; wymaga importu RF2).
+Jeśli porty 5432/8080 są zajęte, ustaw `HIS_DB_HOST_PORT` / `HIS_SNOWSTORM_HOST_PORT` w `deploy/local.env`.
 
 # Uruchomienie kontenera SNOWSTORM lite i dostarczenie danych:
 
@@ -71,7 +69,7 @@ http://localhost:8080/fhir/?tx=http%3A%2F%2Flocalhost%3A8080%2Ffhir#syndication
 
 w 'Installed SNOMED CT Editions' powinna pojawić się wersja '20261001'
 
-Po tych krokach następne uruchomienie aplikacji z HIS_SNOWSTORM_ENABLED=true (w `deploy/local.env`)
+Po tych krokach uruchom aplikację z `HIS_SNOWSTORM_ENABLED=true` (w `deploy/local.env`)
 
 4. zatrzymanie :
 

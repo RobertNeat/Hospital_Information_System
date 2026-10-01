@@ -1,6 +1,6 @@
 # ERD kontraktu HIS (tekstowe)
 
-Źródło: `apps/his_frontend/src/app/models/*.model.ts` i `models/api/*.ts` (stan po krokach 1-11). Konwencje ogólne (ID, daty, enumy, audyt, wersjonowanie) są w [CONVENTIONS.md](CONVENTIONS.md) i nie są tu powtarzane. Endpointy: [API.md](API.md).
+Źródło: `apps/his_frontend/src/app/models/*.model.ts` i `models/api/*.ts` . Konwencje ogólne (ID, daty, enumy, audyt, wersjonowanie) są w [CONVENTIONS.md](CONVENTIONS.md) i nie są tu powtarzane. Endpointy: [API.md](API.md).
 
 ## Legenda
 
@@ -11,7 +11,7 @@
 | `@projection` | wartość liczona przez backend, nie jest kolumną (chyba że zaznaczono "stored") |
 | `@viewerScoped` | wartość liczona per zalogowany użytkownik (nie cache'owana globalnie) |
 | `[S]` | pole nadawane przez backend (klient go nie wysyła): id, audyt, version, status początkowy itp. |
-| `[N]` | "nowe w kontrakcie (opcjonalne)": pole dodane w krokach 1-11, w TS opcjonalne; istniejące od początku nie mają znacznika |
+| `[N]` | "nowe w kontrakcie (opcjonalne)": pole dodane do kontraktu jako opcjonalne w TS; pozostałe pola nie mają znacznika |
 | `[E]` | `@Embeddable` (kolumny z prefiksem w tabeli właściciela) |
 | `[C]` | `@ElementCollection` / tabela pomocnicza |
 
@@ -66,7 +66,7 @@ StaffMember 1──N TeamTask (assignedTo/createdBy) ; Ward 1──N HandoffNote
 | name | `string` | `varchar(200)` | |
 | shortName | `string` | `varchar(10)` | UQ (proponowane) |
 | floor | `string` | `varchar(10)` | piętro jako tekst (np. `'0'`) |
-| beds | `number` | `int` | liczba łóżek; `0` dla poradni. Docelowo może być `@projection` = `count(Bed)` |
+| beds | `number` | `int` | liczba łóżek; `0` dla poradni.  |
 
 ### Bed (opcjonalne, po MVP)
 
@@ -79,7 +79,7 @@ Model TS nie zawiera encji łóżka: `Admission.room` i `Admission.bed` są stri
 | id | `ID` | `UUID` PK | S |
 | title | `string` | `varchar(50)` | np. `lek.`, `mgr piel.` |
 | firstName, lastName | `string` | `varchar(100)` | |
-| role | `StaffRole` | enum `StaffRole` | `doctor`, `nurse`, `lab_technician`, `radiologist`, `pharmacist`, `registrar`, `admin` (rozszerzone w krokach 2-11) |
+| role | `StaffRole` | enum `StaffRole` | `doctor`, `nurse`, `lab_technician`, `radiologist`, `pharmacist`, `registrar`, `admin`  |
 | specialization | `string?` | `varchar(100)` null | |
 | wardId | `ID` | FK `ward.id` | N:1 |
 | phone | `string?` | `varchar(30)` null | |
@@ -142,7 +142,7 @@ Osadzenia (`@Embeddable`):
 
 Reguły:
 
-- `PatientDraft` (alias `PatientCreateRequest`) = Patient bez `id, mrn, createdAt, updatedAt, createdById, updatedById, version`. Klient nie wysyła `status` logicznie jako źródła prawdy, ale pole pozostaje w typie: backend ignoruje i ustawia `registered` przy rejestracji (do potwierdzenia).
+- `PatientDraft` (alias `PatientCreateRequest`) = Patient bez `id, mrn, createdAt, updatedAt, createdById, updatedById, version`. Klient nie wysyła `status` logicznie jako źródła prawdy, ale pole pozostaje w typie: backend ignoruje i ustawia `registered` przy rejestracji.
 - `PatientUpdateRequest` = `Partial<PatientDraft> & { version? }`; PATCH: brak pola = bez zmian, `null` = wyczyść.
 - `PatientSummary` = projekcja (patrz sekcja 11).
 - Duplikat PESEL: `PatientDuplicateCheckResponse` = `PatientSummary | null`.
@@ -155,7 +155,7 @@ Proces administracyjny ADT. Pacjent ma wiele przyjęć (historia), **co najwyże
 | --- | --- | --- | --- |
 | id | `ID?` | `UUID` PK | S (w TS opcjonalne bo `AdmitPatientRequest` go nie zawiera) |
 | patientId | `ID?` | FK `patient.id` | S (z ścieżki) |
-| encounterId | `ID?` | FK `encounter.id`, UQ | S; 1:1 z Encounter `type=hospitalization`; Admission jest właścicielem FK. Dla `admissionType='outpatient'` backend może utworzyć Encounter `visit` lub zostawić null (do potwierdzenia) |
+| encounterId | `ID?` | FK `encounter.id`, UQ | S; 1:1 z Encounter `type=hospitalization`; Admission jest właścicielem FK. Dla `admissionType='outpatient'` backend tworzy Encounter `visit` |
 | status | `AdmissionRecordStatus?` | enum `active`/`discharged`/`cancelled` | S; nie mylić z `Patient.status` (`AdmissionStatus`) |
 | admissionType | `AdmissionType` | enum `planned`/`emergency`/`transfer`/`outpatient` | |
 | admittedAt | `ISODateTime` | `Instant` | |
@@ -206,7 +206,7 @@ Encounter 1—N: ClinicalNote, Diagnosis, Treatment, LabOrder, ImagingOrder, Pre
 
 ### ClinicalNote (`clinical_note`) - Auditable, Versioned
 
-`id`, `patientId` FK, `encounterId?` FK, `authorId` FK StaffMember (w żądaniu; docelowo z sesji - patrz CONVENTIONS), `category` (`NoteCategory`: `admission`/`progress`/`consultation`/`nursing`/`observation`/`discharge`), `title` `varchar(200)`, `content` `text`, `symptoms?` `string[]` `[C]` `clinical_note_symptom(note_id, symptom)`. `ClinicalNoteCreateRequest` = bez `id` i audytu/`version`.
+`id`, `patientId` FK, `encounterId?` FK, `authorId` FK StaffMember (w żądaniu ignorowane; aktor z sesji - patrz CONVENTIONS), `category` (`NoteCategory`: `admission`/`progress`/`consultation`/`nursing`/`observation`/`discharge`), `title` `varchar(200)`, `content` `text`, `symptoms?` `string[]` `[C]` `clinical_note_symptom(note_id, symptom)`. `ClinicalNoteCreateRequest` = bez `id` i audytu/`version`.
 
 ### Diagnosis (`diagnosis`) - Partial<Auditable>, Versioned
 
@@ -248,7 +248,7 @@ Encounter 1—N: ClinicalNote, Diagnosis, Treatment, LabOrder, ImagingOrder, Pre
 
 ### LabPanel (`lab_panel`) + `lab_panel_test`
 
-`id: string` (w TS zwykły `string`, nie `ID`; w bazie `UUID` lub klucz naturalny - **do potwierdzenia**, nie zmieniamy nazwy pola), `name`, `testCodes: string[]` -> M:N `lab_panel_test(panel_id, test_code)` (LabPanel właściciel).
+`id: string` (w TS zwykły `string`, nie `ID`; w bazie `UUID`), `name`, `testCodes: string[]` -> M:N `lab_panel_test(panel_id, test_code)` (LabPanel właściciel).
 
 ### LabOrder (`lab_order`) - Versioned, Partial<Auditable>
 
@@ -257,7 +257,7 @@ Encounter 1—N: ClinicalNote, Diagnosis, Treatment, LabOrder, ImagingOrder, Pre
 | id | `ID` | `UUID` PK | S |
 | patientId | `ID` | FK | |
 | encounterId | `ID?` | FK null | |
-| orderedById | `ID` | FK StaffMember | docelowo z sesji (S) |
+| orderedById | `ID` | FK StaffMember | z sesji (S) |
 | orderedAt | `ISODateTime` | `Instant` | S |
 | items | `LabOrderItem[]` | 1:N `lab_order_item` | `@OneToMany(cascade=ALL, orphanRemoval)` |
 | urgency | `OrderUrgency` | enum `routine`/`urgent`/`stat` | |
@@ -352,7 +352,7 @@ Typy pochodne: `TrendPoint`, `AnalyteTrend` - projekcje (sekcja 11). `ResultAbno
 | --- | --- | --- | --- |
 | id | `ID` | `UUID` PK | S |
 | patientId, encounterId? | | FK | |
-| prescriberId | `ID` | FK StaffMember (`doctor`) | docelowo z sesji |
+| prescriberId | `ID` | FK StaffMember (`doctor`) | z sesji |
 | issuedAt | `ISODateTime` | | S |
 | validFrom, validUntil | `ISODate` | `LocalDate` | |
 | kind | `PrescriptionKind` | enum `e_prescription`/`hospital_order` | |
@@ -384,7 +384,7 @@ Płaski wiersz z nullable kolumnami (świadoma decyzja; bez EAV):
 | id | `ID` | `UUID` PK | S |
 | patientId | `ID` | FK, indeks (`patient_id`, `recorded_at desc`) | |
 | recordedAt | `ISODateTime` | `Instant` | |
-| recordedById | `ID` | FK | z sesji (S docelowo); `VitalSignsDraft` nadal go zawiera |
+| recordedById | `ID` | FK | z sesji (S); `VitalSignsDraft` nadal go zawiera |
 | context | `VitalsContext` | enum `office_exam`/`ward_round`/`triage`/`observation` | |
 | source | `VitalsSource?` | enum `manual`/`monitor`, brak = `manual` | `[N]` |
 | deviceId | `string?` | `varchar(50)` null | `[N]`, gdy `source='monitor'` |
@@ -422,7 +422,7 @@ PK złożony (`threadId`, `staffId`): `threadId` FK, `staffId` FK, `lastReadAt?`
 
 `ClinicalAlert`: `id`, `type` (`AlertType`: `critical_result`, `vital_anomaly`, `order_status`, `task`, `system`), `severity` (`AlertSeverity`: `info`/`warning`/`critical`), `patientId?` FK, `message`, `createdAt` (S), `target?` (`AlertTarget` `[E]`: `kind` `AlertTargetKind` = `lab_result`/`imaging_result`/`patient_vitals`/`lab_order`/`imaging_order`/`task`/`patient`, `id`, `patientId?`; `[N]`; typowany wskaźnik bez ścieżek UI), `link?` (`@deprecated`; backend nie zna tras UI - nie zapisuje), `acknowledged` (`@viewerScoped`), `acknowledgedById?`, `acknowledgedAt?` (`@viewerScoped` - dane potwierdzenia zalogowanego użytkownika).
 
-`AlertAcknowledgement` (encja backendowa): PK (`alertId`, `staffId`), `acknowledgedAt`. Potwierdzenie jest per użytkownik (alert może być potwierdzony przez jednego, a nadal aktywny dla innych - **do potwierdzenia**, czy potwierdzenie jednej osoby wycisza globalnie). `AlertCreateRequest` jest wewnętrzny (server-to-server), klient nie tworzy alertów.
+`AlertAcknowledgement` (encja backendowa): PK (`alertId`, `staffId`), `acknowledgedAt`. Potwierdzenie jest per użytkownik (alert potwierdzony przez jednego użytkownika pozostaje aktywny dla innych). `AlertCreateRequest` jest wewnętrzny (server-to-server), klient nie tworzy alertów.
 
 ### TeamTask (`team_task`) - Partial<Auditable>
 

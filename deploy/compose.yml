@@ -35,7 +35,11 @@ services:
       - "${HIS_FRONTEND_HOST_PORT:-10400}:${HIS_FRONTEND_CONTAINER_PORT:-10400}"
     # nginx:alpine ma busybox wget; nasłuch tylko IPv4, stąd 127.0.0.1.
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:${HIS_FRONTEND_CONTAINER_PORT:-10400}/ || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "wget -q -O /dev/null http://127.0.0.1:${HIS_FRONTEND_CONTAINER_PORT:-10400}/ || exit 1"
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -57,10 +61,21 @@ services:
       # Wartość musi być w config.env (produkcja) lub deploy/local.env (lokalnie).
       HIS_JWT_SECRET: ${HIS_JWT_SECRET:-}
       HIS_JWT_TTL: ${HIS_JWT_TTL:-8h}
+      HIS_JWT_ISSUER: ${HIS_JWT_ISSUER:-his-backend}
+      # Blokada konta po kolejnych nieudanych logowaniach.
+      HIS_LOCKOUT_MAX_ATTEMPTS: ${HIS_LOCKOUT_MAX_ATTEMPTS:-5}
+      HIS_LOCKOUT_DURATION: ${HIS_LOCKOUT_DURATION:-15m}
+      # Listy origin (po przecinku); puste = CORS wyłączony / WebSocket tylko same-origin.
+      HIS_CORS_ALLOWED_ORIGINS: ${HIS_CORS_ALLOWED_ORIGINS:-}
+      HIS_WS_ALLOWED_ORIGINS: ${HIS_WS_ALLOWED_ORIGINS:-}
       # Terminologia jest opcjonalna: brak depends_on na snowstorm-lite, backend
       # działa bez niego (HIS_SNOWSTORM_ENABLED=false domyślnie).
       HIS_SNOWSTORM_URL: http://snowstorm-lite:8080/fhir
       HIS_SNOWSTORM_ENABLED: ${HIS_SNOWSTORM_ENABLED:-false}
+      HIS_SNOWSTORM_CONNECT_TIMEOUT: ${HIS_SNOWSTORM_CONNECT_TIMEOUT:-2s}
+      HIS_SNOWSTORM_READ_TIMEOUT: ${HIS_SNOWSTORM_READ_TIMEOUT:-5s}
+      HIS_SNOWSTORM_DISPLAY_LANGUAGE: ${HIS_SNOWSTORM_DISPLAY_LANGUAGE:-pl,en}
+      HIS_SNOWSTORM_MAX_PAGE_SIZE: ${HIS_SNOWSTORM_MAX_PAGE_SIZE:-100}
     depends_on:
       postgres:
         condition: service_healthy
@@ -71,7 +86,11 @@ services:
       - "${HIS_BACKEND_HOST_PORT:-10420}:${HIS_BACKEND_CONTAINER_PORT:-10420}"
     # Obraz eclipse-temurin nie ma curl/wget - curl doinstalowany w spring.Dockerfile.
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:${HIS_BACKEND_CONTAINER_PORT:-10420}/actuator/health/readiness > /dev/null || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fsS http://localhost:${HIS_BACKEND_CONTAINER_PORT:-10420}/actuator/health/readiness > /dev/null || exit 1"
+        ]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -85,7 +104,11 @@ services:
     networks:
       - his-internal
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:${E_RECEIPT_CONTAINER_PORT:-10421}/actuator/health/readiness > /dev/null || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fsS http://localhost:${E_RECEIPT_CONTAINER_PORT:-10421}/actuator/health/readiness > /dev/null || exit 1"
+        ]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -97,7 +120,11 @@ services:
     networks:
       - his-internal
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:${E_LABORATORY_CONTAINER_PORT:-10422}/actuator/health/readiness > /dev/null || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fsS http://localhost:${E_LABORATORY_CONTAINER_PORT:-10422}/actuator/health/readiness > /dev/null || exit 1"
+        ]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -109,7 +136,11 @@ services:
     networks:
       - his-internal
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:${E_IMAGING_CONTAINER_PORT:-10423}/actuator/health/readiness > /dev/null || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fsS http://localhost:${E_IMAGING_CONTAINER_PORT:-10423}/actuator/health/readiness > /dev/null || exit 1"
+        ]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -147,11 +178,15 @@ services:
       # Celowo `:-` zamiast `:?`: Compose interpoluje zmienne także dla usług
       # nieaktywnych profili, więc `:?` wywalałoby `compose config`/`up` bez profilu.
       # Domyślna wartość jest tylko zapchajdziurą - na serwerze ustawić własne hasło.
-      ADMIN_PASSWORD: ${HIS_SNOWSTORM_ADMIN_PASSWORD:-change-me}
+      ADMIN_PASSWORD: ${HIS_SNOWSTORM_ADMIN_PASSWORD:-admin}
     volumes:
       - snowstorm-lite-data:/app/lucene-index
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/fhir/metadata > /dev/null || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fsS http://localhost:8080/fhir/metadata > /dev/null || exit 1"
+        ]
       interval: 15s
       timeout: 10s
       retries: 10

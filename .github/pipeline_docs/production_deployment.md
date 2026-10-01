@@ -48,8 +48,9 @@ pozostaną nierozwiązane.
 domyślne `${VAR:-default}` równe wartościom z `projects.json` (nazwy zmiennych
 wg `name`: `E_RECEIPT_IMAGE`, `E_RECEIPT_HOST_PORT`, `E_RECEIPT_CONTAINER_PORT` itd.),
 a `REGISTRY`/`IMAGE_TAG` domyślnie `local`/`dev`; zgodność defaultów z
-`projects.json` sprawdza `validate_projects.sh`. Nowe zmienne nie używają `:?`,
-żeby `docker compose config` nie wywracał się na hostach ze starym `config.env`.
+`projects.json` sprawdza `validate_projects.sh`. Zmienne `HIS_*` backendu (poza wymaganymi
+`HIS_DB_*`) mają wartości domyślne `:-` identyczne z `application.properties`, więc
+`docker compose config` działa także z `config.env` bez tych zmiennych.
 
 - Sieci: `his-internal` (`internal: true`) - postgres, backend, e-*, snowstorm-lite;
   `default` - frontend i backend (backend publikuje port, frontend proxy'uje do niego).
@@ -71,13 +72,15 @@ docker compose -f deploy/compose.yml -f deploy/compose.dev.yml --env-file deploy
 Tryb IDE (backend z IntelliJ, profil `dev`): `... up -d postgres` (opcjonalnie `e-*`,
 `--profile terminology`) i NIE uruchamiać kontenera `his-backend` (konflikt portu 10420).
 Porty hosta można przesłonić zmiennymi `HIS_DB_HOST_PORT`, `HIS_SNOWSTORM_HOST_PORT`,
-`<PROJECT>_HOST_PORT`. Dawny `compose.dev.yml` (osobny projekt `his-dev`) został zastąpiony
-nakładką; jego woluminy `his-dev_*` są osierocone (nowe: `hospital-information-system_*`).
+`<PROJECT>_HOST_PORT`; jeśli porty 5432/8080 są zajęte, ustaw `HIS_DB_HOST_PORT` /
+`HIS_SNOWSTORM_HOST_PORT`. Wolumeny stosu: `hospital-information-system_*`.
 
 Zmienne do ręcznego dopisania w zdalnym `config.env` (istniejący plik nie jest nadpisywany):
 `HIS_JWT_SECRET` (WYMAGANE, min. 32 bajty - backend bez niego nie wystartuje; compose przekazuje
-je jako `${HIS_JWT_SECRET:-}`), opcjonalnie `HIS_JWT_TTL`, `HIS_LIQUIBASE_CONTEXTS`,
-`HIS_SNOWSTORM_*`, `COMPOSE_PROFILES=terminology`.
+je jako `${HIS_JWT_SECRET:-}`), opcjonalnie `HIS_JWT_TTL`, `HIS_JWT_ISSUER`,
+`HIS_LOCKOUT_MAX_ATTEMPTS`, `HIS_LOCKOUT_DURATION`, `HIS_CORS_ALLOWED_ORIGINS`,
+`HIS_WS_ALLOWED_ORIGINS`, `HIS_LIQUIBASE_CONTEXTS`, `HIS_SNOWSTORM_*`, `COMPOSE_PROFILES=terminology`
+(wzór: `.env.example`).
 
 ## PostgreSQL
 
@@ -119,9 +122,8 @@ Backend ma na stałe `HIS_SNOWSTORM_URL=http://snowstorm-lite:8080/fhir`, a
 włącza się bez zmiany skryptu przez zmienną w zdalnym `config.env`:
 `COMPOSE_PROFILES=terminology` (Compose czyta ją z `--env-file`; sprawdzone).
 Bez niej usługa nie ruszy. Hasło: zmienna `HIS_SNOWSTORM_ADMIN_PASSWORD` ma
-domyślne `change-me` (`:-`, a nie `:?`, bo Compose interpoluje zmienne także
-nieaktywnych profili i fail-fast psułby `config` bez profilu) — na serwerze
-ustawić własne.
+domyślne `admin` (`:-`, a nie `:?`, bo Compose interpoluje zmienne także
+nieaktywnych profili) — na serwerze ustawić własne.
 
 ### Zmienne do ręcznego dopisania w zdalnym `config.env`
 
@@ -139,7 +141,7 @@ jest widoczne w jego środowisku.
 
 Paczek RF2 **nie ma w repozytorium** (licencja). Wymagana ważna licencja SNOMED CT
 (afiliacja MLDS / krajowy ośrodek, np. dla Polski — CSIOZ/CeZ). Jedna edycja
-naraz (import kolejnej zastępuje poprzednią); import edycji międzynarodowej
+naraz (kolejny import zastępuje poprzedni); import edycji międzynarodowej
 trwa ok. 5 min i potrzebuje ok. 1–1,5 GB RAM (później ok. 500 MB; obraz startuje
 z `-Xms1g -Xmx4g`). Usługa nie ma portu na hoście, więc import z serwera przez
 `docker compose exec`/kontener z tej samej sieci, np. po skopiowaniu zipa na serwer:

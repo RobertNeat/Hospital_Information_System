@@ -6,7 +6,7 @@ import java.util.UUID;
 
 import robert_neat.his_backend.ehr.AllergySeverity;
 
-/** Zdarzenie domenowe: zapisano alergie (publikowane w transakcji; konsumenci w kolejnych etapach). */
+/** Zdarzenie domenowe: zapisano alergie (publikowane w transakcji, brak konsumenta). */
 public record AllergyRecorded(
         UUID allergyId,
         UUID patientId,
