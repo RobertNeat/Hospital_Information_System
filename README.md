@@ -1,3 +1,40 @@
+# Wysokopoziomowa architektura systemu
+
+```mermaid
+flowchart TD
+    A(his_frontend) -->|REST API + STOMP WebSocket| B(his_backend)
+    B(his_backend) -->|FHIR| C(e-receipt)
+    B(his_backend) -->|FHIR| D(e-abpratory)
+    B(his_backend) -->|FHIR| E(e-imaging)
+    B(his_backend) -->|FHIR| F(SNOWSTORM-LITE 2.7.0)
+    B(his_backend) -->|FHIR| G(PostgreSQL container)
+
+```
+
+### Założenia:
+
+Aplikacja his_frontend jest interfejsem do obsługi systemu HIS od strony pracownika szpitala, pozwala na:
+
+- zarządzanie wizytami pacjenta,
+- wystawianie e-recept,
+- wystawieniem zleceń e-obrazowań
+- wystawianiem zleceń badań laboratoryjnych.
+  W kontekście tego interfejsu działają role (użytkownicy) lekarze różnych specjalizacji i personel medyczny.
+
+Serwis his_backend stanowi główny backend systemu HIS i wykonuje funkcje oprogramowania, zarządza danymi przechowywanymi w bazie danych (i początkowego ładowania danych z liquibase). Ponadto zarządza wybieraniem klasyfikacji chorób, objawów, procedur medycznych według specjalizacji danego użytkownika-lekarza.
+
+Instancja SNOWSTORM-LITE zapewnia dostęp do klasyfikacji SNOMED CT (w tym do terminologii medycznej) i umożliwia wyszukiwanie po kodach SNOMED CT. W systemie HIS przechowywane są jedynie identyfikatory SNOMED CT, a nie pełne dane terminologiczne (dane podlegające licencji snomed ct są niewykorzystywane w danych początkowych importowanych przez liquibase).
+
+Baza danych PostgreSQL przechowuje dane systemu HIS, w tym dane pacjentów, wizyt, recept, zleceń badań laboratoryjnych i obrazowań. Przechowuje odwołania do przyporządkowanych klasyfikacji chorób, objawów i procedur medycznych jako odwołania do identyfikatorów w SNOMED CT (dane SNOMED CT nie są przechowywane w bazie danych, lecz jedynie identyfikatory SNOMED CT).
+
+Serwis e-receipt prosty serwis naśladujący pordstawowe zachowanie systemu e-recept pozwalający zarządzenie wystawionymi e-receptami i zmianie stanu tych zleceń recept. Serwis wystawia zintegrowany interfejs Thymeleaf, który umożliwia zmianę stanu zleceń e-recept (brak uwierzytelniania do interfejsu ui). Zmiana stanu wystawionych e-recept w serwisie e-recept wpływa na późniejszy stan zleceń e-recept w systemie HIS. Serwis e-receopt jest połączony z systemem HIS poprzez FHIR z zastosowaniem mTLS.
+
+Serwis e-laboratory prosty serwis naśladujący pordstawowe zachowanie systemu zleceń laboratoryjnych pozwalający zarządzenie wystawionymi zleceniami i zmianie stanu tych zleceń. Serwis wystawia zintegrowany interfejs Thymeleaf, który umożliwia zmianę stanu zleceń badań (brak uwierzytelniania do interfejsu ui). Zmiana stanu wystawionych zleceń w serwisie e-laboratory wpływa na późniejszy stan zleceń badań w systemie HIS. Serwis jest połączony z systemem HIS poprzez FHIR z zastosowaniem mTLS.
+
+Serwis e-imaging prosty serwis naśladujący pordstawowe zachowanie systemu zleceń badań obrazowych pozwalający zarządzenie wystawionymi zleceniami i zmianie stanu tych zleceń. Serwis wystawia zintegrowany interfejs Thymeleaf, który umożliwia zmianę stanu zleceń badań (brak uwierzytelniania do interfejsu ui). Zmiana stanu wystawionych zleceń w serwisie e-imaging wpływa na późniejszy stan zleceń badań w systemie HIS. Serwis jest połączony z systemem HIS poprzez FHIR z zastosowaniem mTLS.
+
+---
+
 # Uruchomienie lokalne (Docker Compose)
 
 Jeden plik `deploy/compose.yml` definiuje cały stos (postgres, his-backend, his-frontend, e-receipt,
