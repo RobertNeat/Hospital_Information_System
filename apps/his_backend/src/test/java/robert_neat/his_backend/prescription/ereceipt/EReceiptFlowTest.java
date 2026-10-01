@@ -36,6 +36,7 @@ import com.jayway.jsonpath.JsonPath;
 import com.sun.net.httpserver.HttpServer;
 
 import ca.uhn.fhir.context.FhirContext;
+import robert_neat.his_backend.common.fhir.FhirTestAuth;
 import robert_neat.his_backend.TestcontainersConfiguration;
 
 /**
@@ -250,7 +251,7 @@ class EReceiptFlowTest {
         String key = LAST_KEY.get();
         CALLS.clear();
 
-        mvc.perform(put("/fhir/MedicationRequest/{id}", id).header("X-Service-Key", "test-only-service-key")
+        mvc.perform(put("/fhir/MedicationRequest/{id}", id).with(FhirTestAuth.service())
                         .contentType(FHIR_JSON)
                         .content("{\"resourceType\":\"MedicationRequest\",\"status\":\"cancelled\",\"intent\":\"order\","
                                 + "\"identifier\":[{\"system\":\"urn:his:erx-key\",\"value\":\"" + key + "\"}],"

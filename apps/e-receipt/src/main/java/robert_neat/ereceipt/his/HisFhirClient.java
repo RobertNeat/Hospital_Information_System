@@ -19,13 +19,12 @@ import robert_neat.ereceipt.prescription.Receipt;
 import robert_neat.ereceipt.prescription.ReceiptStatus;
 
 /**
- * Wywolanie FHIR do his_backend: `PUT {base}/MedicationRequest/{hisPrescriptionId}` z naglowkiem klucza uslugowego.
+ * Wywolanie FHIR do his_backend: `PUT {base}/MedicationRequest/{hisPrescriptionId}`.
  * 4xx (poza 401/403) = odrzucenie zmiany przez HIS; 401/403, 5xx i bledy sieci = "niedostepny" (zmiana do ponowienia).
  */
 @Component
 class HisFhirClient implements HisSync {
 
-    static final String SERVICE_KEY_HEADER = "X-Service-Key";
     private static final Logger log = LoggerFactory.getLogger(HisFhirClient.class);
 
     private final HisProperties properties;
@@ -63,7 +62,6 @@ class HisFhirClient implements HisSync {
             restClient.put().uri("/MedicationRequest/{id}", receipt.getHisPrescriptionId())
                     .contentType(FhirSystems.FHIR_JSON)
                     .accept(FhirSystems.FHIR_JSON, MediaType.APPLICATION_JSON)
-                    .header(SERVICE_KEY_HEADER, properties.serviceKey())
                     .body(body).retrieve().toBodilessEntity();
             return Result.of(Outcome.SYNCED);
         } catch (HttpStatusCodeException e) {

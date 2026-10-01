@@ -28,9 +28,9 @@ Do e-receipt trafiają tylko recepty `kind = e_prescription`; `hospital_order` z
 
 `{id}` to identyfikator recepty w HIS (UUID, ten sam co `PrescriptionResponse.id`); zły format = 404. Błędy to `OperationOutcome` (`application/fhir+json`), a nie `ProblemDetail`.
 
-### Autoryzacja (klucz usługowy)
+### Autoryzacja (mTLS)
 
-Nagłówek `X-Service-Key` musi być równy `his.fhir.service-key` (`HIS_FHIR_SERVICE_KEY`); porównanie w stałym czasie. Pusty klucz w konfiguracji = każde żądanie `/fhir/**` to 401 (`OperationOutcome`, `issue.code=security`). Token JWT nie autoryzuje `/fhir/**`, a klucz usługowy nie działa na `/api/**`. To rozwiązanie przejściowe: docelowo mTLS (profil `mtls`, paczka SSL `fhir-client` po stronie klienta); klucz wtedy zostaje usunięty.
+`/fhir/**` jest wystawiane wyłącznie na osobnym porcie HTTPS his_backend (domyślnie 10424, `HIS_FHIR_PORT`) z wymaganym certyfikatem klienta zaufanym przez truststore (CA `HIS-CA`); połączenie bez certyfikatu lub z certyfikatem obcego CA jest odrzucane na poziomie TLS. Dodatkowo CN certyfikatu musi być na liście `his.fhir.allowed-client-cns` (`e-receipt`, `e-laboratory`, `e-imaging`); inny CN = 401 (`OperationOutcome`, `issue.code=security`). Token JWT nie autoryzuje `/fhir/**`, a certyfikat klienta nie działa na `/api/**` (ten port obsługuje wyłącznie `/fhir/**`; `/fhir/**` na porcie HTTP 10420 daje 404). Bez mTLS (`HIS_MTLS_ENABLED=false`, testy/IDE) `/fhir/**` odrzuca każde żądanie (401).
 
 ### Zmiana stanu (PUT)
 
@@ -79,7 +79,7 @@ Reguły (`PrescriptionExternalService`):
 - `PrescriptionIssued` (`e_prescription`): `POST {base-url}/MedicationRequest`; z odpowiedzi brany `eRxKey` (`urn:his:erx-key`, a w razie braku `id`), wymagany format `[A-Z0-9]{44}` (kolumna `char(44)`). Zapis w osobnej transakcji (`REQUIRES_NEW`) zbiorczym JPQL `PrescriptionRepository.updateERxKey` **bez zmiany `version`**, żeby `version` zwrócone przy wystawieniu pozostało aktualne dla `cancel`. Odpowiedź `201` wystawienia niesie jeszcze klucz lokalny; klucz z e-receipt jest widoczny przy kolejnym odczycie.
 - `PrescriptionCancelled` z aktorem (anulowanie w HIS): `PUT {base-url}/MedicationRequest/{eRxKey}` ze statusem `cancelled`. 404 z e-receipt (recepta mock/lokalny klucz) = log informacyjny. Zdarzenie bez aktora (anulowanie pochodzące z e-receipt) nie jest odsyłane (brak pętli).
 - Bez ponawiania i bez kolejki: nieudana wysyłka nie jest powtarzana (stan HIS pozostaje autorytatywny, recepta bez klucza e-receipt zachowuje klucz lokalny).
-- mTLS: `his.integration.ereceipt.ssl-bundle` = nazwa paczki `spring.ssl.bundle.*` (np. `fhir-client` z profilu `mtls`); `RestClient` budowany przez `ClientHttpRequestFactoryBuilder` z `HttpClientSettings.withSslBundle`.
+- mTLS: `his.integration.ereceipt.ssl-bundle` = nazwa paczki `spring.ssl.bundle.*` (profil `mtls` ustawia `mtls`; certyfikat klienta i zaufanie do CA z paczki, adres `https://e-receipt:10421/fhir`); `RestClient` budowany przez `ClientHttpRequestFactoryBuilder` z `HttpClientSettings.withSslBundle`.
 
 ## Badania laboratoryjne (e-laboratory)
 
@@ -245,4 +245,4 @@ Idempotencja: raport zlecenia o tym samym statusie i czasie `issued` co zapisany
 
 ## Wzorzec dla kolejnych usług
 
-Wspólne elementy w `common/fhir` (`FhirConfig`, `FhirServiceProperties`, `FhirSecurityConfig`, `FhirEndpoint`, `FhirException`, `FhirExceptionHandler`, `FhirSystems`, `FhirOrderHandler` z kontrolerami `ServiceRequest`/`DiagnosticReport`); część domenowa w pakiecie modułu (`prescription/ereceipt`, `lab/elab`, `imaging/eimg`: properties, klient, listener, mapper, serwis zmiany stanu, handler lub kontroler). Nowy kontroler FHIR oznacza się `@FhirEndpoint` (błędy jako `OperationOutcome`), a ścieżka pod `/fhir/**` jest automatycznie chroniona kluczem usługowym.
+Wspólne elementy w `common/fhir` (`FhirConfig`, `FhirServiceProperties`, `FhirSecurityConfig`, `MtlsConnectors`, `FhirEndpoint`, `FhirException`, `FhirExceptionHandler`, `FhirSystems`, `FhirOrderHandler` z kontrolerami `ServiceRequest`/`DiagnosticReport`); część domenowa w pakiecie modułu (`prescription/ereceipt`, `lab/elab`, `imaging/eimg`: properties, klient, listener, mapper, serwis zmiany stanu, handler lub kontroler). Nowy kontroler FHIR oznacza się `@FhirEndpoint` (błędy jako `OperationOutcome`), a ścieżka pod `/fhir/**` jest automatycznie chroniona kluczem usługowym.

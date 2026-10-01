@@ -23,6 +23,7 @@ import org.springframework.test.web.servlet.ResultActions;
 
 import ca.uhn.fhir.context.FhirContext;
 import robert_neat.his_backend.ApiIntegrationTest;
+import robert_neat.his_backend.common.fhir.FhirTestAuth;
 import robert_neat.his_backend.common.order.OrderStatus;
 import robert_neat.his_backend.lab.events.LabOrderStatusChanged;
 import robert_neat.his_backend.lab.events.LabResultRecorded;
@@ -31,8 +32,7 @@ import robert_neat.his_backend.lab.events.LabResultRecorded;
 @RecordApplicationEvents
 class LabFhirApiTest extends ApiIntegrationTest {
 
-    private static final MediaType FHIR_JSON = MediaType.valueOf("application/fhir+json");
-    private static final String KEY = "test-only-service-key";
+    private static final MediaType FHIR_JSON = MediaType.valueOf("application/fhir+json");
 
     private static final String PATIENT = "0f0db024-a3c0-56a5-916d-3acf34a052e5";
     private static final String ORD_ORDERED = "8651089d-9360-5c5d-b90c-2986ca095295"; // MORF + DDIMER
@@ -58,7 +58,7 @@ class LabFhirApiTest extends ApiIntegrationTest {
     }
 
     private ResultActions putStatus(String id, String body) throws Exception {
-        return mvc.perform(put("/fhir/ServiceRequest/{id}", id).header("X-Service-Key", KEY)
+        return mvc.perform(put("/fhir/ServiceRequest/{id}", id).with(FhirTestAuth.service())
                 .contentType(FHIR_JSON).content(body));
     }
 
@@ -100,20 +100,20 @@ class LabFhirApiTest extends ApiIntegrationTest {
     }
 
     private ResultActions postReport(String body) throws Exception {
-        return mvc.perform(post("/fhir/DiagnosticReport").header("X-Service-Key", KEY).contentType(FHIR_JSON)
+        return mvc.perform(post("/fhir/DiagnosticReport").with(FhirTestAuth.service()).contentType(FHIR_JSON)
                 .content(body));
     }
 
     // --- autoryzacja ---
 
     @Test
-    void requestsWithoutKeyAreUnauthorizedOperationOutcome() throws Exception {
+    void requestsWithoutCertificateAreUnauthorizedOperationOutcome() throws Exception {
         String json = mvc.perform(get("/fhir/ServiceRequest/" + ORD_ORDERED)).andExpect(status().isUnauthorized())
                 .andExpect(content().contentTypeCompatibleWith(FHIR_JSON)).andReturn().getResponse()
                 .getContentAsString();
         assertThat(fhir.newJsonParser().parseResource(OperationOutcome.class, json).getIssueFirstRep().getCode()
                 .toCode()).isEqualTo("security");
-        mvc.perform(post("/fhir/DiagnosticReport").header("X-Service-Key", "zly").contentType(FHIR_JSON)
+        mvc.perform(post("/fhir/DiagnosticReport").with(FhirTestAuth.intruder()).contentType(FHIR_JSON)
                 .content("{}")).andExpect(status().isUnauthorized());
     }
 
@@ -121,7 +121,7 @@ class LabFhirApiTest extends ApiIntegrationTest {
 
     @Test
     void readReturnsServiceRequestWithItemsAndAnalyteDefinitions() throws Exception {
-        String json = mvc.perform(get("/fhir/ServiceRequest/" + ORD_ORDERED).header("X-Service-Key", KEY))
+        String json = mvc.perform(get("/fhir/ServiceRequest/" + ORD_ORDERED).with(FhirTestAuth.service()))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
         ServiceRequest sr = fhir.newJsonParser().parseResource(ServiceRequest.class, json);
 
@@ -139,9 +139,9 @@ class LabFhirApiTest extends ApiIntegrationTest {
 
     @Test
     void readUnknownOrMalformedIdIsNotFound() throws Exception {
-        mvc.perform(get("/fhir/ServiceRequest/nie-uuid").header("X-Service-Key", KEY))
+        mvc.perform(get("/fhir/ServiceRequest/nie-uuid").with(FhirTestAuth.service()))
                 .andExpect(status().isNotFound());
-        mvc.perform(get("/fhir/ServiceRequest/00000000-0000-0000-0000-000000000000").header("X-Service-Key", KEY))
+        mvc.perform(get("/fhir/ServiceRequest/00000000-0000-0000-0000-000000000000").with(FhirTestAuth.service()))
                 .andExpect(status().isNotFound());
     }
 
@@ -237,7 +237,7 @@ class LabFhirApiTest extends ApiIntegrationTest {
         // pozycja CRP bez wyniku: zlecenie nadal w toku
         assertThat(row(ORD_IN_PROGRESS).get("status")).isEqualTo("in_progress");
 
-        mvc.perform(get("/fhir/DiagnosticReport/" + resultId).header("X-Service-Key", KEY))
+        mvc.perform(get("/fhir/DiagnosticReport/" + resultId).with(FhirTestAuth.service()))
                 .andExpect(status().isOk());
     }
 
@@ -307,9 +307,9 @@ class LabFhirApiTest extends ApiIntegrationTest {
 
     @Test
     void readUnknownReportIsNotFound() throws Exception {
-        mvc.perform(get("/fhir/DiagnosticReport/00000000-0000-0000-0000-000000000000").header("X-Service-Key", KEY))
+        mvc.perform(get("/fhir/DiagnosticReport/00000000-0000-0000-0000-000000000000").with(FhirTestAuth.service()))
                 .andExpect(status().isNotFound());
-        mvc.perform(get("/fhir/DiagnosticReport/nie-uuid").header("X-Service-Key", KEY))
+        mvc.perform(get("/fhir/DiagnosticReport/nie-uuid").with(FhirTestAuth.service()))
                 .andExpect(status().isNotFound());
     }
 }

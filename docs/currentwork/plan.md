@@ -17,13 +17,13 @@ Architektura docelowa (README.md): `his_frontend` --(REST + STOMP)--> `his_backe
 | --- | --- |
 | Testy integracyjne | Testcontainers (`postgres:17-alpine`) |
 | Biblioteka FHIR | HAPI FHIR 8.12.1 (`hapi-fhir-base` + `hapi-fhir-structures-r4`), działa ze Spring Boot 4.1.1 / Java 25; klient HTTP: Spring `RestClient`, treść jako `String` (bez `hapi-fhir-client`) |
-| Autoryzacja e-* -> HIS | współdzielony klucz usługowy w nagłówku `X-Service-Key` (`HIS_FHIR_SERVICE_KEY`); docelowo mTLS |
+| Autoryzacja e-* -> HIS | mTLS (domyślnie włączony; certyfikat klienta zaufany przez CA `HIS-CA`, dozwolone CN `HIS_FHIR_ALLOWED_CLIENT_CNS`); FHIR na osobnym porcie HTTPS (his_backend 10424), API/`/ws` na HTTP 10420; wyłączenie: `HIS_MTLS_ENABLED=false` |
 | Terminology server | Snowstorm Lite 2.7.0, profil compose `terminology`, import RF2 ręcznie, domyślnie wyłączony (`HIS_SNOWSTORM_ENABLED=false`) |
 | Generator mocków TS -> SQL | vitest (`pnpm export:mocks`) |
 | Uwierzytelnianie | JWT stateless HS256 (`spring-boot-starter-oauth2-resource-server`), token w pamięci frontendu |
 | Konta | proste konta demo (login = hasło) także na produkcji; ryzyko słabych haseł w LAN zaakceptowane |
 | Compose | `deploy/compose.yml` (kanoniczny) + `deploy/compose.dev.yml` (nakładka: `build:`, porty loopback) + `deploy/local.env` |
-| Usługi e-* | `e-receipt`, `e-laboratory`, `e-imaging`: symulatory (UI Thymeleaf + FHIR R4 HAPI, stan w pamięci, wywołanie zwrotne do HIS z kluczem usługowym); docelowo mTLS, patrz "Pozostało" |
+| Usługi e-* | `e-receipt`, `e-laboratory`, `e-imaging`: symulatory (UI Thymeleaf + FHIR R4 HAPI, stan w pamięci, wywołanie zwrotne do HIS przez mTLS; FHIR na porcie HTTPS 10421-10423, UI Thymeleaf na osobnym porcie HTTP 10431-10433, health na porcie zarządzania 10441-10443) |
 | Frontend | zrealizowana warstwa auth (AuthService, interceptory, guardy, login/register); wszystkie serwisy domenowe korzystają z his_backend (etapy poniżej) |
 
 ## Stan realizacji
@@ -44,15 +44,15 @@ Architektura docelowa (README.md): `his_frontend` --(REST + STOMP)--> `his_backe
 | `alert`, `dashboard` | alerty ze zdarzeń, acknowledge per użytkownik, statystyki | gotowe |
 | `realtime` | STOMP `/ws` (JWT w CONNECT, push po commit, rejestr online) | gotowe |
 | `terminology` | klient Snowstorm Lite, `/api/v1/terminology/snomed/*`; sprawdzony na lokalnym Lite (import 20261001) | gotowe |
-| Integracja `his_backend` <-> `e-receipt` | wysyłka recept `e_prescription` (AFTER_COMMIT, best effort) i zapis `eRxKey`; `PUT /fhir/MedicationRequest/{id}` zmienia stan recepty w HIS (klucz usługowy); anulowanie w HIS przekazywane do e-receipt; docs: `rest-api-fhir.md` | gotowe |
+| Integracja `his_backend` <-> `e-receipt` | wysyłka recept `e_prescription` (AFTER_COMMIT, best effort) i zapis `eRxKey`; `PUT /fhir/MedicationRequest/{id}` zmienia stan recepty w HIS (mTLS); anulowanie w HIS przekazywane do e-receipt; docs: `rest-api-fhir.md` | gotowe |
 | Integracja `his_backend` <-> `e-laboratory` | wysyłka zleceń lab (`ServiceRequest`, AFTER_COMMIT, best effort, `HIS_ELAB_ENABLED`), anulowanie z HIS przekazywane; `PUT /fhir/ServiceRequest/{id}` zmienia stan zlecenia wg maszyny stanów, `POST /fhir/DiagnosticReport` zapisuje wynik przez `LabResultRecordingService`; symulator `e-laboratory` (UI Thymeleaf: lista, zmiana stanu, formularz wyniku); docs: `rest-api-fhir.md` | gotowe |
 | Integracja `his_backend` <-> `e-imaging` | wysyłka zleceń obrazowych (`ServiceRequest`, AFTER_COMMIT, best effort, `HIS_EIMG_ENABLED`, zdarzenie `ImagingOrderPlaced`), anulowanie z HIS przekazywane; `PUT /fhir/ServiceRequest/{id}` zmienia stan zlecenia wg maszyny stanów (anulowanie zwalnia slot), `POST /fhir/DiagnosticReport` zapisuje wynik przez `ImagingResultRecordingService` (idempotentnie, auto-`completed`); ścieżki wspólne z lab (`FhirOrderHandler` kieruje po id zlecenia / systemie kodu badania); symulator `e-imaging` (UI Thymeleaf: lista, zmiana stanu, formularz wyniku); docs: `rest-api-fhir.md` | gotowe |
-| Wdrożenie | ujednolicony compose z e-*, Snowstorm Lite, proxy nginx `/api` i `/ws`, Actuator + health we wszystkich 4 aplikacjach Spring, `curl` w `spring.Dockerfile`, `validate_projects.sh` | gotowe |
+| Wdrożenie | ujednolicony compose z e-*, Snowstorm Lite, proxy nginx `/api` i `/ws`, Actuator + health we wszystkich 4 aplikacjach Spring, `curl` w `spring.Dockerfile`, `validate_projects.sh`; mTLS FHIR domyślnie włączony (certyfikaty `.certs/` + `scripts/gen-certs.sh`, osobne porty HTTPS/HTTP/zarządzania, `X-Service-Key` usunięty) | gotowe |
 | Frontend: warstwa auth | AuthService, interceptory, guardy, login/register | gotowe |
 | Frontend: serwisy na `HttpClient` | `ward`, `staff`, `patient`, `ehr`, `patient-context`, `drug`, `prescription`, `lab-order`, `lab-result`, `imaging-order`, `imaging-result`, `vitals`, `team-message`, `dashboard` (etapy F0-F6) | gotowe |
 | Frontend: serwisy na mockach | brak (`mock-data/` zostaje dla stubów w `testing/` i testów) | gotowe |
 | Dokumentacja | `docs/his_frontend_contract`, `docs/his_backend_contract` | gotowe |
-| Weryfikacja | lint, typecheck, prettier, testy frontu (458, dwa przebiegi) i build zielone; `verify` zielone: his_backend (1000 testów), e-receipt (26), e-laboratory (34), e-imaging (35); `docker compose config` zielone. Build frontu ostrzega o budżecie initial 500 kB (849 kB; limit bez zmian) | gotowe |
+| Weryfikacja | lint, typecheck, prettier, testy frontu (458, dwa przebiegi) i build zielone; `verify` zielone: his_backend (1007 testów), e-receipt (31), e-laboratory (34), e-imaging (35); `docker compose config` zielone; smoke test pełnego stosu z mTLS (healthy, recepta/zlecenie lab/obrazowe -> e-* i zmiana stanu -> HIS) zielony. Build frontu ostrzega o budżecie initial 500 kB (849 kB; limit bez zmian) | gotowe |
 
 ### Integracja his_frontend <-> his_backend (etapy F0-F8 gotowe; smoke test na realnym backendzie w "Pozostało")
 
@@ -75,10 +75,9 @@ Uwaga: po zalogowaniu na konto demo (`stf-*` w mockach vs UUID w bazie) część
 ### Pozostało (poza integracją frontendu)
 
 1. **Ograniczenia symulatorów `e-receipt`, `e-laboratory`, `e-imaging`:** bez ponawiania wysyłki z his_backend (nieudana wysyłka nie jest powtarzana; w e-receipt zostaje klucz lokalny, zlecenie lab/obrazowe nie trafia do usługi), stan w pamięci, UI niedostępne na produkcji (brak publikacji portów `e-*`); zmiany stanu wykonane w HIS (poza anulowaniem) nie są przekazywane do e-laboratory ani e-imaging.
-2. **mTLS** między his_backend a e-*: profil `mtls` istnieje, ale `client-auth=need` uniemożliwia zwykły healthcheck; wymaga certyfikatów i osobnego portu zarządzania. Klienty FHIR mają właściwość `ssl-bundle` (paczka `spring.ssl.bundle.*`); do czasu wdrożenia mTLS wywołania e-* -> his_backend autoryzuje współdzielony klucz usługowy (`X-Service-Key`, `HIS_FHIR_SERVICE_KEY`).
-3. **Dobór terminologii wg specjalizacji lekarza** (README): jest `GET /terminology/snomed/suggestions?kind=diagnosis|symptom|procedure` (ECL per specjalizacja zalogowanego lekarza z `his.terminology.suggestions.*`, zestaw domyślny dla nieznanej/pustej); frontend jeszcze go nie używa, składnia ECL profili nie była sprawdzona na lokalnym Lite. Otwarte: relacja do słownika `icd10_code` / `/dictionaries/icd-10` (README zakłada SCTID).
-4. **Smoke test frontu na prawdziwym backendzie** (konta `EMP-*`): nie wykonany; generator `pnpm export:mocks` nie uruchamiany po zmianach F8 (zapisuje do `his_backend`), sprawdzony tylko typecheckiem.
-5. **Weryfikacja bezpieczeństwa w CI:** `trivy fs`, `semgrep` i `validate_projects.sh` (wymaga `jq`) nie były uruchamiane lokalnie; sprawdzić w pierwszym przebiegu CI (hasła demo, placeholdery `change-me`, hashe BCrypt w SQL mogą zostać oflagowane).
+2. **Dobór terminologii wg specjalizacji lekarza** (README): jest `GET /terminology/snomed/suggestions?kind=diagnosis|symptom|procedure` (ECL per specjalizacja zalogowanego lekarza z `his.terminology.suggestions.*`, zestaw domyślny dla nieznanej/pustej); frontend jeszcze go nie używa, składnia ECL profili nie była sprawdzona na lokalnym Lite. Otwarte: relacja do słownika `icd10_code` / `/dictionaries/icd-10` (README zakłada SCTID).
+3. **Smoke test frontu na prawdziwym backendzie** (konta `EMP-*`): nie wykonany; generator `pnpm export:mocks` nie uruchamiany po zmianach F8 (zapisuje do `his_backend`), sprawdzony tylko typecheckiem.
+4. **Weryfikacja bezpieczeństwa w CI:** `trivy fs`, `semgrep` i `validate_projects.sh` (wymaga `jq`) nie były uruchamiane lokalnie; sprawdzić w pierwszym przebiegu CI (hasła demo, placeholdery `change-me`, hashe BCrypt w SQL mogą zostać oflagowane).
 
 ## Ograniczenia i znane odstępstwa
 
@@ -101,7 +100,7 @@ Pełna lista odstępstw backend <-> `his_frontend_contract`: `docs/his_backend_c
 
 ## Operacje na środowisku
 
-- **Serwer produkcyjny (192.168.1.160):** w `config.env` ustawić `HIS_DB_NAME`, `HIS_DB_USER`, `HIS_DB_PASSWORD`, `HIS_JWT_SECRET` (min. 32 bajty, wymagane); opcjonalnie `HIS_JWT_TTL`, `HIS_JWT_ISSUER`, `HIS_LOCKOUT_*`, `HIS_CORS_ALLOWED_ORIGINS`, `HIS_WS_ALLOWED_ORIGINS`, `HIS_LIQUIBASE_CONTEXTS`, `COMPOSE_PROFILES=terminology`, `HIS_SNOWSTORM_*`. Zmienić hasła kont demo po pierwszym wdrożeniu.
+- **Serwer produkcyjny (192.168.1.160):** w `config.env` ustawić `HIS_DB_NAME`, `HIS_DB_USER`, `HIS_DB_PASSWORD`, `HIS_JWT_SECRET` (min. 32 bajty, wymagane); opcjonalnie `HIS_JWT_TTL`, `HIS_JWT_ISSUER`, `HIS_LOCKOUT_*`, `HIS_CORS_ALLOWED_ORIGINS`, `HIS_WS_ALLOWED_ORIGINS`, `HIS_LIQUIBASE_CONTEXTS`, `COMPOSE_PROFILES=terminology`, `HIS_SNOWSTORM_*`, hasła mTLS (osiem `*_KEYSTORE_PASSWORD` / `*_TRUSTSTORE_PASSWORD` z `.certs/passwords.env`) i pliki `.p12` w `/home/docker_deploy/.certs` (zob. `production_deployment.md`; certyfikaty ważne do 2027-10-01). Zmienić hasła kont demo po pierwszym wdrożeniu.
 - Wolumeny stosu: `hospital-information-system_postgres-data`, `hospital-information-system_snowstorm-lite-data`; indeks Snowstorm wymaga importu RF2.
 - Jeśli porty 5432/8080 są zajęte, ustawić `HIS_DB_HOST_PORT` / `HIS_SNOWSTORM_HOST_PORT` przed `pnpm stack:up`.
 
@@ -110,7 +109,7 @@ Pełna lista odstępstw backend <-> `his_frontend_contract`: `docs/his_backend_c
 | Scenariusz | Komenda |
 | --- | --- |
 | Pełny stos lokalnie | `docker compose -f deploy/compose.yml -f deploy/compose.dev.yml --env-file deploy/local.env up -d --build` (`pnpm stack:up`; ze Snowstormem `--profile terminology`) |
-| Tryb IDE | `pnpm stack:db` (sam postgres), potem `pnpm start:backend` (profil `dev`: kontekst `reference,mock`) i `pnpm start` (proxy -> 10420). Nie uruchamiać kontenera `his-backend` (konflikt portu 10420) |
+| Tryb IDE | `pnpm stack:db` (sam postgres), potem `pnpm start:backend` (profil `dev`: kontekst `reference,mock`; bez mTLS: `HIS_MTLS_ENABLED=false`, więc bez `/fhir/**`) i `pnpm start` (proxy -> 10420). Nie uruchamiać kontenera `his-backend` (konflikt portu 10420) |
 | Weryfikacja | `pnpm lint`, `pnpm typecheck`, `pnpm format:check`, `pnpm test:frontend`, `cd apps/his_backend; .\mvnw.cmd verify` (wymaga Dockera dla Testcontainers); to samo `verify` w `apps/e-receipt`, `apps/e-laboratory`, `apps/e-imaging` |
 | Regeneracja mocków | `pnpm export:mocks` (wynik: `apps/his_backend/src/main/resources/db/changelog/{reference,mock}`; wykonanych changesetów schematu nie edytować) |
 

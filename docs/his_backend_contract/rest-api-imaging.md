@@ -66,7 +66,7 @@ Osobna niż laboratoryjna (`specimen_collected` nie występuje). `completed`/`ca
 
 ## Zapis wyniku poza REST
 
-Brak endpointu `POST` wyniku w `/api/v1`. `ImagingResultRecordingService.recordResult(RecordImagingResultCommand)` wywołuje `POST /fhir/DiagnosticReport` (usługa `e-imaging`, klucz usługowy; mapowanie i idempotencja: [rest-api-fhir.md](rest-api-fhir.md#badania-obrazowe-e-imaging)). Reguły zapisu:
+Brak endpointu `POST` wyniku w `/api/v1`. `ImagingResultRecordingService.recordResult(RecordImagingResultCommand)` wywołuje `POST /fhir/DiagnosticReport` (usługa `e-imaging`, mTLS; mapowanie i idempotencja: [rest-api-fhir.md](rest-api-fhir.md#badania-obrazowe-e-imaging)). Reguły zapisu:
 
 | Reguła | Skutek |
 | --- | --- |

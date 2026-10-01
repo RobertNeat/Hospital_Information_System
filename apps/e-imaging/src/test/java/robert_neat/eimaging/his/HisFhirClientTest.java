@@ -42,7 +42,7 @@ class HisFhirClientTest {
     private HisFhirClient client(boolean enabled) {
         RestClient.Builder builder = RestClient.builder().baseUrl(BASE);
         server = MockRestServiceServer.bindTo(builder).build();
-        HisProperties props = new HisProperties(enabled, BASE, "secret", Duration.ofSeconds(1),
+        HisProperties props = new HisProperties(enabled, BASE, Duration.ofSeconds(1),
                 Duration.ofSeconds(1), "");
         return new HisFhirClient(props, requests, reports, builder.build());
     }
@@ -50,11 +50,10 @@ class HisFhirClientTest {
     private final ImagingOrder order = OrderFixtures.order(OrderFixtures.draft(HIS_ID, ImagingOrderStatus.SCHEDULED));
 
     @Test
-    void putsStatusWithServiceKeyToHisOrderId() {
+    void putsStatusToHisOrderId() {
         HisFhirClient client = client(true);
         server.expect(requestTo(BASE + "/ServiceRequest/" + HIS_ID))
                 .andExpect(method(HttpMethod.PUT))
-                .andExpect(header("X-Service-Key", "secret"))
                 .andExpect(header("Content-Type", "application/fhir+json"))
                 .andExpect(content().string(Matchers.containsString("\"revoked\"")))
                 .andExpect(content().string(Matchers.containsString("\"cancelled\"")))
@@ -69,7 +68,6 @@ class HisFhirClientTest {
         HisFhirClient client = client(true);
         server.expect(requestTo(BASE + "/DiagnosticReport"))
                 .andExpect(method(HttpMethod.POST))
-                .andExpect(header("X-Service-Key", "secret"))
                 .andExpect(content().string(Matchers.containsString("\"DiagnosticReport\"")))
                 .andExpect(content().string(Matchers.containsString("ServiceRequest/" + HIS_ID)))
                 .andExpect(content().string(Matchers.containsString("urn:his:imaging-exam")))

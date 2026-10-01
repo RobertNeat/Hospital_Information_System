@@ -1,15 +1,17 @@
 package robert_neat.his_backend.common.fhir;
 
+import java.util.List;
+
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
- * Autoryzacja wywolan FHIR przychodzacych z uslug e-*: wspolny klucz w naglowku {@code X-Service-Key}.
- * Pusty klucz = endpointy `/fhir/**` odrzucaja kazde zadanie (401). Docelowo mTLS zastapi klucz.
+ * Autoryzacja wywolan FHIR z uslug e-*: certyfikat klienta zaufany przez truststore (mTLS) i CN z listy dozwolonych.
+ * Pusta lista = `/fhir/**` odrzuca kazde zadanie (401).
  */
 @ConfigurationProperties(prefix = "his.fhir")
-public record FhirServiceProperties(String serviceKey) {
+public record FhirServiceProperties(List<String> allowedClientCns) {
 
     public FhirServiceProperties {
-        serviceKey = serviceKey == null ? "" : serviceKey;
+        allowedClientCns = allowedClientCns == null ? List.of() : List.copyOf(allowedClientCns);
     }
 }

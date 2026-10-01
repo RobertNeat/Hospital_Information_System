@@ -23,15 +23,15 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 
 import ca.uhn.fhir.context.FhirContext;
 import robert_neat.his_backend.ApiIntegrationTest;
+import robert_neat.his_backend.common.fhir.FhirTestAuth;
 import robert_neat.his_backend.prescription.PrescriptionRepository;
 import robert_neat.his_backend.prescription.events.PrescriptionCancelled;
 
-/** Endpoint FHIR `/fhir/MedicationRequest` dla e-receipt na danych mock (klucz uslugowy z konfiguracji testowej). */
+/** Endpoint FHIR `/fhir/MedicationRequest` dla e-receipt na danych mock (certyfikat klienta TEST-ONLY). */
 @RecordApplicationEvents
 class PrescriptionFhirApiTest extends ApiIntegrationTest {
 
     private static final MediaType FHIR_JSON = MediaType.valueOf("application/fhir+json");
-    private static final String KEY = "test-only-service-key";
 
     private static final String RX_ISSUED = "75f6263c-d428-593d-95e7-94a0e15cfc2c"; // issued
     private static final String RX_ISSUED_2 = "2dfc74df-8654-5e27-af87-3c315a71d733"; // issued
@@ -59,7 +59,7 @@ class PrescriptionFhirApiTest extends ApiIntegrationTest {
     }
 
     private ResultActions putStatus(String id, String body) throws Exception {
-        return mvc.perform(put("/fhir/MedicationRequest/{id}", id).header("X-Service-Key", KEY)
+        return mvc.perform(put("/fhir/MedicationRequest/{id}", id).with(FhirTestAuth.service())
                 .contentType(FHIR_JSON).content(body));
     }
 
@@ -68,14 +68,14 @@ class PrescriptionFhirApiTest extends ApiIntegrationTest {
                 + "from prescription where id = ?::uuid", id);
     }
 
-    // --- autoryzacja kluczem uslugowym ---
+    // --- autoryzacja certyfikatem klienta (mTLS) ---
 
     @Test
-    void requestsWithoutOrWithWrongKeyAreUnauthorizedOperationOutcome() throws Exception {
+    void requestsWithoutOrWithUnlistedCertificateAreUnauthorizedOperationOutcome() throws Exception {
         for (MockHttpServletRequestBuilder request : new MockHttpServletRequestBuilder[] {
                 get("/fhir/MedicationRequest/" + RX_ISSUED),
-                get("/fhir/MedicationRequest/" + RX_ISSUED).header("X-Service-Key", "zly-klucz"),
-                get("/fhir/MedicationRequest/" + RX_ISSUED).header("X-Service-Key", ""),
+                get("/fhir/MedicationRequest/" + RX_ISSUED).with(FhirTestAuth.intruder()),
+                get("/fhir/MedicationRequest/" + RX_ISSUED).with(FhirTestAuth.intruder()),
                 put("/fhir/MedicationRequest/" + RX_ISSUED).contentType(FHIR_JSON).content(body("cancelled", "cancelled"))}) {
             String json = mvc.perform(request).andExpect(status().isUnauthorized())
                     .andExpect(content().contentTypeCompatibleWith(FHIR_JSON))
@@ -100,7 +100,7 @@ class PrescriptionFhirApiTest extends ApiIntegrationTest {
 
     @Test
     void readReturnsMedicationRequestWithIdentifiersAndEffectiveStatus() throws Exception {
-        String json = mvc.perform(get("/fhir/MedicationRequest/" + RX_ISSUED).header("X-Service-Key", KEY))
+        String json = mvc.perform(get("/fhir/MedicationRequest/" + RX_ISSUED).with(FhirTestAuth.service()))
                 .andExpect(status().isOk()).andExpect(content().contentTypeCompatibleWith(FHIR_JSON))
                 .andReturn().getResponse().getContentAsString();
         MedicationRequest mr = fhir.newJsonParser().parseResource(MedicationRequest.class, json);
@@ -116,9 +116,9 @@ class PrescriptionFhirApiTest extends ApiIntegrationTest {
 
     @Test
     void readUnknownOrMalformedIdIsNotFound() throws Exception {
-        mvc.perform(get("/fhir/MedicationRequest/nie-uuid").header("X-Service-Key", KEY))
+        mvc.perform(get("/fhir/MedicationRequest/nie-uuid").with(FhirTestAuth.service()))
                 .andExpect(status().isNotFound());
-        mvc.perform(get("/fhir/MedicationRequest/00000000-0000-0000-0000-000000000000").header("X-Service-Key", KEY))
+        mvc.perform(get("/fhir/MedicationRequest/00000000-0000-0000-0000-000000000000").with(FhirTestAuth.service()))
                 .andExpect(status().isNotFound());
     }
 

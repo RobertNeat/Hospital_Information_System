@@ -21,14 +21,13 @@ import robert_neat.elaboratory.order.LabOrderStatus;
 import robert_neat.elaboratory.order.ResultEntry;
 
 /**
- * Wywolania FHIR do his_backend z naglowkiem klucza uslugowego: `PUT {base}/ServiceRequest/{hisOrderId}` (stan
+ * Wywolania FHIR do his_backend: `PUT {base}/ServiceRequest/{hisOrderId}` (stan
  * zlecenia) i `POST {base}/DiagnosticReport` (wynik). 4xx (poza 401/403) = odrzucenie przez HIS; 401/403, 5xx i bledy
  * sieci = "niedostepny" (zmiana do ponowienia).
  */
 @Component
 class HisFhirClient implements HisSync {
 
-    static final String SERVICE_KEY_HEADER = "X-Service-Key";
     private static final Logger log = LoggerFactory.getLogger(HisFhirClient.class);
 
     private final HisProperties properties;
@@ -69,7 +68,6 @@ class HisFhirClient implements HisSync {
         return call("zlecenia " + order.getHisOrderId(), () -> restClient.put()
                 .uri("/ServiceRequest/{id}", order.getHisOrderId()).contentType(FhirSystems.FHIR_JSON)
                 .accept(FhirSystems.FHIR_JSON, MediaType.APPLICATION_JSON)
-                .header(SERVICE_KEY_HEADER, properties.serviceKey())
                 .body(body).retrieve().toBodilessEntity());
     }
 
@@ -81,7 +79,6 @@ class HisFhirClient implements HisSync {
         String body = reports.encode(order, result);
         return call("wyniku zlecenia " + order.getHisOrderId(), () -> restClient.post().uri("/DiagnosticReport")
                 .contentType(FhirSystems.FHIR_JSON).accept(FhirSystems.FHIR_JSON, MediaType.APPLICATION_JSON)
-                .header(SERVICE_KEY_HEADER, properties.serviceKey())
                 .body(body).retrieve().toBodilessEntity());
     }
 

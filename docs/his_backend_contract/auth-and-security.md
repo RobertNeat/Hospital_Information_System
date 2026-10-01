@@ -38,7 +38,7 @@ Uprawnienia pochodzą wyłącznie z claima `authorities` (bez odczytu bazy przy 
 
 ## Wywołania usług e-* (`/fhir/**`)
 
-Osobny łańcuch `FhirSecurityConfig` (`@Order(1)`, `securityMatcher("/fhir/**")`) przed łańcuchem JWT: bezstanowy, bez CSRF/CORS, autoryzacja nagłówkiem `X-Service-Key` równym `his.fhir.service-key` (`HIS_FHIR_SERVICE_KEY`, porównanie w stałym czasie, pusty klucz = zawsze 401). Błąd 401 to `OperationOutcome`. Token JWT nie działa na `/fhir/**`. Rozwiązanie przejściowe (jeden współdzielony klucz dla wszystkich usług `e-*`, także e-laboratory i e-imaging); docelowo mTLS. Szczegóły: [rest-api-fhir.md](rest-api-fhir.md).
+Osobny łańcuch `FhirSecurityConfig` (`@Order(1)`, `securityMatcher("/fhir/**")`) przed łańcuchem JWT: bezstanowy, bez CSRF/CORS, autoryzacja certyfikatem klienta (mTLS): Tomcat weryfikuje łańcuch względem truststore (`client-auth=need`), a `x509()` mapuje CN certyfikatu na rolę usługową tylko dla CN z `his.fhir.allowed-client-cns` (`HIS_FHIR_ALLOWED_CLIENT_CNS`, domyślnie `e-receipt,e-laboratory,e-imaging`). Brak certyfikatu lub CN spoza listy = 401 (`OperationOutcome`); bez mTLS (`HIS_MTLS_ENABLED=false`) `/fhir/**` odrzuca każde żądanie. Token JWT nie działa na `/fhir/**`. `/fhir/**` jest dostępne wyłącznie na porcie FHIR (HTTPS, 10424), a `/api/**` i `/ws` wyłącznie na porcie HTTP 10420 (rozdział po `request.isSecure()` w filtrze `MtlsConnectors`; drugi port daje 404). Szczegóły: [rest-api-fhir.md](rest-api-fhir.md), [deployment-and-config.md](deployment-and-config.md).
 
 ## Endpointy auth
 
@@ -179,7 +179,7 @@ Uwagi:
 | `/api/**` | `authenticated` |
 | każde inne żądanie | `denyAll` |
 | dispatcher `ERROR` | `permitAll` |
-| `/fhir/**` | osobny łańcuch `FhirSecurityConfig` (klucz usługowy), patrz wyżej |
+| `/fhir/**` | osobny łańcuch `FhirSecurityConfig` (certyfikat klienta, mTLS), patrz wyżej |
 
 Autoryzacja metod: `@EnableMethodSecurity` + `@PreAuthorize("hasAuthority('...')")` na kontrolerach (patrz tabela wyżej). Sesja `STATELESS`, form login / HTTP Basic / logout Springa wyłączone.
 

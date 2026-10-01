@@ -73,7 +73,7 @@ Katalogi są danymi z migracji (mock), bez endpointów zapisu.
 
 ## Zapis wyniku poza REST
 
-Brak endpointu `POST` wyniku w `/api/v1`. Wynik wchodzi przez `LabResultRecordingService.recordResult(RecordLabResultCommand)`, wywoływany z `POST /fhir/DiagnosticReport` (usługa `e-laboratory`, klucz usługowy; mapowanie i idempotencja: [rest-api-fhir.md](rest-api-fhir.md#badania-laboratoryjne-e-laboratory)). Reguły zapisu:
+Brak endpointu `POST` wyniku w `/api/v1`. Wynik wchodzi przez `LabResultRecordingService.recordResult(RecordLabResultCommand)`, wywoływany z `POST /fhir/DiagnosticReport` (usługa `e-laboratory`, mTLS; mapowanie i idempotencja: [rest-api-fhir.md](rest-api-fhir.md#badania-laboratoryjne-e-laboratory)). Reguły zapisu:
 
 | Reguła | Skutek |
 | --- | --- |

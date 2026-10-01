@@ -25,7 +25,7 @@ Indeks 83 endpointów REST `his_backend` (liczba zweryfikowana grepem po `@GetMa
 | [rest-api-vitals.md](rest-api-vitals.md) | odczyty (3), `ward-overview` (1), `/vital-thresholds` (1) |
 | [rest-api-messaging.md](rest-api-messaging.md) | wątki (6), zadania (3), przekazania (2), alerty (2) |
 | [terminology-snomed.md](terminology-snomed.md) | `/terminology/snomed/*` (3) |
-| [rest-api-fhir.md](rest-api-fhir.md) | `/fhir/MedicationRequest/{id}` (GET, PUT; poza `/api/v1`, klucz usługowy; nie wliczone do 83) |
+| [rest-api-fhir.md](rest-api-fhir.md) | `/fhir/MedicationRequest/{id}` (GET, PUT; poza `/api/v1`, mTLS; nie wliczone do 83) |
 
 ## Pełna lista
 

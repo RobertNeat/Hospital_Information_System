@@ -41,17 +41,16 @@ class HisFhirClientTest {
     private HisFhirClient client(boolean enabled) {
         RestClient.Builder builder = RestClient.builder().baseUrl(BASE);
         server = MockRestServiceServer.bindTo(builder).build();
-        HisProperties props = new HisProperties(enabled, BASE, "secret", Duration.ofSeconds(1),
+        HisProperties props = new HisProperties(enabled, BASE, Duration.ofSeconds(1),
                 Duration.ofSeconds(1), "");
         return new HisFhirClient(props, mapper, builder.build());
     }
 
     @Test
-    void putsStatusWithServiceKeyToHisPrescriptionId() {
+    void putsStatusToHisPrescriptionId() {
         HisFhirClient client = client(true);
         server.expect(requestTo(BASE + "/MedicationRequest/" + HIS_ID))
                 .andExpect(method(HttpMethod.PUT))
-                .andExpect(header("X-Service-Key", "secret"))
                 .andExpect(header("Content-Type", "application/fhir+json"))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("\"completed\"")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("\"dispensed\"")))

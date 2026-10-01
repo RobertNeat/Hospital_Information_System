@@ -9,7 +9,8 @@ import org.springframework.security.web.SecurityFilterChain;
 
 /**
  * Symulator bez uwierzytelniania aplikacyjnego: publiczne sa probes zdrowia, UI Thymeleaf i FHIR (`/fhir/**`);
- * reszta zablokowana. Docelowo `/fhir/**` zabezpiecza mTLS (profil `mtls`), UI nie jest uwierzytelniane (README).
+ * reszta zablokowana. `/fhir/**` zabezpiecza mTLS na porcie aplikacji (profil `mtls`, domyslny); UI (bez uwierzytelniania) jest na
+ * osobnym porcie HTTP (zob. {@code MtlsConnectors}).
  */
 @Configuration(proxyBeanMethods = false)
 class SecurityConfig {

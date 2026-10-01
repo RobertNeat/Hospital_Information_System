@@ -8,7 +8,7 @@ Relacja do [`../his_frontend_contract`](../his_frontend_contract/README.md): tam
 
 - Data opisu: 2026-10-01.
 - Zakres: moduły `auth`, `staff`, `patient`, `ehr`, `catalog`, `lab`, `imaging`, `prescription`, `vitals`, `messaging`, `alert`, `dashboard`, `terminology`, `realtime`.
-- Integracja FHIR z usługami `e-*`: gotowa dla recept (`e-receipt`), badań laboratoryjnych (`e-laboratory`) i obrazowych (`e-imaging`), [rest-api-fhir.md](rest-api-fhir.md). `e-imaging` wystawia dziś wyłącznie `/actuator/health/**`, a `his_backend` go nie wywołuje (patrz [deployment-and-config.md](deployment-and-config.md)).
+- Integracja FHIR z usługami `e-*`: gotowa dla recept (`e-receipt`), badań laboratoryjnych (`e-laboratory`) i obrazowych (`e-imaging`), [rest-api-fhir.md](rest-api-fhir.md). Transport FHIR: mTLS, domyślnie włączony (patrz [deployment-and-config.md](deployment-and-config.md)).
 
 ## Indeks
 
@@ -28,7 +28,7 @@ Relacja do [`../his_frontend_contract`](../his_frontend_contract/README.md): tam
 | [data-types.md](data-types.md) | DTO żądań i odpowiedzi, enumy (wartości na drucie), mapowanie na typy TS |
 | [realtime-stomp.md](realtime-stomp.md) | endpoint `/ws`, uwierzytelnianie, tematy i payloady |
 | [terminology-snomed.md](terminology-snomed.md) | `/terminology/snomed/*`, Snowstorm Lite |
-| [rest-api-fhir.md](rest-api-fhir.md) | FHIR R4: `/fhir/MedicationRequest/{id}`, `/fhir/ServiceRequest/{id}`, `/fhir/DiagnosticReport` (klucz usługowy), klienci e-receipt, e-laboratory i e-imaging, `eRxKey`, zmiana stanu recepty/zlecenia lab i obrazowego, wynik lab i obrazowy |
+| [rest-api-fhir.md](rest-api-fhir.md) | FHIR R4: `/fhir/MedicationRequest/{id}`, `/fhir/ServiceRequest/{id}`, `/fhir/DiagnosticReport` (mTLS), klienci e-receipt, e-laboratory i e-imaging, `eRxKey`, zmiana stanu recepty/zlecenia lab i obrazowego, wynik lab i obrazowy |
 | [database-and-data.md](database-and-data.md) | schemat, Liquibase i konteksty, mocki |
 | [deployment-and-config.md](deployment-and-config.md) | compose, porty, zmienne `HIS_*`, uruchamianie lokalne |
 | [events.md](events.md) | zdarzenia domenowe, konsumenci, zdarzenie -> alert |
@@ -39,9 +39,9 @@ Relacja do [`../his_frontend_contract`](../his_frontend_contract/README.md): tam
 | --- | --- |
 | REST | `/api/v1` (wszystkie kontrolery mają prefiks `/api/v1/...`) |
 | STOMP (WebSocket) | `/ws` (poza `/api/v1`) |
-| Port backendu | `10420` (`server.port=10420`; host i kontener 10420) |
+| Port backendu | `10420` (HTTP: `/api`, `/ws`; host i kontener 10420); `10424` (HTTPS z mTLS, wyłącznie `/fhir/**`); `10440` (zarządzanie, health; nie publikowany). Bez mTLS (`HIS_MTLS_ENABLED=false`) wszystko na `10420` |
 | Health | `/actuator/health/**` (publiczne; poza `/api/v1`) |
-| FHIR (usługi `e-*`) | `/fhir/**` (poza `/api/v1`; nagłówek `X-Service-Key`) |
+| FHIR (usługi `e-*`) | `/fhir/**` (poza `/api/v1`; port 10424, mTLS: certyfikat klienta z dozwolonym CN) |
 | Proxy w produkcji/compose | nginx we `his-frontend` (port 10400): `/api/` i `/ws` -> `http://his-backend:10420` |
 | Proxy w trybie dev (Angular) | `apps/his_frontend/proxy.conf.json`: `/api` i `/ws` (`ws: true`) -> `http://localhost:10420` |
 
@@ -96,7 +96,7 @@ Różnice między oczekiwaniami frontendu (`docs/his_frontend_contract/API.md`, 
 | `drug-safety-checks` | doctor "W/R", nurse/pharmacist/admin "R" | `POST /drug-safety-checks` wymaga `drug-safety-check:run` = **tylko `doctor`**; `drug:read` (katalog) mają doctor, nurse, pharmacist, admin |
 | Status zadania | "reguły do potwierdzenia" | Zmienić status może wyłącznie osoba przypisana lub twórca (403 inaczej). `admin` ma tylko `task:read` (bez `task:write`), więc nie zmienia statusu. Przejście `open -> done` jest dozwolone |
 | `ehr:read-limited` (laborant, radiolog, farmaceuta) | laborant/radiolog "R (ograniczone)", farmaceuta "R (alergie/leki)" | Dla wszystkich trzech ról dokładnie: `GET diagnoses`, `allergies`, `contraindications`, `treatments`. Brak: `ehr-summary`, `encounters`, `episodes`, `clinical-notes` |
-| Recepty: realizacja i `eRxKey` | `eRxKey` "z P1/e-recepty" (ERD), realizacja bez endpointu | `partially_dispensed`/`dispensed`/`expired`/`cancelled` przychodzą z e-receipt przez `PUT /fhir/MedicationRequest/{id}` (klucz usługowy, [rest-api-fhir.md](rest-api-fhir.md)); `eRxKey` jest lokalny, a dla `e_prescription` podmieniany kluczem z e-receipt po commicie (odpowiedź `201` wystawienia ma jeszcze klucz lokalny, `version` bez zmian). Integracja domyślnie wyłączona, bez e-receipt zostaje klucz lokalny |
+| Recepty: realizacja i `eRxKey` | `eRxKey` "z P1/e-recepty" (ERD), realizacja bez endpointu | `partially_dispensed`/`dispensed`/`expired`/`cancelled` przychodzą z e-receipt przez `PUT /fhir/MedicationRequest/{id}` (mTLS, [rest-api-fhir.md](rest-api-fhir.md)); `eRxKey` jest lokalny, a dla `e_prescription` podmieniany kluczem z e-receipt po commicie (odpowiedź `201` wystawienia ma jeszcze klucz lokalny, `version` bez zmian). Integracja domyślnie wyłączona, bez e-receipt zostaje klucz lokalny |
 | Zlecenia i wyniki lab a e-laboratory | zmiana stanu zlecenia i wynik z UI laboratorium (kontrakt: tylko REST `/status`, `/cancel`; wynik bez endpointu) | `PUT /fhir/ServiceRequest/{id}` zmienia stan wg `LabOrderStateMachine` (aktor `null`, bez wymogu powodu anulowania); `POST /fhir/DiagnosticReport` zapisuje wynik przez `recordResult` (aktor `null`, wykonawca z `performer.display`), auto-`completed` jak dotąd ([rest-api-fhir.md](rest-api-fhir.md#badania-laboratoryjne-e-laboratory)). Do e-laboratory trafiają tylko nowe zlecenia i anulowanie z HIS; integracja domyślnie wyłączona |
 | Zlecenia i wyniki obrazowe a e-imaging | zmiana stanu zlecenia i wynik z UI pracowni (kontrakt: tylko REST `/status`, `/cancel`; wynik bez endpointu) | `PUT /fhir/ServiceRequest/{id}` zmienia stan wg `ImagingOrderStateMachine` (aktor `null`, bez wymogu powodu anulowania, anulowanie zwalnia slot); `POST /fhir/DiagnosticReport` zapisuje wynik przez `recordResult` (aktor `null`, radiolog z `performer.display`), auto-`completed` jak dotąd ([rest-api-fhir.md](rest-api-fhir.md#badania-obrazowe-e-imaging)). Ścieżki `/fhir/ServiceRequest` i `/fhir/DiagnosticReport` są wspólne z laboratorium (routing po id zlecenia / systemie kodu badania). Do e-imaging trafiają tylko nowe zlecenia i anulowanie z HIS; integracja domyślnie wyłączona |
 | Zapis uprawnień bez endpointu | admin "W" dla `vital-thresholds`, `staff`, `wards`; laborant/radiolog "W" wyników | `vital-threshold:write`, `staff:write`, `ward:write`, `lab-result:write`, `imaging-result:write` są w macierzy i tokenie, ale **żaden kontroler ich nie sprawdza** (brak endpointów zapisu). Administrator ma tylko `activate`/`lock` (`account:manage`) |
@@ -107,7 +107,7 @@ Różnice między oczekiwaniami frontendu (`docs/his_frontend_contract/API.md`, 
 
 | Temat | `his_frontend_contract` | Backend (kod) |
 | --- | --- | --- |
-| Wprowadzanie wyniku | "poza kontraktem UI" | **Nie ma endpointu REST** `POST` wyniku lab/obrazowego. Zapis tylko przez serwisy `LabResultRecordingService` i `ImagingResultRecordingService`, wywoływane z `POST /fhir/DiagnosticReport` (usługi `e-laboratory`/`e-imaging`, klucz usługowy); w REST wyniki pochodzą z tego zapisu albo z danych mock |
+| Wprowadzanie wyniku | "poza kontraktem UI" | **Nie ma endpointu REST** `POST` wyniku lab/obrazowego. Zapis tylko przez serwisy `LabResultRecordingService` i `ImagingResultRecordingService`, wywoływane z `POST /fhir/DiagnosticReport` (usługi `e-laboratory`/`e-imaging`, mTLS); w REST wyniki pochodzą z tego zapisu albo z danych mock |
 | Auto-`completed` zlecenia | propozycja | Wdrożone przy zapisie wyniku (reguły w [rest-api-lab.md](rest-api-lab.md) i [rest-api-imaging.md](rest-api-imaging.md)) |
 | Filtr `abnormal` wyników obrazowych | `critical` = `critical:true` | `abnormal` i `critical` zawężają do `critical = true` (identycznie) |
 | Zlecenie obrazowe ze `slotId` | brak | Zlecenie od razu `scheduled` (historia: `ordered`, `scheduled`), slot `available=false`; anulowanie zwalnia slot |

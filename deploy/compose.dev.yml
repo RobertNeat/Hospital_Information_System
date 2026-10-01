@@ -44,10 +44,14 @@ services:
         <<: *spring-args
         PROJECT_PATH: apps/his_backend
         APP_PORT: "10420"
+    # 10420 = API/WebSocket (HTTP); 10424 = FHIR (HTTPS z mTLS; do debugowania z certyfikatem klienta).
+    # Port zarządzania (health) nie jest publikowany.
     ports: !override
       - "127.0.0.1:${HIS_BACKEND_HOST_PORT:-10420}:${HIS_BACKEND_CONTAINER_PORT:-10420}"
+      - "127.0.0.1:${HIS_BACKEND_FHIR_HOST_PORT:-10424}:10424"
 
-  # e-*: opcjonalnie na loopback do debugowania (sieć default potrzebna do publikacji).
+  # e-*: na loopback publikowane: port FHIR (HTTPS, mTLS) i UI (HTTP, bez certyfikatu, dla przeglądarki);
+  # port zarządzania (health) nie jest publikowany. Sieć default potrzebna do publikacji.
   e-receipt:
     build:
       <<: *spring-build
@@ -59,6 +63,7 @@ services:
       - default
     ports:
       - "127.0.0.1:${E_RECEIPT_HOST_PORT:-10421}:${E_RECEIPT_CONTAINER_PORT:-10421}"
+      - "127.0.0.1:${E_RECEIPT_UI_HOST_PORT:-10431}:${E_RECEIPT_UI_PORT:-10431}"
 
   e-laboratory:
     build:
@@ -71,6 +76,7 @@ services:
       - default
     ports:
       - "127.0.0.1:${E_LABORATORY_HOST_PORT:-10422}:${E_LABORATORY_CONTAINER_PORT:-10422}"
+      - "127.0.0.1:${E_LABORATORY_UI_HOST_PORT:-10432}:${E_LABORATORY_UI_PORT:-10432}"
 
   e-imaging:
     build:
@@ -83,6 +89,7 @@ services:
       - default
     ports:
       - "127.0.0.1:${E_IMAGING_HOST_PORT:-10423}:${E_IMAGING_CONTAINER_PORT:-10423}"
+      - "127.0.0.1:${E_IMAGING_UI_HOST_PORT:-10433}:${E_IMAGING_UI_PORT:-10433}"
 
   snowstorm-lite:
     networks:

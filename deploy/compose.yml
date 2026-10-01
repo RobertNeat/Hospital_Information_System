@@ -5,8 +5,11 @@
 #      docker compose -f deploy/compose.yml -f deploy/compose.dev.yml --env-file deploy/local.env up -d --build
 # Wartości domyślne `:-` (obrazy/porty = projects.json) pozwalają uruchamiać stos
 # bez projects.env; zgodność z projects.json pilnuje validate_projects.sh.
-# Nowe zmienne mają domyślne wartości (bez `:?`), żeby nie wywrócić `compose config`
-# na hostach, których config.env nie został jeszcze uzupełniony.
+# Zmienne mają domyślne wartości (bez `:?`), żeby nie wywrócić `compose config` na hostach,
+# których config.env nie został jeszcze uzupełniony. WYJĄTEK: hasła mTLS (`*_KEYSTORE_PASSWORD`,
+# `*_TRUSTSTORE_PASSWORD`) są wymagane (`:?`) - mTLS jest domyślnie włączony i bez haseł aplikacje
+# nie wystartują. Certyfikaty: `${HIS_CERTS_DIR}/<usługa>` -> `/certs` (tylko do odczytu);
+# zob. scripts/gen-certs.sh i .github/pipeline_docs/production_deployment.md.
 name: hospital-information-system
 
 services:
@@ -76,21 +79,28 @@ services:
       HIS_SNOWSTORM_READ_TIMEOUT: ${HIS_SNOWSTORM_READ_TIMEOUT:-5s}
       HIS_SNOWSTORM_DISPLAY_LANGUAGE: ${HIS_SNOWSTORM_DISPLAY_LANGUAGE:-pl,en}
       HIS_SNOWSTORM_MAX_PAGE_SIZE: ${HIS_SNOWSTORM_MAX_PAGE_SIZE:-100}
-      # FHIR do/z e-receipt, e-laboratory i e-imaging: klucz usługowy (X-Service-Key) autoryzuje wywołania e-* na /fhir/**
-      # (pusty = odrzucane; docelowo mTLS). Klient e-receipt domyślnie wyłączony; brak depends_on
-      # na e-receipt (jego niedostępność nie blokuje wystawiania recept).
-      HIS_FHIR_SERVICE_KEY: ${HIS_FHIR_SERVICE_KEY:-}
-      HIS_ERECEIPT_URL: http://e-receipt:10421/fhir
+      # mTLS (FHIR do/z e-*): port 10424 = HTTPS z wymaganym certyfikatem klienta (tylko /fhir/**, tylko w sieci
+      # his-internal); API i WebSocket dla nginx na HTTP 10420; health na porcie zarządzania (nie publikowanym).
+      # Wyłączenie mTLS: HIS_MTLS_ENABLED=false (health jest wtedy na porcie 10420 - zmień też healthcheck).
+      HIS_MTLS_ENABLED: ${HIS_MTLS_ENABLED:-true}
+      MTLS_KEYSTORE: file:/certs/keystore.p12
+      MTLS_TRUSTSTORE: file:/certs/truststore.p12
+      MTLS_KEYSTORE_PASSWORD: ${HIS_BACKEND_KEYSTORE_PASSWORD:?HIS_BACKEND_KEYSTORE_PASSWORD is required (mTLS)}
+      MTLS_TRUSTSTORE_PASSWORD: ${HIS_BACKEND_TRUSTSTORE_PASSWORD:?HIS_BACKEND_TRUSTSTORE_PASSWORD is required (mTLS)}
+      HIS_MANAGEMENT_PORT: ${HIS_BACKEND_MANAGEMENT_PORT:-10440}
+      # Klient e-receipt domyślnie wyłączony; brak depends_on na e-receipt (jego niedostępność nie blokuje
+      # wystawiania recept). CN klientów dozwolonych na /fhir/**: HIS_FHIR_ALLOWED_CLIENT_CNS.
+      HIS_ERECEIPT_URL: https://e-receipt:10421/fhir
       HIS_ERECEIPT_ENABLED: ${HIS_ERECEIPT_ENABLED:-false}
       HIS_ERECEIPT_CONNECT_TIMEOUT: ${HIS_ERECEIPT_CONNECT_TIMEOUT:-1s}
       HIS_ERECEIPT_READ_TIMEOUT: ${HIS_ERECEIPT_READ_TIMEOUT:-3s}
       # Klient e-laboratory (zlecenia lab, anulowanie): domyślnie wyłączony, bez depends_on.
-      HIS_ELAB_URL: http://e-laboratory:10422/fhir
+      HIS_ELAB_URL: https://e-laboratory:10422/fhir
       HIS_ELAB_ENABLED: ${HIS_ELAB_ENABLED:-false}
       HIS_ELAB_CONNECT_TIMEOUT: ${HIS_ELAB_CONNECT_TIMEOUT:-1s}
       HIS_ELAB_READ_TIMEOUT: ${HIS_ELAB_READ_TIMEOUT:-3s}
       # Klient e-imaging (zlecenia obrazowe, anulowanie): domyślnie wyłączony, bez depends_on.
-      HIS_EIMG_URL: http://e-imaging:10423/fhir
+      HIS_EIMG_URL: https://e-imaging:10423/fhir
       HIS_EIMG_ENABLED: ${HIS_EIMG_ENABLED:-false}
       HIS_EIMG_CONNECT_TIMEOUT: ${HIS_EIMG_CONNECT_TIMEOUT:-1s}
       HIS_EIMG_READ_TIMEOUT: ${HIS_EIMG_READ_TIMEOUT:-3s}
@@ -102,37 +112,51 @@ services:
       - his-internal
     ports:
       - "${HIS_BACKEND_HOST_PORT:-10420}:${HIS_BACKEND_CONTAINER_PORT:-10420}"
+    volumes:
+      - ${HIS_CERTS_DIR:-../.certs}/his_backend:/certs:ro
     # Obraz eclipse-temurin nie ma curl/wget - curl doinstalowany w spring.Dockerfile.
+    # Health na osobnym porcie zarządzania (HTTP bez TLS; port FHIR wymaga certyfikatu klienta).
     healthcheck:
       test:
         [
           "CMD-SHELL",
-          "curl -fsS http://localhost:${HIS_BACKEND_CONTAINER_PORT:-10420}/actuator/health/readiness > /dev/null || exit 1"
+          "curl -fsS http://localhost:${HIS_BACKEND_MANAGEMENT_PORT:-10440}/actuator/health/readiness > /dev/null || exit 1"
         ]
       interval: 10s
       timeout: 5s
       retries: 10
       start_period: 60s
 
-  # Usługi e-* są niezależne i bez portów na hoście (porty z projects.json to
-  # tylko rezerwacja); dostępne w sieci his-internal.
+  # Usługi e-* są niezależne i bez portów na hoście (porty z projects.json to port FHIR z mTLS);
+  # dostępne w sieci his-internal. UI (HTTP) i health (port zarządzania) mają osobne porty.
   e-receipt:
     image: ${REGISTRY:-local}/${E_RECEIPT_IMAGE:-hospital-information-system/e-receipt}:${IMAGE_TAG:-dev}
     restart: unless-stopped
     environment:
-      # Wywołanie zwrotne FHIR do his_backend (zmiana stanu recepty); ten sam klucz co HIS_FHIR_SERVICE_KEY.
-      ERECEIPT_HIS_URL: http://his-backend:10420/fhir
+      # mTLS: port 10421 = HTTPS z wymaganym certyfikatem klienta (tylko /fhir/**); UI Thymeleaf na osobnym
+      # porcie HTTP 10431 (bez certyfikatu); health na porcie zarządzania 10441 (nie publikowany). Wywołanie zwrotne
+      # FHIR do his_backend używa certyfikatu z /certs (CN usługi musi być na liście HIS_FHIR_ALLOWED_CLIENT_CNS).
+      SERVER_PORT: ${E_RECEIPT_CONTAINER_PORT:-10421}
+      HIS_MTLS_ENABLED: ${HIS_MTLS_ENABLED:-true}
+      MTLS_KEYSTORE: file:/certs/keystore.p12
+      MTLS_TRUSTSTORE: file:/certs/truststore.p12
+      MTLS_KEYSTORE_PASSWORD: ${E_RECEIPT_KEYSTORE_PASSWORD:?E_RECEIPT_KEYSTORE_PASSWORD is required (mTLS)}
+      MTLS_TRUSTSTORE_PASSWORD: ${E_RECEIPT_TRUSTSTORE_PASSWORD:?E_RECEIPT_TRUSTSTORE_PASSWORD is required (mTLS)}
+      ERECEIPT_UI_PORT: ${E_RECEIPT_UI_PORT:-10431}
+      ERECEIPT_MANAGEMENT_PORT: ${E_RECEIPT_MANAGEMENT_PORT:-10441}
+      ERECEIPT_HIS_URL: https://his-backend:10424/fhir
       ERECEIPT_HIS_ENABLED: ${ERECEIPT_HIS_ENABLED:-false}
-      ERECEIPT_HIS_SERVICE_KEY: ${HIS_FHIR_SERVICE_KEY:-}
       ERECEIPT_HIS_CONNECT_TIMEOUT: ${ERECEIPT_HIS_CONNECT_TIMEOUT:-1s}
       ERECEIPT_HIS_READ_TIMEOUT: ${ERECEIPT_HIS_READ_TIMEOUT:-3s}
+    volumes:
+      - ${HIS_CERTS_DIR:-../.certs}/e_receipt:/certs:ro
     networks:
       - his-internal
     healthcheck:
       test:
         [
           "CMD-SHELL",
-          "curl -fsS http://localhost:${E_RECEIPT_CONTAINER_PORT:-10421}/actuator/health/readiness > /dev/null || exit 1"
+          "curl -fsS http://localhost:${E_RECEIPT_MANAGEMENT_PORT:-10441}/actuator/health/readiness > /dev/null || exit 1"
         ]
       interval: 10s
       timeout: 5s
@@ -143,19 +167,30 @@ services:
     image: ${REGISTRY:-local}/${E_LABORATORY_IMAGE:-hospital-information-system/e-laboratory}:${IMAGE_TAG:-dev}
     restart: unless-stopped
     environment:
-      # Wywołanie zwrotne FHIR do his_backend (stan zlecenia, wynik); ten sam klucz co HIS_FHIR_SERVICE_KEY.
-      E_LABORATORY_HIS_URL: http://his-backend:10420/fhir
+      # mTLS: port 10422 = HTTPS z wymaganym certyfikatem klienta (tylko /fhir/**); UI Thymeleaf na osobnym
+      # porcie HTTP 10432 (bez certyfikatu); health na porcie zarządzania 10442 (nie publikowany). Wywołanie zwrotne
+      # FHIR do his_backend używa certyfikatu z /certs (CN usługi musi być na liście HIS_FHIR_ALLOWED_CLIENT_CNS).
+      SERVER_PORT: ${E_LABORATORY_CONTAINER_PORT:-10422}
+      HIS_MTLS_ENABLED: ${HIS_MTLS_ENABLED:-true}
+      MTLS_KEYSTORE: file:/certs/keystore.p12
+      MTLS_TRUSTSTORE: file:/certs/truststore.p12
+      MTLS_KEYSTORE_PASSWORD: ${E_LABORATORY_KEYSTORE_PASSWORD:?E_LABORATORY_KEYSTORE_PASSWORD is required (mTLS)}
+      MTLS_TRUSTSTORE_PASSWORD: ${E_LABORATORY_TRUSTSTORE_PASSWORD:?E_LABORATORY_TRUSTSTORE_PASSWORD is required (mTLS)}
+      E_LABORATORY_UI_PORT: ${E_LABORATORY_UI_PORT:-10432}
+      E_LABORATORY_MANAGEMENT_PORT: ${E_LABORATORY_MANAGEMENT_PORT:-10442}
+      E_LABORATORY_HIS_URL: https://his-backend:10424/fhir
       E_LABORATORY_HIS_ENABLED: ${E_LABORATORY_HIS_ENABLED:-false}
-      E_LABORATORY_HIS_SERVICE_KEY: ${HIS_FHIR_SERVICE_KEY:-}
       E_LABORATORY_HIS_CONNECT_TIMEOUT: ${E_LABORATORY_HIS_CONNECT_TIMEOUT:-1s}
       E_LABORATORY_HIS_READ_TIMEOUT: ${E_LABORATORY_HIS_READ_TIMEOUT:-3s}
+    volumes:
+      - ${HIS_CERTS_DIR:-../.certs}/e_laboratory:/certs:ro
     networks:
       - his-internal
     healthcheck:
       test:
         [
           "CMD-SHELL",
-          "curl -fsS http://localhost:${E_LABORATORY_CONTAINER_PORT:-10422}/actuator/health/readiness > /dev/null || exit 1"
+          "curl -fsS http://localhost:${E_LABORATORY_MANAGEMENT_PORT:-10442}/actuator/health/readiness > /dev/null || exit 1"
         ]
       interval: 10s
       timeout: 5s
@@ -166,19 +201,30 @@ services:
     image: ${REGISTRY:-local}/${E_IMAGING_IMAGE:-hospital-information-system/e-imaging}:${IMAGE_TAG:-dev}
     restart: unless-stopped
     environment:
-      # Wywołanie zwrotne FHIR do his_backend (stan zlecenia, wynik); ten sam klucz co HIS_FHIR_SERVICE_KEY.
-      E_IMAGING_HIS_URL: http://his-backend:10420/fhir
+      # mTLS: port 10423 = HTTPS z wymaganym certyfikatem klienta (tylko /fhir/**); UI Thymeleaf na osobnym
+      # porcie HTTP 10433 (bez certyfikatu); health na porcie zarządzania 10443 (nie publikowany). Wywołanie zwrotne
+      # FHIR do his_backend używa certyfikatu z /certs (CN usługi musi być na liście HIS_FHIR_ALLOWED_CLIENT_CNS).
+      SERVER_PORT: ${E_IMAGING_CONTAINER_PORT:-10423}
+      HIS_MTLS_ENABLED: ${HIS_MTLS_ENABLED:-true}
+      MTLS_KEYSTORE: file:/certs/keystore.p12
+      MTLS_TRUSTSTORE: file:/certs/truststore.p12
+      MTLS_KEYSTORE_PASSWORD: ${E_IMAGING_KEYSTORE_PASSWORD:?E_IMAGING_KEYSTORE_PASSWORD is required (mTLS)}
+      MTLS_TRUSTSTORE_PASSWORD: ${E_IMAGING_TRUSTSTORE_PASSWORD:?E_IMAGING_TRUSTSTORE_PASSWORD is required (mTLS)}
+      E_IMAGING_UI_PORT: ${E_IMAGING_UI_PORT:-10433}
+      E_IMAGING_MANAGEMENT_PORT: ${E_IMAGING_MANAGEMENT_PORT:-10443}
+      E_IMAGING_HIS_URL: https://his-backend:10424/fhir
       E_IMAGING_HIS_ENABLED: ${E_IMAGING_HIS_ENABLED:-false}
-      E_IMAGING_HIS_SERVICE_KEY: ${HIS_FHIR_SERVICE_KEY:-}
       E_IMAGING_HIS_CONNECT_TIMEOUT: ${E_IMAGING_HIS_CONNECT_TIMEOUT:-1s}
       E_IMAGING_HIS_READ_TIMEOUT: ${E_IMAGING_HIS_READ_TIMEOUT:-3s}
+    volumes:
+      - ${HIS_CERTS_DIR:-../.certs}/e_imaging:/certs:ro
     networks:
       - his-internal
     healthcheck:
       test:
         [
           "CMD-SHELL",
-          "curl -fsS http://localhost:${E_IMAGING_CONTAINER_PORT:-10423}/actuator/health/readiness > /dev/null || exit 1"
+          "curl -fsS http://localhost:${E_IMAGING_MANAGEMENT_PORT:-10443}/actuator/health/readiness > /dev/null || exit 1"
         ]
       interval: 10s
       timeout: 5s

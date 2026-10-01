@@ -49,9 +49,6 @@ public final class FhirSystems {
     /** Rozszerzenie `DiagnosticReport` (valueBoolean): wynik krytyczny wg radiologa. */
     public static final String IMAGING_CRITICAL_EXTENSION = "urn:his:fhir:imaging-critical";
 
-    /** Naglowek klucza uslugowego (docelowo zastapiony przez mTLS). */
-    public static final String SERVICE_KEY_HEADER = "X-Service-Key";
-
     public static final String FHIR_JSON_VALUE = "application/fhir+json";
     public static final MediaType FHIR_JSON = MediaType.valueOf(FHIR_JSON_VALUE);
 

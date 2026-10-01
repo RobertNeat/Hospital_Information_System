@@ -54,23 +54,21 @@ a `REGISTRY`/`IMAGE_TAG` domyślnie `local`/`dev`; zgodność defaultów z
 
 - Sieci: `his-internal` (`internal: true`) - postgres, backend, e-*, snowstorm-lite;
   `default` - frontend i backend (backend publikuje port, frontend proxy'uje do niego).
-  Usługi `e-*` nie publikują portów na hoście (porty z `projects.json` to rezerwacja).
-- Healthchecki: postgres `pg_isready`; backend i `e-*` `curl -fsS .../actuator/health/readiness`
-  (`curl` doinstalowany w runtime `spring.Dockerfile`); frontend `wget` (busybox w nginx:alpine).
+  Usługi `e-*` nie publikują portów na hoście (porty z `projects.json` to port FHIR z mTLS).
+- Healthchecki: postgres `pg_isready`; backend i `e-*` `curl -fsS http://localhost:<port zarządzania>/actuator/health/readiness`
+  (port zarządzania: HTTP bez TLS, nie publikowany; backend 10440, e-* 10441-10443; `curl` doinstalowany
+  w runtime `spring.Dockerfile`); frontend `wget` (busybox w nginx:alpine).
   Backend zależy tylko od `postgres: service_healthy` (nie od `e-*` ani Snowstorma).
-- Integracja FHIR recept: `his-backend` wysyła recepty `e_prescription` do `http://e-receipt:10421/fhir`,
-  a `e-receipt` odsyła zmianę stanu na `http://his-backend:10420/fhir` z nagłówkiem klucza usługowego
-  (`HIS_FHIR_SERVICE_KEY`, ta sama wartość po obu stronach; docelowo mTLS). Przełączniki
-  `HIS_ERECEIPT_ENABLED` i `ERECEIPT_HIS_ENABLED` (domyślnie `false`) ustawić w `config.env`.
-- Integracja FHIR badań laboratoryjnych: `his-backend` wysyła zlecenia do `http://e-laboratory:10422/fhir`
-  (`HIS_ELAB_ENABLED`), a `e-laboratory` odsyła zmianę stanu i wynik na `http://his-backend:10420/fhir`
-  z tym samym kluczem usługowym (`E_LABORATORY_HIS_ENABLED`; obie flagi domyślnie `false`, ustawić w `config.env`).
-- Integracja FHIR badań obrazowych działa tak samo: `his-backend` wysyła zlecenia do `http://e-imaging:10423/fhir`
-  (`HIS_EIMG_ENABLED`), a `e-imaging` odsyła zmianę stanu i wynik na `http://his-backend:10420/fhir`
-  z tym samym kluczem usługowym (`E_IMAGING_HIS_ENABLED`; obie flagi domyślnie `false`, ustawić w `config.env`).
+- Integracja FHIR (recepty, badania laboratoryjne i obrazowe) działa przez mTLS (sekcja "mTLS (FHIR)" niżej):
+  `his-backend` wysyła do `https://e-receipt:10421/fhir`, `https://e-laboratory:10422/fhir` i
+  `https://e-imaging:10423/fhir`, a `e-*` odsyłają zmianę stanu i wynik na `https://his-backend:10424/fhir`
+  (port FHIR backendu; API i `/ws` dla nginx zostają na zwykłym HTTP 10420). Przełączniki (domyślnie
+  `false`, ustawić w `config.env`): `HIS_ERECEIPT_ENABLED` / `ERECEIPT_HIS_ENABLED`,
+  `HIS_ELAB_ENABLED` / `E_LABORATORY_HIS_ENABLED`, `HIS_EIMG_ENABLED` / `E_IMAGING_HIS_ENABLED`.
 - `deploy/compose.dev.yml` - nakładka lokalna (tylko różnice deweloperskie: `build:` z tymi
   samymi build-args co `create_docker_image.sh`, porty na `127.0.0.1`, postgres na `127.0.0.1:5432`,
-  Snowstorm na `127.0.0.1:8080`); `deploy/local.env` - lokalne wartości (bez sekretów).
+  Snowstorm na `127.0.0.1:8080`, e-* na `127.0.0.1`: port FHIR i port UI); `deploy/local.env` - lokalne
+  wartości (hasła mTLS z `.certs/passwords.env`; plik jest w `.gitignore`).
 
 Lokalnie (z roota repo; `pnpm stack:up` / `stack:down` / `stack:db`):
 
@@ -79,8 +77,9 @@ docker compose -f deploy/compose.yml -f deploy/compose.dev.yml --env-file deploy
 docker compose -f deploy/compose.yml -f deploy/compose.dev.yml --env-file deploy/local.env --profile terminology up -d   # + Snowstorm
 ```
 
-Tryb IDE (backend z IntelliJ, profil `dev`): `... up -d postgres` (opcjonalnie `e-*`,
-`--profile terminology`) i NIE uruchamiać kontenera `his-backend` (konflikt portu 10420).
+Tryb IDE (backend z IntelliJ, profil `dev`, bez certyfikatów: `HIS_MTLS_ENABLED=false`, ustawia to
+`pnpm start:backend`): `... up -d postgres` (opcjonalnie `e-*`, `--profile terminology`) i NIE
+uruchamiać kontenera `his-backend` (konflikt portu 10420).
 Porty hosta można przesłonić zmiennymi `HIS_DB_HOST_PORT`, `HIS_SNOWSTORM_HOST_PORT`,
 `<PROJECT>_HOST_PORT`; jeśli porty 5432/8080 są zajęte, ustaw `HIS_DB_HOST_PORT` /
 `HIS_SNOWSTORM_HOST_PORT`. Wolumeny stosu: `hospital-information-system_*`.
@@ -89,10 +88,53 @@ Zmienne do ręcznego dopisania w zdalnym `config.env` (istniejący plik nie jest
 `HIS_JWT_SECRET` (WYMAGANE, min. 32 bajty - backend bez niego nie wystartuje; compose przekazuje
 je jako `${HIS_JWT_SECRET:-}`), opcjonalnie `HIS_JWT_TTL`, `HIS_JWT_ISSUER`,
 `HIS_LOCKOUT_MAX_ATTEMPTS`, `HIS_LOCKOUT_DURATION`, `HIS_CORS_ALLOWED_ORIGINS`,
-`HIS_WS_ALLOWED_ORIGINS`, `HIS_LIQUIBASE_CONTEXTS`, `HIS_SNOWSTORM_*`, `HIS_FHIR_SERVICE_KEY`,
+`HIS_WS_ALLOWED_ORIGINS`, `HIS_LIQUIBASE_CONTEXTS`, `HIS_SNOWSTORM_*`,
 `HIS_ERECEIPT_ENABLED`, `ERECEIPT_HIS_ENABLED`, `HIS_ELAB_ENABLED`, `E_LABORATORY_HIS_ENABLED`,
-`HIS_EIMG_ENABLED`, `E_IMAGING_HIS_ENABLED`, `COMPOSE_PROFILES=terminology`
-(wzór: `.env.example`).
+`HIS_EIMG_ENABLED`, `E_IMAGING_HIS_ENABLED`, `COMPOSE_PROFILES=terminology`,
+hasła mTLS (WYMAGANE, osiem zmiennych `HIS_BACKEND_*`, `E_RECEIPT_*`, `E_LABORATORY_*`, `E_IMAGING_*`
+z końcówką `_KEYSTORE_PASSWORD` / `_TRUSTSTORE_PASSWORD`) i opcjonalnie `HIS_CERTS_DIR`
+(wzór: `.env.example`; bez haseł `docker compose config` kończy się błędem).
+
+## mTLS (FHIR)
+
+FHIR między `his-backend` a `e-*` jest zabezpieczony wzajemnym TLS i **domyślnie włączony** (lokalnie i na
+produkcji te same certyfikaty; środowisko wewnętrzne). Certyfikat klienta zaufany przez CA `HIS-CA` jest
+jedynym uwierzytelnieniem usług `e-*` na `/fhir/**` (plus lista dozwolonych CN `HIS_FHIR_ALLOWED_CLIENT_CNS`
+w `his-backend`). Porty: `his-backend` 10420 (API/`/ws`, HTTP), 10424 (FHIR, HTTPS+mTLS), 10440 (zarządzanie);
+`e-*` 10421-10423 (FHIR, HTTPS+mTLS), 10431-10433 (UI, HTTP, bez certyfikatu), 10441-10443 (zarządzanie).
+Szczegóły i zmienne: `docs/his_backend_contract/deployment-and-config.md`.
+
+**Generowanie** (CA `HIS-CA`, 4 aplikacje, SAN = nazwa usługi compose + `localhost` + `127.0.0.1`, EKU
+`serverAuth`+`clientAuth`, losowe hasła): `scripts/gen-certs.sh [katalog]` (bash, `openssl` i `keytool`;
+domyślnie `.certs` w repo, poza gitem). Istniejącej CA skrypt nie nadpisuje; certyfikaty usług i hasła
+tworzy za każdym razem od nowa (odnowienie). Wynik: `ca.crt`, `ca.key`, `passwords.env` oraz katalogi
+`his_backend`, `e_receipt`, `e_laboratory`, `e_imaging` z `<host>.crt|.key`, `keystore.p12` (alias `his` /
+`server`) i `truststore.p12` (CA). Hasła w `passwords.env`: `<KATALOG_UPPER>_KEYSTORE_PASSWORD` i
+`<KATALOG_UPPER>_TRUSTSTORE_PASSWORD` (np. `HIS_BACKEND_KEYSTORE_PASSWORD`).
+
+**Wdrożenie na serwer 192.168.1.160** (użytkownik `docker_deploy`, katalog `remote_dir` z `projects.json`:
+`/home/docker_deploy/hospital-information-system`). Deploy kopiuje tylko `compose.yml`, więc domyślne
+`HIS_CERTS_DIR=../.certs` wskazuje `/home/docker_deploy/.certs` (można ustawić inną ścieżkę bezwzględną
+w `config.env`). Na serwer wgrywamy tylko magazyny `.p12` (nie `ca.key`, nie `*.key`):
+
+```
+# z maszyny z katalogiem .certs (jednorazowo i po każdym odnowieniu)
+for d in his_backend e_receipt e_laboratory e_imaging; do
+  ssh docker_deploy@192.168.1.160 "mkdir -p /home/docker_deploy/.certs/$d"
+  scp .certs/$d/keystore.p12 .certs/$d/truststore.p12 docker_deploy@192.168.1.160:/home/docker_deploy/.certs/$d/
+done
+ssh docker_deploy@192.168.1.160 "chmod 755 /home/docker_deploy/.certs /home/docker_deploy/.certs/* && chmod 644 /home/docker_deploy/.certs/*/*.p12"
+```
+
+Kontenery działają jako uid 10001, więc pliki `.p12` muszą być czytelne dla innych użytkowników
+(magazyny są chronione hasłem); katalogi są montowane tylko do odczytu pod `/certs`. Następnie dopisać do
+`config.env` na serwerze osiem haseł z `.certs/passwords.env` (np. `HIS_BACKEND_KEYSTORE_PASSWORD`,
+`E_RECEIPT_TRUSTSTORE_PASSWORD`; wartości nigdzie indziej nie zapisywać) i włączyć integrację flagami
+`*_ENABLED`. Zmienne aplikacji (`MTLS_KEYSTORE`, `MTLS_TRUSTSTORE`, `MTLS_*_PASSWORD`) compose ustawia sam.
+
+**Wygaśnięcie:** certyfikaty usług są ważne do 2027-10-01 (CA do 2031-09-30). Przed terminem uruchomić
+`scripts/gen-certs.sh` (CA zostaje), wgrać nowe `.p12`, zaktualizować hasła w `config.env` i zrestartować
+usługi. Po wygaśnięciu połączenia FHIR są odrzucane (e-* pokazują stan `PENDING`).
 
 ## PostgreSQL
 

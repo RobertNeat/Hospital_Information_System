@@ -41,11 +41,25 @@ Jeden plik `deploy/compose.yml` definiuje cały stos (postgres, his-backend, his
 e-laboratory, e-imaging, opcjonalnie snowstorm-lite w profilu `terminology`). Lokalnie dokłada się
 nakładkę `deploy/compose.dev.yml` (build z źródeł, porty na `127.0.0.1`) i `deploy/local.env`.
 
-`deploy/local.env` nie jest w repo (jest w `.gitignore`) - przy pierwszym uruchomieniu utwórz go z szablonu:
+Połączenia FHIR między his_backend a e-receipt / e-laboratory / e-imaging są zabezpieczone mTLS
+(domyślnie włączone). Certyfikaty (CA `HIS-CA`, po jednym `keystore.p12` + `truststore.p12` na aplikację)
+leżą w `.certs/` (poza repo, `.gitignore`), a hasła w `.certs/passwords.env`. Brakujące certyfikaty
+wygeneruje skrypt (bash, wymaga `openssl` i `keytool`; istniejącej CA nie nadpisuje):
+
+```bash
+scripts/gen-certs.sh            # domyślnie .certs w katalogu głównym repo; opcjonalny argument: katalog wyjściowy
+```
+
+`deploy/local.env` nie jest w repo (jest w `.gitignore`) - przy pierwszym uruchomieniu utwórz go z szablonu
+i wpisz w nim osiem haseł `HIS_BACKEND_*`, `E_RECEIPT_*`, `E_LABORATORY_*`, `E_IMAGING_*`
+(`*_KEYSTORE_PASSWORD`, `*_TRUSTSTORE_PASSWORD`) z `.certs/passwords.env` (compose bez nich nie wystartuje):
 
 ```powershell
 Copy-Item deploy/local.env.example deploy/local.env
 ```
+
+Compose montuje `${HIS_CERTS_DIR}/<usługa>` (domyślnie `../.certs` względem `deploy/`) do kontenerów pod `/certs`
+tylko do odczytu. Wyłączenie mTLS (np. testy bez certyfikatów): `HIS_MTLS_ENABLED=false`.
 
 Pełny stos (z poziomu root katalogu projektu; `pnpm stack:up` / `pnpm stack:down`):
 
@@ -54,11 +68,16 @@ docker compose -f deploy/compose.yml -f deploy/compose.dev.yml --env-file deploy
 docker compose -f deploy/compose.yml -f deploy/compose.dev.yml --env-file deploy/local.env down
 ```
 
-Frontend: http://localhost:10400, backend: http://localhost:10420, Postgres: `127.0.0.1:5432`
+Frontend: http://localhost:10400, backend (API): http://localhost:10420, Postgres: `127.0.0.1:5432`
 (baza/użytkownik/hasło `his`). Logowanie demo: `admin` / `admin`.
+UI symulatorów (HTTP, bez certyfikatu): e-receipt http://localhost:10431, e-laboratory http://localhost:10432,
+e-imaging http://localhost:10433. FHIR (HTTPS z certyfikatem klienta, np. do `curl`): his_backend `https://localhost:10424/fhir`,
+e-receipt `https://localhost:10421/fhir`, e-laboratory `:10422`, e-imaging `:10423`. Health: osobne porty zarządzania
+(10440-10443) wewnątrz kontenerów, nie publikowane na host.
 
-Tryb IDE (backend z IntelliJ/Maven, profil `dev`) - uruchamiamy tylko bazę (`pnpm stack:db`) i NIE
-startujemy kontenera `his-backend` (konflikt portu 10420):
+Tryb IDE (backend z IntelliJ/Maven, profil `dev`, bez certyfikatów: `HIS_MTLS_ENABLED=false`, ustawia to
+`pnpm start:backend`) - uruchamiamy tylko bazę (`pnpm stack:db`) i NIE startujemy kontenera `his-backend`
+(konflikt portu 10420). W tym trybie `/fhir/**` w backendzie jest nieczynne (integracja z e-* wymaga mTLS):
 
 ```powershell
 docker compose -f deploy/compose.yml -f deploy/compose.dev.yml --env-file deploy/local.env up -d postgres
@@ -68,6 +87,7 @@ pnpm start:backend
 Wolumeny stosu: `hospital-information-system_postgres-data` (baza) i
 `hospital-information-system_snowstorm-lite-data` (indeks Snowstorm; wymaga importu RF2).
 Jeśli porty 5432/8080 są zajęte, ustaw `HIS_DB_HOST_PORT` / `HIS_SNOWSTORM_HOST_PORT` w `deploy/local.env`.
+Wdrożenie certyfikatów na serwer produkcyjny: `.github/pipeline_docs/production_deployment.md` (sekcja "mTLS (FHIR)").
 
 # Uruchomienie kontenera SNOWSTORM lite i dostarczenie danych:
 

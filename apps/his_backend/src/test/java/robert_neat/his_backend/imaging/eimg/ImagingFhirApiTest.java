@@ -28,6 +28,7 @@ import com.jayway.jsonpath.JsonPath;
 
 import ca.uhn.fhir.context.FhirContext;
 import robert_neat.his_backend.ApiIntegrationTest;
+import robert_neat.his_backend.common.fhir.FhirTestAuth;
 import robert_neat.his_backend.common.order.OrderStatus;
 import robert_neat.his_backend.imaging.events.ImagingOrderStatusChanged;
 import robert_neat.his_backend.imaging.events.ImagingResultRecorded;
@@ -37,7 +38,6 @@ import robert_neat.his_backend.imaging.events.ImagingResultRecorded;
 class ImagingFhirApiTest extends ApiIntegrationTest {
 
     private static final MediaType FHIR_JSON = MediaType.valueOf("application/fhir+json");
-    private static final String KEY = "test-only-service-key";
 
     private static final String ORD_RTG = "ec2e14bd-4918-5bae-abb5-5fac44f71be1"; // ordered, RTG-KOL, right
     private static final String RTG_PATIENT = "7e25abc6-1c68-5922-8f9b-e5a8d6eeb5c9";
@@ -67,7 +67,7 @@ class ImagingFhirApiTest extends ApiIntegrationTest {
     }
 
     private ResultActions putStatus(String id, String body) throws Exception {
-        return mvc.perform(put("/fhir/ServiceRequest/{id}", id).header("X-Service-Key", KEY)
+        return mvc.perform(put("/fhir/ServiceRequest/{id}", id).with(FhirTestAuth.service())
                 .contentType(FHIR_JSON).content(body));
     }
 
@@ -96,7 +96,7 @@ class ImagingFhirApiTest extends ApiIntegrationTest {
     }
 
     private ResultActions postReport(String body) throws Exception {
-        return mvc.perform(post("/fhir/DiagnosticReport").header("X-Service-Key", KEY).contentType(FHIR_JSON)
+        return mvc.perform(post("/fhir/DiagnosticReport").with(FhirTestAuth.service()).contentType(FHIR_JSON)
                 .content(body));
     }
 
@@ -110,22 +110,22 @@ class ImagingFhirApiTest extends ApiIntegrationTest {
     // --- autoryzacja i routing ---
 
     @Test
-    void requestsWithoutKeyAreUnauthorizedOperationOutcome() throws Exception {
+    void requestsWithoutCertificateAreUnauthorizedOperationOutcome() throws Exception {
         String json = mvc.perform(get("/fhir/ServiceRequest/" + ORD_RTG)).andExpect(status().isUnauthorized())
                 .andExpect(content().contentTypeCompatibleWith(FHIR_JSON)).andReturn().getResponse()
                 .getContentAsString();
         assertThat(fhir.newJsonParser().parseResource(OperationOutcome.class, json).getIssueFirstRep().getCode()
                 .toCode()).isEqualTo("security");
-        mvc.perform(post("/fhir/DiagnosticReport").header("X-Service-Key", "zly").contentType(FHIR_JSON)
+        mvc.perform(post("/fhir/DiagnosticReport").with(FhirTestAuth.intruder()).contentType(FHIR_JSON)
                 .content("{}")).andExpect(status().isUnauthorized());
     }
 
     @Test
     void sharedPathsRouteToTheModuleOwningTheOrder() throws Exception {
-        String lab = mvc.perform(get("/fhir/ServiceRequest/" + LAB_ORD).header("X-Service-Key", KEY))
+        String lab = mvc.perform(get("/fhir/ServiceRequest/" + LAB_ORD).with(FhirTestAuth.service()))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
         assertThat(lab).contains("urn:his:lab-order-id").doesNotContain("urn:his:imaging-order-id");
-        String imaging = mvc.perform(get("/fhir/ServiceRequest/" + ORD_RTG).header("X-Service-Key", KEY))
+        String imaging = mvc.perform(get("/fhir/ServiceRequest/" + ORD_RTG).with(FhirTestAuth.service()))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
         assertThat(imaging).contains("urn:his:imaging-order-id").doesNotContain("urn:his:lab-order-id");
     }
@@ -134,7 +134,7 @@ class ImagingFhirApiTest extends ApiIntegrationTest {
 
     @Test
     void readReturnsServiceRequestWithExamModalityLateralityAndContrast() throws Exception {
-        String json = mvc.perform(get("/fhir/ServiceRequest/" + ORD_RTG).header("X-Service-Key", KEY))
+        String json = mvc.perform(get("/fhir/ServiceRequest/" + ORD_RTG).with(FhirTestAuth.service()))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
         ServiceRequest sr = fhir.newJsonParser().parseResource(ServiceRequest.class, json);
 
@@ -162,7 +162,7 @@ class ImagingFhirApiTest extends ApiIntegrationTest {
         String slot = freeSlot("RTG");
         String id = createOrderWithSlot(slot);
         ServiceRequest sr = fhir.newJsonParser().parseResource(ServiceRequest.class,
-                mvc.perform(get("/fhir/ServiceRequest/" + id).header("X-Service-Key", KEY))
+                mvc.perform(get("/fhir/ServiceRequest/" + id).with(FhirTestAuth.service()))
                         .andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
 
         assertThat(sr.getExtensionByUrl("urn:his:fhir:imaging-order-status").getValue().primitiveValue())
@@ -173,9 +173,9 @@ class ImagingFhirApiTest extends ApiIntegrationTest {
 
     @Test
     void readUnknownOrMalformedIdIsNotFound() throws Exception {
-        mvc.perform(get("/fhir/ServiceRequest/nie-uuid").header("X-Service-Key", KEY))
+        mvc.perform(get("/fhir/ServiceRequest/nie-uuid").with(FhirTestAuth.service()))
                 .andExpect(status().isNotFound());
-        mvc.perform(get("/fhir/ServiceRequest/00000000-0000-0000-0000-000000000000").header("X-Service-Key", KEY))
+        mvc.perform(get("/fhir/ServiceRequest/00000000-0000-0000-0000-000000000000").with(FhirTestAuth.service()))
                 .andExpect(status().isNotFound());
     }
 
@@ -298,7 +298,7 @@ class ImagingFhirApiTest extends ApiIntegrationTest {
         });
 
         DiagnosticReport read = fhir.newJsonParser().parseResource(DiagnosticReport.class,
-                mvc.perform(get("/fhir/DiagnosticReport/" + resultId).header("X-Service-Key", KEY))
+                mvc.perform(get("/fhir/DiagnosticReport/" + resultId).with(FhirTestAuth.service()))
                         .andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
         assertThat(read.getConclusion()).isEqualTo("Kamica zolciowa.");
         assertThat(read.getExtensionByUrl("urn:his:fhir:imaging-findings").getValue().primitiveValue())
@@ -372,15 +372,15 @@ class ImagingFhirApiTest extends ApiIntegrationTest {
 
     @Test
     void readUnknownReportIsNotFound() throws Exception {
-        mvc.perform(get("/fhir/DiagnosticReport/00000000-0000-0000-0000-000000000000").header("X-Service-Key", KEY))
+        mvc.perform(get("/fhir/DiagnosticReport/00000000-0000-0000-0000-000000000000").with(FhirTestAuth.service()))
                 .andExpect(status().isNotFound());
-        mvc.perform(get("/fhir/DiagnosticReport/nie-uuid").header("X-Service-Key", KEY))
+        mvc.perform(get("/fhir/DiagnosticReport/nie-uuid").with(FhirTestAuth.service()))
                 .andExpect(status().isNotFound());
     }
 
     @Test
     void readReturnsMockImagingResult() throws Exception {
-        mvc.perform(get("/fhir/DiagnosticReport/46b4363a-51a4-5eae-9151-05948f291573").header("X-Service-Key", KEY))
+        mvc.perform(get("/fhir/DiagnosticReport/46b4363a-51a4-5eae-9151-05948f291573").with(FhirTestAuth.service()))
                 .andExpect(status().isOk()); // wynik obrazowy (mock)
     }
 
