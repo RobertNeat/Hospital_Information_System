@@ -7,9 +7,12 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 
-/** Usluga szkieletowa: tylko probes zdrowia sa publiczne, reszta zablokowana. */
+/**
+ * Symulator bez uwierzytelniania aplikacyjnego: publiczne sa probes zdrowia, UI Thymeleaf i FHIR (`/fhir/**`);
+ * reszta zablokowana. Docelowo `/fhir/**` zabezpiecza mTLS (profil `mtls`), UI nie jest uwierzytelniane (README).
+ */
 @Configuration(proxyBeanMethods = false)
-class HealthSecurityConfig {
+class SecurityConfig {
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -17,6 +20,7 @@ class HealthSecurityConfig {
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/health/**").permitAll()
+                        .requestMatchers("/", "/ui/**", "/fhir/**").permitAll()
                         .anyRequest().denyAll());
         return http.build();
     }

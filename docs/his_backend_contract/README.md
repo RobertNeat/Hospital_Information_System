@@ -7,7 +7,8 @@ Relacja do [`../his_frontend_contract`](../his_frontend_contract/README.md): tam
 ## Stan
 
 - Data opisu: 2026-10-01.
-- Zakres: moduły `auth`, `staff`, `patient`, `ehr`, `catalog`, `lab`, `imaging`, `prescription`, `vitals`, `messaging`, `alert`, `dashboard`, `terminology`, `realtime`. Usługi `e-receipt`, `e-laboratory`, `e-imaging` wystawiają wyłącznie `/actuator/health/**` (patrz [deployment-and-config.md](deployment-and-config.md)).
+- Zakres: moduły `auth`, `staff`, `patient`, `ehr`, `catalog`, `lab`, `imaging`, `prescription`, `vitals`, `messaging`, `alert`, `dashboard`, `terminology`, `realtime`.
+- Integracja FHIR z usługami `e-*`: gotowa dla recept (`e-receipt`, [rest-api-fhir.md](rest-api-fhir.md)). `e-laboratory` i `e-imaging` wystawiają dziś wyłącznie `/actuator/health/**`, a `his_backend` ich nie wywołuje (patrz [deployment-and-config.md](deployment-and-config.md)).
 
 ## Indeks
 
@@ -27,6 +28,7 @@ Relacja do [`../his_frontend_contract`](../his_frontend_contract/README.md): tam
 | [data-types.md](data-types.md) | DTO żądań i odpowiedzi, enumy (wartości na drucie), mapowanie na typy TS |
 | [realtime-stomp.md](realtime-stomp.md) | endpoint `/ws`, uwierzytelnianie, tematy i payloady |
 | [terminology-snomed.md](terminology-snomed.md) | `/terminology/snomed/*`, Snowstorm Lite |
+| [rest-api-fhir.md](rest-api-fhir.md) | FHIR R4: `/fhir/MedicationRequest/{id}` (klucz usługowy), klient e-receipt, `eRxKey`, zmiana stanu recepty |
 | [database-and-data.md](database-and-data.md) | schemat, Liquibase i konteksty, mocki |
 | [deployment-and-config.md](deployment-and-config.md) | compose, porty, zmienne `HIS_*`, uruchamianie lokalne |
 | [events.md](events.md) | zdarzenia domenowe, konsumenci, zdarzenie -> alert |
@@ -39,6 +41,7 @@ Relacja do [`../his_frontend_contract`](../his_frontend_contract/README.md): tam
 | STOMP (WebSocket) | `/ws` (poza `/api/v1`) |
 | Port backendu | `10420` (`server.port=10420`; host i kontener 10420) |
 | Health | `/actuator/health/**` (publiczne; poza `/api/v1`) |
+| FHIR (usługi `e-*`) | `/fhir/**` (poza `/api/v1`; nagłówek `X-Service-Key`) |
 | Proxy w produkcji/compose | nginx we `his-frontend` (port 10400): `/api/` i `/ws` -> `http://his-backend:10420` |
 | Proxy w trybie dev (Angular) | `apps/his_frontend/proxy.conf.json`: `/api` i `/ws` (`ws: true`) -> `http://localhost:10420` |
 
@@ -60,6 +63,10 @@ Różnice między oczekiwaniami frontendu (`docs/his_frontend_contract/API.md`, 
 | --- | --- | --- |
 | Nazwy/ścieżki endpointów | wg API.md | Ścieżki zgodne z API.md; backend dodaje elementy wymienione niżej |
 | `GET /message-threads/{threadId}` | brak wiersza | jest (`message:read`, tylko uczestnik) |
+| `GET /auth/register/wards` | brak | jest, publiczny (lista oddziałów dla rejestracji konta; `GET /wards` wymaga `ward:read`) |
+| `GET /patients/{id}/clinical-notes/{noteId}`, `/diagnoses/{id}`, `/allergies/{id}` | brak | są (cele nagłówka `Location`; `ehr:read` / `ehr:read-limited`) |
+| `POST /patients/{id}/admissions` (`outpatient`) | `wardId`, `attendingPhysicianId`, `reason` wymagane | opcjonalne dla `outpatient` (`Admission.wardId`/`attendingPhysicianId` i `Encounter.practitionerId` mogą być nieobecne) |
+| 409 duplikat PESEL | sam status | + `errors[{ field: "pesel", code: "duplicate" }]` |
 | `GET/POST /patients/{id}/diagnoses`, `/allergies` | "propozycja" | zaimplementowane |
 | `GET /vital-thresholds`, `/auth/*`, `POST /staff/{id}/activate`, `/lock` | "propozycja" | zaimplementowane |
 | `GET /terminology/snomed/*` | brak | zaimplementowane ([terminology-snomed.md](terminology-snomed.md)) |
@@ -89,6 +96,7 @@ Różnice między oczekiwaniami frontendu (`docs/his_frontend_contract/API.md`, 
 | `drug-safety-checks` | doctor "W/R", nurse/pharmacist/admin "R" | `POST /drug-safety-checks` wymaga `drug-safety-check:run` = **tylko `doctor`**; `drug:read` (katalog) mają doctor, nurse, pharmacist, admin |
 | Status zadania | "reguły do potwierdzenia" | Zmienić status może wyłącznie osoba przypisana lub twórca (403 inaczej). `admin` ma tylko `task:read` (bez `task:write`), więc nie zmienia statusu. Przejście `open -> done` jest dozwolone |
 | `ehr:read-limited` (laborant, radiolog, farmaceuta) | laborant/radiolog "R (ograniczone)", farmaceuta "R (alergie/leki)" | Dla wszystkich trzech ról dokładnie: `GET diagnoses`, `allergies`, `contraindications`, `treatments`. Brak: `ehr-summary`, `encounters`, `episodes`, `clinical-notes` |
+| Recepty: realizacja i `eRxKey` | `eRxKey` "z P1/e-recepty" (ERD), realizacja bez endpointu | `partially_dispensed`/`dispensed`/`expired`/`cancelled` przychodzą z e-receipt przez `PUT /fhir/MedicationRequest/{id}` (klucz usługowy, [rest-api-fhir.md](rest-api-fhir.md)); `eRxKey` jest lokalny, a dla `e_prescription` podmieniany kluczem z e-receipt po commicie (odpowiedź `201` wystawienia ma jeszcze klucz lokalny, `version` bez zmian). Integracja domyślnie wyłączona, bez e-receipt zostaje klucz lokalny |
 | Zapis uprawnień bez endpointu | admin "W" dla `vital-thresholds`, `staff`, `wards`; laborant/radiolog "W" wyników | `vital-threshold:write`, `staff:write`, `ward:write`, `lab-result:write`, `imaging-result:write` są w macierzy i tokenie, ale **żaden kontroler ich nie sprawdza** (brak endpointów zapisu). Administrator ma tylko `activate`/`lock` (`account:manage`) |
 | Radiolog a notatki | radiolog "W (consultation)" | Radiolog może `POST /clinical-notes` (kategoria `consultation`), ale nie może ich odczytać (`GET /clinical-notes` wymaga `ehr:read`) |
 | Wątki admina | "W (tylko własne wątki)" | Każda rola ma `message:read/write`; dostęp do wątku mają wyłącznie uczestnicy (nie-uczestnik -> 403, także admin) |

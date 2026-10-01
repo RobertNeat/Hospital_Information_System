@@ -1,75 +1,95 @@
-import { describe, expect, it, beforeEach } from 'vitest';
+import { describe, expect, it, beforeEach, afterEach } from 'vitest';
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { firstValueFrom } from 'rxjs';
-import { MOCK_LATENCY_MS } from '../config/mock-api.config';
-import { DIAGNOSES } from '../mock-data/diagnoses.mock';
-import { ENCOUNTERS } from '../mock-data/encounters.mock';
-import { TREATMENTS } from '../mock-data/treatments.mock';
+import type { Observable } from 'rxjs';
+import {
+  ICD10_URL,
+  patientAllergiesUrl,
+  patientClinicalNotesUrl,
+  patientContraindicationsUrl,
+  patientDiagnosesUrl,
+  patientEhrSummaryUrl,
+  patientEncountersUrl,
+  patientEpisodesUrl,
+  patientTreatmentsUrl,
+} from '../config/api.config';
+import type { ClinicalNoteCreateRequest } from '../models/api';
 import { EhrService } from './ehr.service';
 
 describe('EhrService', () => {
   let service: EhrService;
+  let http: HttpTestingController;
 
   beforeEach(() => {
-    TestBed.configureTestingModule({ providers: [{ provide: MOCK_LATENCY_MS, useValue: 0 }] });
+    TestBed.configureTestingModule({
+      providers: [provideHttpClient(), provideHttpClientTesting()],
+    });
     service = TestBed.inject(EhrService);
+    http = TestBed.inject(HttpTestingController);
   });
 
-  it('getDiagnoses filters by patientId', async () => {
-    const result = await firstValueFrom(service.getDiagnoses('pat-001'));
-    expect(result.every((d) => d.patientId === 'pat-001')).toBe(true);
-    expect(result.length).toBeGreaterThan(0);
+  afterEach(() => http.verify());
+
+  it('getSummary returns the backend projection as is', async () => {
+    const summary = {
+      recentDiagnoses: [],
+      chronicConditions: [],
+      activeMedications: [],
+      recentEncounters: [],
+      allergies: [],
+    };
+    const result = firstValueFrom(service.getSummary('p-1'));
+    http.expectOne({ method: 'GET', url: patientEhrSummaryUrl('p-1') }).flush(summary);
+    expect(await result).toEqual(summary);
   });
 
-  it('getAllergies filters by patientId', async () => {
-    const result = await firstValueFrom(service.getAllergies('pat-001'));
-    expect(result.some((a) => a.substance === 'Penicylina')).toBe(true);
-  });
-
-  it('getContraindications returns seeded entries filtered by patientId', async () => {
-    const result = await firstValueFrom(service.getContraindications('pat-001'));
-    expect(result.length).toBeGreaterThan(0);
-    expect(result.every((c) => c.patientId === 'pat-001')).toBe(true);
-  });
-
-  it('addNote persists a new clinical note with a generated id and createdAt', async () => {
-    const before = await firstValueFrom(service.getNotes('pat-003'));
-    const note = await firstValueFrom(
-      service.addNote({
-        patientId: 'pat-003',
-        authorId: 'stf-001',
-        category: 'progress',
-        title: 'Test note',
-        content: 'Treść notatki testowej o wystarczającej długości.',
-      }),
+  it.each([
+    ['getEncounters', patientEncountersUrl],
+    ['getEpisodes', patientEpisodesUrl],
+    ['getNotes', patientClinicalNotesUrl],
+    ['getDiagnoses', patientDiagnosesUrl],
+    ['getAllergies', patientAllergiesUrl],
+    ['getContraindications', patientContraindicationsUrl],
+    ['getTreatments', patientTreatmentsUrl],
+  ] as const)('%s GETs the patient sub-resource', async (method, url) => {
+    const result = firstValueFrom(
+      (service[method] as (id: string) => Observable<unknown>).call(service, 'p-1'),
     );
-    expect(note.id).toMatch(/^note-\d+$/);
-    expect(note.createdAt).toBeTruthy();
-
-    const after = await firstValueFrom(service.getNotes('pat-003'));
-    expect(after.length).toBe(before.length + 1);
+    http.expectOne({ method: 'GET', url: url('p-1') }).flush([]);
+    expect(await result).toEqual([]);
   });
 
-  it('getIcd10Dictionary returns ~40 ICD-10 codes', async () => {
-    const dict = await firstValueFrom(service.getIcd10Dictionary());
-    expect(dict.length).toBeGreaterThanOrEqual(30);
-    expect(dict.every((c) => c.system === 'ICD-10')).toBe(true);
+  it('getAllergies propagates a 403 (no EHR access)', async () => {
+    const result = firstValueFrom(service.getAllergies('p-1'));
+    http
+      .expectOne(patientAllergiesUrl('p-1'))
+      .flush(null, { status: 403, statusText: 'Forbidden' });
+    await expect(result).rejects.toBeTruthy();
   });
 
-  it('getSummary combines diagnoses, encounters, allergies and active medications', async () => {
-    const summary = await firstValueFrom(service.getSummary('pat-001'));
-    expect(summary.recentDiagnoses.length).toBeGreaterThan(0);
-    expect(summary.allergies.length).toBeGreaterThan(0);
-    expect(summary.chronicConditions.every((d) => d.type === 'chronic')).toBe(true);
+  it('addNote POSTs to the patient of the draft and returns the saved note', async () => {
+    const draft: ClinicalNoteCreateRequest = {
+      patientId: 'p-1',
+      authorId: 's-1',
+      category: 'progress',
+      title: 'Wizyta',
+      content: 'Opis',
+    };
+    const result = firstValueFrom(service.addNote(draft));
+    const req = http.expectOne({ method: 'POST', url: patientClinicalNotesUrl('p-1') });
+    expect(req.request.body).toEqual(draft);
+    req.flush({ ...draft, id: 'n-1' }, { status: 201, statusText: 'Created' });
+    expect((await result).id).toBe('n-1');
   });
 
-  it('mock encounterId of diagnoses and treatments points to an existing encounter of the same patient', () => {
-    const linked = [...DIAGNOSES, ...TREATMENTS].filter((r) => r.encounterId);
-    expect(linked.length).toBeGreaterThan(0);
-    for (const record of linked) {
-      const encounter = ENCOUNTERS.find((e) => e.id === record.encounterId);
-      expect(encounter, record.id).toBeDefined();
-      expect(encounter?.patientId, record.id).toBe(record.patientId);
-    }
+  it('getIcd10Dictionary requests the maximum page and an optional term', async () => {
+    const result = firstValueFrom(service.getIcd10Dictionary('cuk'));
+    const req = http.expectOne((r) => r.url === ICD10_URL);
+    expect(req.request.params.get('term')).toBe('cuk');
+    expect(req.request.params.get('size')).toBe('100');
+    req.flush([{ system: 'ICD-10', code: 'E11', display: 'Cukrzyca' }]);
+    expect(await result).toHaveLength(1);
   });
 });

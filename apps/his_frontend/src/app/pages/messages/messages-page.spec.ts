@@ -1,3 +1,5 @@
+import { staffServiceStub } from '../../testing/staff-service.stub';
+import { wardServiceStub } from '../../testing/ward-service.stub';
 import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
@@ -16,7 +18,13 @@ describe('MessagesPage', () => {
   beforeEach(() => {
     vi.stubGlobal('ResizeObserver', ResizeObserverStub);
     TestBed.configureTestingModule({
-      providers: [provideRouter([]), MessageService, { provide: MOCK_LATENCY_MS, useValue: 0 }],
+      providers: [
+        staffServiceStub,
+        provideRouter([]),
+        MessageService,
+        wardServiceStub,
+        { provide: MOCK_LATENCY_MS, useValue: 0 },
+      ],
     });
   });
 

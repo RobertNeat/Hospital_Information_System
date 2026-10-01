@@ -1,3 +1,6 @@
+import { patientServiceStub } from '../../testing/patient-service.stub';
+import { ehrServiceStub } from '../../testing/ehr-service.stub';
+import { wardServiceStub } from '../../testing/ward-service.stub';
 import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
@@ -7,7 +10,13 @@ import { MOCK_LATENCY_MS } from '../../config/mock-api.config';
 describe('PatientListPage', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [provideRouter([]), { provide: MOCK_LATENCY_MS, useValue: 0 }],
+      providers: [
+        patientServiceStub,
+        ehrServiceStub,
+        provideRouter([]),
+        wardServiceStub,
+        { provide: MOCK_LATENCY_MS, useValue: 0 },
+      ],
     });
   });
 

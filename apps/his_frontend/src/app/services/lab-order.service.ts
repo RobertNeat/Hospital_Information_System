@@ -1,77 +1,78 @@
+import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import type { Observable } from 'rxjs';
-import { MOCK_LATENCY_MS } from '../config/mock-api.config';
-import { LAB_CATALOG, LAB_PANELS } from '../mock-data/lab-catalog.mock';
-import { LAB_ORDERS } from '../mock-data/lab-orders.mock';
+import {
+  LAB_ORDERS_URL,
+  LAB_PANELS_URL,
+  LAB_TESTS_URL,
+  labOrderCancelUrl,
+  labOrderStatusUrl,
+  labOrderUrl,
+  patientLabOrdersUrl,
+} from '../config/api.config';
+import type { ID, LabOrder, LabPanel, LabTest, OrderStatus } from '../models';
 import type {
-  ID,
-  LabOrder,
-  LabOrderDraft,
+  LabOrderCreateRequest,
   LabOrderFilter,
-  LabPanel,
-  LabTest,
-  OrderStatus,
-} from '../models';
-import { mockError, mockResponse, nextId } from '../utils/mock-response';
+  Page,
+  OrderCancelRequest,
+  OrderStatusUpdateRequest,
+} from '../models/api';
+import { toHttpParams } from '../utils/http-params';
+import { MAX_PAGE_SIZE, readAllPages } from '../utils/read-all-pages';
 
+/**
+ * Lab catalog and orders backed by `/lab-tests`, `/lab-panels` and `/lab-orders`. The backend owns
+ * ids, the state machine and the status history. Failures (404/409/422) arrive as
+ * `HttpErrorResponse` with a `ProblemDetail` body (see `toApiError`); 422 `errors[].field` is e.g.
+ * `items[0].testCode` (`notFound`/`duplicate`), `fasting` (`fastingRequired`).
+ */
 @Injectable({ providedIn: 'root' })
 export class LabOrderService {
-  private readonly latency = inject(MOCK_LATENCY_MS);
-  private readonly catalog: LabTest[] = structuredClone(LAB_CATALOG);
-  private readonly panels = structuredClone(LAB_PANELS);
-  private readonly orders: LabOrder[] = structuredClone(LAB_ORDERS);
-  private sequence = this.orders.length;
+  private readonly http = inject(HttpClient);
 
   getCatalog(): Observable<LabTest[]> {
-    return mockResponse(this.catalog, this.latency);
+    return this.http.get<LabTest[]>(LAB_TESTS_URL);
   }
 
   getPanels(): Observable<LabPanel[]> {
-    return mockResponse(this.panels, this.latency);
+    return this.http.get<LabPanel[]>(LAB_PANELS_URL);
   }
 
+  /** All orders matching the filter, newest first (every page is read). */
   getOrders(filter?: LabOrderFilter): Observable<LabOrder[]> {
-    let result = this.orders;
-    if (filter?.patientId) result = result.filter((o) => o.patientId === filter.patientId);
-    if (filter?.status) result = result.filter((o) => o.status === filter.status);
-    if (filter?.urgency) result = result.filter((o) => o.urgency === filter.urgency);
-    return mockResponse(result, this.latency);
+    return readAllPages((page) =>
+      this.http.get<Page<LabOrder>>(LAB_ORDERS_URL, {
+        params: toHttpParams({
+          patientId: filter?.patientId,
+          status: filter?.status,
+          urgency: filter?.urgency,
+          orderedFrom: filter?.orderedFrom,
+          orderedTo: filter?.orderedTo,
+          page,
+          size: MAX_PAGE_SIZE,
+        }),
+      }),
+    );
   }
 
   getOrderById(id: ID): Observable<LabOrder> {
-    const found = this.orders.find((o) => o.id === id);
-    if (!found) return mockError(`Nie znaleziono zlecenia o id ${id}`, this.latency);
-    return mockResponse(found, this.latency);
+    return this.http.get<LabOrder>(labOrderUrl(id));
   }
 
-  createOrder(draft: LabOrderDraft): Observable<LabOrder> {
-    this.sequence++;
-    const now = new Date().toISOString();
-    const order: LabOrder = {
-      ...draft,
-      id: nextId('lord', this.sequence),
-      orderedAt: now,
-      status: 'ordered',
-      statusHistory: [{ status: 'ordered', at: now, byId: draft.orderedById }],
-    };
-    this.orders.push(order);
-    return mockResponse(order, this.latency);
+  /** The orderer comes from the token (`orderedById` is ignored); `testName` is a catalog snapshot. */
+  createOrder(draft: LabOrderCreateRequest): Observable<LabOrder> {
+    return this.http.post<LabOrder>(patientLabOrdersUrl(draft.patientId), draft);
   }
 
-  updateStatus(id: ID, status: OrderStatus, note?: string): Observable<LabOrder> {
-    const index = this.orders.findIndex((o) => o.id === id);
-    if (index === -1) return mockError(`Nie znaleziono zlecenia o id ${id}`, this.latency);
-    const now = new Date().toISOString();
-    const updated: LabOrder = {
-      ...this.orders[index],
-      status,
-      statusHistory: [...this.orders[index].statusHistory, { status, at: now, note }],
-    };
-    this.orders[index] = updated;
-    return mockResponse(updated, this.latency);
+  /** Pass the loaded `version`; 409 on a forbidden transition or version mismatch. Not for `cancelled`. */
+  updateStatus(id: ID, status: OrderStatus, note?: string, version?: number): Observable<LabOrder> {
+    const body: OrderStatusUpdateRequest = { status, note, version };
+    return this.http.post<LabOrder>(labOrderStatusUrl(id), body);
   }
 
-  cancelOrder(id: ID, reason: string): Observable<LabOrder> {
-    return this.updateStatus(id, 'cancelled', reason);
+  cancelOrder(id: ID, reason: string, version?: number): Observable<LabOrder> {
+    const body: OrderCancelRequest = { reason, version };
+    return this.http.post<LabOrder>(labOrderCancelUrl(id), body);
   }
 }

@@ -46,7 +46,10 @@ import tools.jackson.databind.json.JsonMapper;
 public class SecurityConfig {
 
     static final int MIN_SECRET_BYTES = 32;
-    private static final Set<String> PUBLIC_AUTH_PATHS = Set.of("/api/v1/auth/login", "/api/v1/auth/register");
+    /** Lista oddzialow dla formularza rejestracji (przed zalogowaniem); tylko GET. */
+    private static final String PUBLIC_WARDS_PATH = "/api/v1/auth/register/wards";
+    private static final Set<String> PUBLIC_AUTH_PATHS = Set.of("/api/v1/auth/login", "/api/v1/auth/register",
+            PUBLIC_WARDS_PATH);
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http, JwtDecoder jwtDecoder,
@@ -65,6 +68,7 @@ public class SecurityConfig {
         http.authorizeHttpRequests(auth -> auth
                 .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                 .requestMatchers("/api/v1/auth/login", "/api/v1/auth/register", "/actuator/health/**").permitAll()
+                .requestMatchers(HttpMethod.GET, PUBLIC_WARDS_PATH).permitAll()
                 // handshake WebSocket bez Authorization (przegladarka nie doda naglowka): uwierzytelnienie jest
                 // w ramce STOMP CONNECT (StompSecurityInterceptor); CONNECT bez waznego JWT jest odrzucany,
                 // a po samym handshake nie da sie nic subskrybowac ani wyslac

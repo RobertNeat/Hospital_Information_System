@@ -8,12 +8,21 @@ import type {
 import type { PatientSummary } from '../patient.model';
 import type { PageQuery } from './common.api';
 
+/** `GET /patients/{id}/lab-results/analytes` item (the client maps it to `SelectOption`). */
+export interface LabAnalyteRef {
+  code: string;
+  name: string;
+}
+
 export type LabOrderCreateRequest = LabOrderDraft;
 
 export interface LabOrderQuery extends PageQuery {
   patientId?: ID;
   status?: OrderStatus;
   urgency?: OrderUrgency;
+  /** Inclusive bounds on `orderedAt` (ISO-8601; a `Date` is sent as UTC). */
+  orderedFrom?: string | Date;
+  orderedTo?: string | Date;
 }
 
 /** Lab order list filter without paging (services return `T[]`, not `Page<T>`). */

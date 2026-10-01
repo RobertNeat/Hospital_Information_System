@@ -1,3 +1,6 @@
+import { patientServiceStub } from '../testing/patient-service.stub';
+import { ehrServiceStub } from '../testing/ehr-service.stub';
+import { wardServiceStub } from '../testing/ward-service.stub';
 import { describe, expect, it, beforeEach } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { MessageService } from 'primeng/api';
@@ -16,7 +19,14 @@ function routeWithParam(patientId: string | null): ActivatedRouteSnapshot {
 describe('patientResolver', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [MessageService, provideRouter([]), { provide: MOCK_LATENCY_MS, useValue: 0 }],
+      providers: [
+        patientServiceStub,
+        ehrServiceStub,
+        wardServiceStub,
+        MessageService,
+        provideRouter([]),
+        { provide: MOCK_LATENCY_MS, useValue: 0 },
+      ],
     });
   });
 

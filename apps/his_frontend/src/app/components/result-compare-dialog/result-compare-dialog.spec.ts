@@ -1,3 +1,4 @@
+import { labResultServiceStub } from '../../testing/lab-result-service.stub';
 import { describe, expect, it, beforeEach } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { firstValueFrom } from 'rxjs';
@@ -7,7 +8,9 @@ import { LabResultService } from '../../services/lab-result.service';
 
 describe('ResultCompareDialog', () => {
   beforeEach(() => {
-    TestBed.configureTestingModule({ providers: [{ provide: MOCK_LATENCY_MS, useValue: 0 }] });
+    TestBed.configureTestingModule({
+      providers: [labResultServiceStub, { provide: MOCK_LATENCY_MS, useValue: 0 }],
+    });
   });
 
   it('shows a placeholder prompt when no analyte is selected', async () => {

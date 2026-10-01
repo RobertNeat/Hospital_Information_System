@@ -25,9 +25,15 @@ export class DrugPicker {
 
   protected search(event: AutoCompleteCompleteEvent): void {
     this.searching.set(true);
-    this.drugService.search(event.query).subscribe((drugs) => {
-      this.suggestions.set(drugs);
-      this.searching.set(false);
+    this.drugService.search(event.query).subscribe({
+      next: (drugs) => {
+        this.suggestions.set(drugs);
+        this.searching.set(false);
+      },
+      error: () => {
+        this.suggestions.set([]);
+        this.searching.set(false);
+      },
     });
   }
 

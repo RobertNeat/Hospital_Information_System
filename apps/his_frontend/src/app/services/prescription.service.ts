@@ -1,89 +1,84 @@
+import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
+import { forkJoin, map, of, switchMap } from 'rxjs';
 import type { Observable } from 'rxjs';
-import { MOCK_LATENCY_MS } from '../config/mock-api.config';
-import { PRESCRIPTIONS } from '../mock-data/prescriptions.mock';
+import {
+  PRESCRIPTIONS_URL,
+  patientActiveMedicationsUrl,
+  patientPrescriptionsUrl,
+  prescriptionCancelUrl,
+  prescriptionUrl,
+} from '../config/api.config';
+import type { ActiveMedication, ID, Prescription } from '../models';
 import type {
-  ActiveMedication,
-  ID,
-  Prescription,
+  Page,
+  PrescriptionCancelRequest,
   PrescriptionCreateRequest,
   PrescriptionFilter,
-} from '../models';
-import { mockError, mockResponse, nextId } from '../utils/mock-response';
+} from '../models/api';
+import { toHttpParams } from '../utils/http-params';
 
-function randomAccessCode(): string {
-  return String(Math.floor(1000 + Math.random() * 9000));
-}
+/** Backend maximum page size; the list is read page by page into a flat array. */
+const MAX_PAGE_SIZE = 100;
 
-function randomERxKey(): string {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let key = '';
-  for (let i = 0; i < 44; i++) {
-    key += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return key;
-}
-
+/**
+ * Prescriptions backed by `/prescriptions`. The backend owns ids, status (including derived
+ * expiry), `accessCode` and `eRxKey`. Failures (404/409/422) arrive as `HttpErrorResponse`
+ * with a `ProblemDetail` body (see `toApiError`).
+ */
 @Injectable({ providedIn: 'root' })
 export class PrescriptionService {
-  private readonly latency = inject(MOCK_LATENCY_MS);
-  private readonly prescriptions: Prescription[] = structuredClone(PRESCRIPTIONS);
-  private sequence = this.prescriptions.length;
+  private readonly http = inject(HttpClient);
 
+  /** All prescriptions matching the filter, newest first (every page is read). */
   getPrescriptions(filter?: PrescriptionFilter): Observable<Prescription[]> {
-    let result = this.prescriptions;
-    if (filter?.patientId) result = result.filter((p) => p.patientId === filter.patientId);
-    if (filter?.prescriberId) result = result.filter((p) => p.prescriberId === filter.prescriberId);
-    return mockResponse(result, this.latency);
+    return this.fetchPage(filter, 0).pipe(
+      switchMap((first) => {
+        if (first.totalPages <= 1) return of(first.items);
+        const rest = Array.from({ length: first.totalPages - 1 }, (_, i) =>
+          this.fetchPage(filter, i + 1),
+        );
+        return forkJoin(rest).pipe(map((pages) => [first, ...pages].flatMap((p) => p.items)));
+      }),
+    );
   }
 
   getById(id: ID): Observable<Prescription> {
-    const found = this.prescriptions.find((p) => p.id === id);
-    if (!found) return mockError(`Nie znaleziono recepty o id ${id}`, this.latency);
-    return mockResponse(found, this.latency);
+    return this.http.get<Prescription>(prescriptionUrl(id));
   }
 
-  // mock-only: backend authoritative
-  /** Items from every non-expired, non-cancelled prescription of the patient, with prescription id and start date. */
+  /** Items of the patient's live prescriptions (not expired, not cancelled), newest first. */
   getActiveMedications(pid: ID): Observable<ActiveMedication[]> {
-    const today = new Date().toISOString().slice(0, 10);
-    const items = this.prescriptions
-      .filter(
-        (p) =>
-          p.patientId === pid &&
-          (p.status === 'issued' || p.status === 'partially_dispensed') &&
-          p.validUntil >= today,
-      )
-      .flatMap((p) =>
-        p.items.map((item) => ({ ...item, prescriptionId: p.id, date: p.validFrom })),
-      );
-    return mockResponse(items, this.latency);
+    return this.http.get<ActiveMedication[]>(patientActiveMedicationsUrl(pid));
   }
 
+  /**
+   * The prescriber comes from the token. The `eRxKey` in the response may still be a local one:
+   * for e-prescriptions the e-receipt key replaces it shortly after, so re-read to get it.
+   */
   issuePrescription(draft: PrescriptionCreateRequest): Observable<Prescription> {
-    this.sequence++;
-    const prescription: Prescription = {
-      ...draft,
-      id: nextId('rx', this.sequence),
-      issuedAt: new Date().toISOString(),
-      status: 'issued',
-      accessCode: randomAccessCode(),
-      eRxKey: randomERxKey(),
-    };
-    this.prescriptions.push(prescription);
-    return mockResponse(prescription, this.latency);
+    return this.http.post<Prescription>(patientPrescriptionsUrl(draft.patientId), draft);
   }
 
-  cancel(id: ID, reason?: string): Observable<Prescription> {
-    const index = this.prescriptions.findIndex((p) => p.id === id);
-    if (index === -1) return mockError(`Nie znaleziono recepty o id ${id}`, this.latency);
-    const updated: Prescription = {
-      ...this.prescriptions[index],
-      status: 'cancelled',
-      cancelledAt: new Date().toISOString(),
-      ...(reason ? { cancelReason: reason } : {}),
-    };
-    this.prescriptions[index] = updated;
-    return mockResponse(updated, this.latency);
+  /** Pass the loaded `version` for optimistic locking; 409 on mismatch or a final status. */
+  cancel(id: ID, reason?: string, version?: number): Observable<Prescription> {
+    const body: PrescriptionCancelRequest = { reason, version };
+    return this.http.post<Prescription>(prescriptionCancelUrl(id), body);
+  }
+
+  private fetchPage(
+    filter: PrescriptionFilter | undefined,
+    page: number,
+  ): Observable<Page<Prescription>> {
+    return this.http.get<Page<Prescription>>(PRESCRIPTIONS_URL, {
+      params: toHttpParams({
+        patientId: filter?.patientId,
+        prescriberId: filter?.prescriberId,
+        status: filter?.status,
+        kind: filter?.kind,
+        page,
+        size: MAX_PAGE_SIZE,
+      }),
+    });
   }
 }

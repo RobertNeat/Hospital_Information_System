@@ -1,3 +1,4 @@
+import { staffServiceStub } from '../../testing/staff-service.stub';
 import { describe, expect, it, beforeEach } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { MessageService } from 'primeng/api';
@@ -7,7 +8,7 @@ import { VitalsEntryForm } from './vitals-entry-form';
 describe('VitalsEntryForm', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [{ provide: MOCK_LATENCY_MS, useValue: 0 }, MessageService],
+      providers: [staffServiceStub, { provide: MOCK_LATENCY_MS, useValue: 0 }, MessageService],
     });
   });
 

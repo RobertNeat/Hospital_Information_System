@@ -1,184 +1,176 @@
-import { describe, expect, it, beforeEach } from 'vitest';
+import { describe, expect, it, beforeEach, afterEach } from 'vitest';
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { firstValueFrom } from 'rxjs';
-import { MOCK_LATENCY_MS } from '../config/mock-api.config';
-import type { PatientDraft } from '../models';
+import {
+  PATIENTS_URL,
+  PATIENT_DUPLICATE_CHECK_URL,
+  patientAdmissionsUrl,
+  patientDischargeUrl,
+  patientUrl,
+} from '../config/api.config';
+import type { Patient, PatientDraft, PatientSummary } from '../models';
+import type { Page } from '../models/api';
 import { PatientService } from './patient.service';
 
-function draft(): PatientDraft {
-  return {
-    pesel: null,
-    noPeselReason: 'newborn',
-    firstName: 'Test',
-    lastName: 'Testowy',
-    birthDate: '2026-01-01',
-    gender: 'male',
-    address: {
-      street: 'Testowa',
-      buildingNumber: '1',
-      postalCode: '00-001',
-      city: 'Warszawa',
-      country: 'Polska',
-    },
-    insurance: { status: 'unknown', nfzBranch: '07', payer: 'none' },
-    status: 'registered',
-    flags: [],
-  };
-}
+const SUMMARY: PatientSummary = {
+  id: 'p-1',
+  mrn: 'HIS/2026/000001',
+  pesel: null,
+  firstName: 'Jan',
+  lastName: 'Kowalski',
+  birthDate: '1980-01-01',
+  gender: 'male',
+  status: 'registered',
+  flags: [],
+};
+
+const page = (items: PatientSummary[], p = 0, totalPages = 1): Page<PatientSummary> => ({
+  items,
+  page: p,
+  size: 100,
+  totalElements: items.length,
+  totalPages,
+});
 
 describe('PatientService', () => {
   let service: PatientService;
+  let http: HttpTestingController;
 
   beforeEach(() => {
-    TestBed.configureTestingModule({ providers: [{ provide: MOCK_LATENCY_MS, useValue: 0 }] });
+    TestBed.configureTestingModule({
+      providers: [provideHttpClient(), provideHttpClientTesting()],
+    });
     service = TestBed.inject(PatientService);
+    http = TestBed.inject(HttpTestingController);
   });
 
-  it('returns patient summaries', async () => {
-    const patients = await firstValueFrom(service.getPatients());
-    expect(patients.length).toBeGreaterThan(0);
-    expect(patients[0]).toHaveProperty('mrn');
-  });
+  afterEach(() => http.verify());
 
-  it('filters by status', async () => {
-    const admitted = await firstValueFrom(service.getPatients({ status: 'admitted' }));
-    expect(admitted.every((p) => p.status === 'admitted')).toBe(true);
-  });
-
-  it('filtering by wardId excludes discharged patients with a stale currentAdmission.wardId', async () => {
-    // pat-005 is discharged but its mock currentAdmission still has wardId 'ward-int'.
-    const result = await firstValueFrom(service.getPatients({ wardId: 'ward-int' }));
-    expect(result.every((p) => p.status === 'admitted')).toBe(true);
-    expect(result.some((p) => p.id === 'pat-005')).toBe(false);
-  });
-
-  it('does not report wardName/bed for a discharged patient', async () => {
-    const result = await firstValueFrom(service.getPatients());
-    const discharged = result.find((p) => p.id === 'pat-005');
-    expect(discharged?.wardName).toBeUndefined();
-    expect(discharged?.bed).toBeUndefined();
-  });
-
-  it('search matches last name case- and diacritic-insensitively', async () => {
-    const result = await firstValueFrom(service.search('kowalski'));
-    expect(result.some((p) => p.lastName === 'Kowalski')).toBe(true);
-  });
-
-  it('search matches PESEL', async () => {
-    const result = await firstValueFrom(service.search('68031437976'));
-    expect(result.some((p) => p.id === 'pat-001')).toBe(true);
-  });
-
-  it('getPatientById returns the full patient record', async () => {
-    const patient = await firstValueFrom(service.getPatientById('pat-001'));
-    expect(patient.firstName).toBe('Jan');
-  });
-
-  it('getPatientById errors for an unknown id', async () => {
-    await expect(firstValueFrom(service.getPatientById('pat-999'))).rejects.toThrow();
-  });
-
-  it('findByPesel finds an existing patient', async () => {
-    const found = await firstValueFrom(service.findByPesel('68031437976'));
-    expect(found?.id).toBe('pat-001');
-  });
-
-  it('findByPesel returns null for an unused PESEL', async () => {
-    const found = await firstValueFrom(service.findByPesel('99999999999'));
-    expect(found).toBeNull();
-  });
-
-  it('createPatient persists a new patient with generated id and mrn', async () => {
-    const before = await firstValueFrom(service.getPatients());
-    const created = await firstValueFrom(service.createPatient(draft()));
-    expect(created.id).toMatch(/^pat-\d{3}$/);
-    expect(created.mrn).toMatch(/^HIS\/\d{4}\/\d{6}$/);
-
-    const after = await firstValueFrom(service.getPatients());
-    expect(after.length).toBe(before.length + 1);
-
-    const fetched = await firstValueFrom(service.getPatientById(created.id));
-    expect(fetched.firstName).toBe('Test');
-  });
-
-  it('updatePatient persists changes', async () => {
-    const updated = await firstValueFrom(
-      service.updatePatient('pat-003', { phone: '+48 500 000 000' }),
+  it('getPatients sends the filters and unwraps the page', async () => {
+    const result = firstValueFrom(
+      service.getPatients({ term: ' kowal ', status: 'admitted', wardId: 'w-1' }),
     );
-    expect(updated.phone).toBe('+48 500 000 000');
-    const fetched = await firstValueFrom(service.getPatientById('pat-003'));
-    expect(fetched.phone).toBe('+48 500 000 000');
+    const req = http.expectOne((r) => r.url === PATIENTS_URL);
+    expect(req.request.method).toBe('GET');
+    expect(req.request.params.get('term')).toBe('kowal');
+    expect(req.request.params.get('status')).toBe('admitted');
+    expect(req.request.params.get('wardId')).toBe('w-1');
+    expect(req.request.params.get('page')).toBe('0');
+    expect(req.request.params.get('size')).toBe('100');
+    req.flush(page([SUMMARY]));
+    expect(await result).toEqual([SUMMARY]);
   });
 
-  it('admitPatient sets status to admitted and stores the admission', async () => {
-    const updated = await firstValueFrom(
-      service.admitPatient('pat-006', {
-        admissionType: 'planned',
-        admittedAt: '2026-01-01T08:00:00.000Z',
-        wardId: 'ward-int',
-        attendingPhysicianId: 'stf-001',
-        reason: 'Test',
-      }),
+  it('getPatients reads the remaining pages', async () => {
+    const other = { ...SUMMARY, id: 'p-2' };
+    const result = firstValueFrom(service.getPatients());
+    http
+      .expectOne((r) => r.url === PATIENTS_URL && r.params.get('page') === '0')
+      .flush(page([SUMMARY], 0, 2));
+    http
+      .expectOne((r) => r.url === PATIENTS_URL && r.params.get('page') === '1')
+      .flush(page([other], 1, 2));
+    expect((await result).map((p) => p.id)).toEqual(['p-1', 'p-2']);
+  });
+
+  it('search reads a single default-size page', async () => {
+    const result = firstValueFrom(service.search('kow'));
+    const req = http.expectOne((r) => r.url === PATIENTS_URL);
+    expect(req.request.params.get('term')).toBe('kow');
+    expect(req.request.params.has('size')).toBe(false);
+    req.flush(page([SUMMARY]));
+    expect(await result).toEqual([SUMMARY]);
+  });
+
+  it('getPatientById GETs one patient and propagates a 404', async () => {
+    const ok = firstValueFrom(service.getPatientById('p-1'));
+    http.expectOne({ method: 'GET', url: patientUrl('p-1') }).flush({ id: 'p-1' });
+    expect((await ok).id).toBe('p-1');
+
+    const missing = firstValueFrom(service.getPatientById('x'));
+    http.expectOne(patientUrl('x')).flush(null, { status: 404, statusText: 'Not Found' });
+    await expect(missing).rejects.toBeTruthy();
+  });
+
+  it('findByPesel POSTs the PESEL in the body; 204 means no duplicate', async () => {
+    const hit = firstValueFrom(service.findByPesel('80010100000'));
+    const req = http.expectOne({ method: 'POST', url: PATIENT_DUPLICATE_CHECK_URL });
+    expect(req.request.body).toEqual({ pesel: '80010100000' });
+    req.flush(SUMMARY);
+    expect(await hit).toEqual(SUMMARY);
+
+    const none = firstValueFrom(service.findByPesel('80010100001'));
+    http
+      .expectOne(PATIENT_DUPLICATE_CHECK_URL)
+      .flush(null, { status: 204, statusText: 'No Content' });
+    expect(await none).toBeNull();
+  });
+
+  it('createPatient POSTs the draft and returns the backend patient', async () => {
+    const draft = { firstName: 'Test' } as PatientDraft;
+    const result = firstValueFrom(service.createPatient(draft));
+    const req = http.expectOne({ method: 'POST', url: PATIENTS_URL });
+    expect(req.request.body).toEqual(draft);
+    req.flush({ id: 'p-9', mrn: 'HIS/2026/000009' } as Patient, {
+      status: 201,
+      statusText: 'Created',
+    });
+    expect((await result).mrn).toBe('HIS/2026/000009');
+  });
+
+  it('createPatient surfaces a 409 duplicate PESEL', async () => {
+    const result = firstValueFrom(service.createPatient({} as PatientDraft));
+    http
+      .expectOne(PATIENTS_URL)
+      .flush({ status: 409, title: 'Conflict' }, { status: 409, statusText: 'Conflict' });
+    await expect(result).rejects.toMatchObject({ status: 409 });
+  });
+
+  it('updatePatient PATCHes the changes with null clearing and the version', async () => {
+    const changes = { phone: null, version: 3 };
+    const result = firstValueFrom(service.updatePatient('p-1', changes));
+    const req = http.expectOne({ method: 'PATCH', url: patientUrl('p-1') });
+    expect(req.request.body).toEqual(changes);
+    req.flush({ id: 'p-1', version: 4 });
+    expect((await result).version).toBe(4);
+  });
+
+  it('getAdmissions GETs the history, optionally by status', async () => {
+    const result = firstValueFrom(service.getAdmissions('p-1', 'active'));
+    const req = http.expectOne((r) => r.url === patientAdmissionsUrl('p-1'));
+    expect(req.request.params.get('status')).toBe('active');
+    req.flush([{ id: 'a-1' }]);
+    expect(await result).toHaveLength(1);
+  });
+
+  it('admitPatient POSTs the admission and returns the updated patient', async () => {
+    const admission = {
+      admissionType: 'planned',
+      admittedAt: '2026-01-01T10:00:00Z',
+      wardId: 'w-1',
+      attendingPhysicianId: 's-1',
+      reason: 'Test',
+    } as const;
+    const result = firstValueFrom(service.admitPatient('p-1', admission));
+    const req = http.expectOne({ method: 'POST', url: patientAdmissionsUrl('p-1') });
+    expect(req.request.body).toEqual(admission);
+    req.flush({ id: 'p-1', status: 'admitted' }, { status: 201, statusText: 'Created' });
+    expect((await result).status).toBe('admitted');
+  });
+
+  it('dischargePatient POSTs dischargedAt with the options and the admission version', async () => {
+    const result = firstValueFrom(
+      service.dischargePatient('p-1', '2026-01-05T10:00:00Z', { disposition: 'home', version: 2 }),
     );
-    expect(updated.status).toBe('admitted');
-    expect(updated.currentAdmission?.wardId).toBe('ward-int');
-  });
-
-  it('dischargePatient sets status to discharged', async () => {
-    const updated = await firstValueFrom(
-      service.dischargePatient('pat-001', '2026-01-01T10:00:00.000Z'),
-    );
-    expect(updated.status).toBe('discharged');
-  });
-
-  it('getAdmissions synthesizes one entry with an id from currentAdmission', async () => {
-    const history = await firstValueFrom(service.getAdmissions('pat-001'));
-    expect(history).toHaveLength(1);
-    expect(history[0].id).toBeTruthy();
-    expect(history[0].patientId).toBe('pat-001');
-    expect(history[0].status).toBe('active');
-    const patient = await firstValueFrom(service.getPatientById('pat-001'));
-    expect(patient.currentAdmission?.id).toBeUndefined();
-  });
-
-  it('getAdmissions returns an empty history for a patient without admissions', async () => {
-    expect(await firstValueFrom(service.getAdmissions('pat-003'))).toEqual([]);
-  });
-
-  it('getAdmissions returns history newest first after admitPatient', async () => {
-    await firstValueFrom(
-      service.admitPatient('pat-001', {
-        admissionType: 'emergency',
-        admittedAt: '2099-01-01T08:00:00.000Z',
-        wardId: 'ward-int',
-        attendingPhysicianId: 'stf-001',
-        reason: 'Nawrót',
-      }),
-    );
-    const history = await firstValueFrom(service.getAdmissions('pat-001'));
-    expect(history).toHaveLength(2);
-    expect(history[0].admittedAt).toBe('2099-01-01T08:00:00.000Z');
-    expect(history[0].status).toBe('active');
-    expect(history[0].id).toMatch(/^adm-/);
-    expect(history[1].status).toBe('discharged');
-    const patient = await firstValueFrom(service.getPatientById('pat-001'));
-    expect(patient.currentAdmission?.id).toBe(history[0].id);
-  });
-
-  it('getAdmissions errors for an unknown patient', async () => {
-    await expect(firstValueFrom(service.getAdmissions('pat-999'))).rejects.toThrow();
-  });
-
-  it('dischargePatient marks the admission as discharged with disposition', async () => {
-    const at = '2026-01-01T10:00:00.000Z';
-    const updated = await firstValueFrom(
-      service.dischargePatient('pat-001', at, { disposition: 'home', summaryNoteId: 'note-1' }),
-    );
-    expect(updated.currentAdmission?.dischargeDisposition).toBe('home');
-    const [entry] = await firstValueFrom(service.getAdmissions('pat-001'));
-    expect(entry.status).toBe('discharged');
-    expect(entry.dischargedAt).toBe(at);
-    expect(entry.dischargeDisposition).toBe('home');
-    expect(entry.dischargeSummaryNoteId).toBe('note-1');
+    const req = http.expectOne({ method: 'POST', url: patientDischargeUrl('p-1') });
+    expect(req.request.body).toEqual({
+      dischargedAt: '2026-01-05T10:00:00Z',
+      disposition: 'home',
+      version: 2,
+    });
+    req.flush({ id: 'p-1', status: 'discharged' });
+    expect((await result).status).toBe('discharged');
   });
 });

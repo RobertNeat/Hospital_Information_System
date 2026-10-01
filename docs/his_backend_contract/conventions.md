@@ -86,14 +86,14 @@ Błędy mają `Content-Type: application/problem+json` (RFC 9457). Pola:
 | `detail` | komunikat po polsku |
 | `instance` | ścieżka żądania |
 | `code` | `ApiErrorCode`: `NOT_FOUND`, `VALIDATION_FAILED`, `CONFLICT`, `FORBIDDEN`, `UNAUTHENTICATED`, `INTERNAL` (brak dla 405/415 i dla błędów terminologii poza 404) |
-| `errors[]` | tylko 422: `{ field, message, code? }` (`code` - nazwa reguły: np. `NotBlank`, `required`, `notFound`, `mismatch`, `duplicate`, `range`, `typeMismatch`, `invalidFormat`, `mismatchedInput`) |
+| `errors[]` | 422; 409 duplikatu PESEL (jedno pole): `{ field, message, code? }` (`code` - nazwa reguły: np. `NotBlank`, `required`, `notFound`, `mismatch`, `duplicate`, `range`, `typeMismatch`, `invalidFormat`, `mismatchedInput`) |
 
 | Status | `code` | Kiedy |
 | --- | --- | --- |
 | 401 | `UNAUTHENTICATED` | brak/zły/wygasły token, złe dane logowania |
 | 403 | `FORBIDDEN` | brak uprawnienia, reguła domenowa (np. nie-uczestnik wątku), konto `pending`/`locked`/tymczasowo zablokowane |
 | 404 | `NOT_FOUND` | zasób nie istnieje, niepoprawny UUID w ścieżce, nieznana ścieżka (`NoResourceFoundException`) |
-| 409 | `CONFLICT` | niezgodny `version`; niedozwolone przejście stanu; naruszenie unikalności (SQLSTATE `23505`: "Rekord o podanych danych juz istnieje"); zajęty slot; drugie aktywne przyjęcie; duplikat PESEL/`employeeId`/`pwz`/`email` |
+| 409 | `CONFLICT` | niezgodny `version`; niedozwolone przejście stanu; naruszenie unikalności (SQLSTATE `23505`: "Rekord o podanych danych juz istnieje"); zajęty slot; drugie aktywne przyjęcie; duplikat PESEL/`employeeId`/`pwz`/`email` (409 duplikatu PESEL niesie `errors[]` z `field="pesel"`, `code="duplicate"`) |
 | 422 | `VALIDATION_FAILED` | błąd Bean Validation (`@Valid`), reguły domenowe (`ValidationFailedException`), brak wymaganego parametru (`code="required"`), zły typ parametru, nieczytelne ciało JSON (`"Tresc zadania jest niepoprawna lub nieczytelna"`), niedozwolone `sort` |
 | 500 | `INTERNAL` | nieobsłużony wyjątek (`"Wystapil nieoczekiwany blad"`; szczegóły tylko w logu), naruszenie bazy inne niż unikalność |
 | 405 / 415 | brak | `ProblemDetail` ze Springa bez `code` |

@@ -12,6 +12,7 @@ coverage/
 .env
 .env.*
 !.env.example
+deploy/local.env
 
 # Logs
 log/
@@ -51,9 +52,9 @@ docs/tmp*
 temp*/
 tmp*/
 
-marketing_mails/*
+
 node_modules
+.claude/
 claude.md
 agents.md
-# Local stack values (copy of deploy/local.env.example)
-deploy/local.env
+

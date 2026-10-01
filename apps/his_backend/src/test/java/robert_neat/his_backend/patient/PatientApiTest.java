@@ -394,6 +394,8 @@ class PatientApiTest extends ApiIntegrationTest {
         mvc.perform(post("/api/v1/patients").contentType(JSON).content(createJson("68031437976", null)))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("CONFLICT"))
+                .andExpect(jsonPath("$.errors[0].field").value("pesel"))
+                .andExpect(jsonPath("$.errors[0].code").value("duplicate"))
                 .andExpect(content().string(not(containsString("68031437976"))));
     }
 
@@ -845,5 +847,30 @@ class PatientApiTest extends ApiIntegrationTest {
         return "{" + extra + "\"admissionType\":\"" + type + "\",\"admittedAt\":\"2026-09-30T08:00:00Z\","
                 + "\"wardId\":\"" + wardId + "\",\"attendingPhysicianId\":\"" + physicianId + "\","
                 + "\"reason\":\"Planowa diagnostyka\"}";
+    }
+
+    @Test
+    void admitOutpatientWithoutWardPhysicianAndReasonIsAllowed() throws Exception {
+        String body = mvc.perform(post("/api/v1/patients/{id}/admissions", ZIELINSKA).contentType(JSON)
+                .content("{\"admissionType\":\"outpatient\",\"admittedAt\":\"2026-09-30T08:00:00Z\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.status").value("outpatient"))
+                .andExpect(jsonPath("$.currentAdmission.wardId").doesNotExist())
+                .andExpect(jsonPath("$.currentAdmission.attendingPhysicianId").doesNotExist())
+                .andExpect(jsonPath("$.currentAdmission.reason").value("Wizyta ambulatoryjna"))
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        String encounterId = JsonPath.read(body, "$.currentAdmission.encounterId");
+        assertThat(jdbc.queryForObject("select practitioner_id from encounter where id = ?::uuid", UUID.class,
+                encounterId)).isNull();
+    }
+
+    @Test
+    void admitNonOutpatientRequiresWardPhysicianAndReason() throws Exception {
+        mvc.perform(post("/api/v1/patients/{id}/admissions", ZIELINSKA).contentType(JSON)
+                .content("{\"admissionType\":\"planned\",\"admittedAt\":\"2026-09-30T08:00:00Z\"}"))
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.errors[*].field", org.hamcrest.Matchers.containsInAnyOrder("wardId",
+                        "attendingPhysicianId", "reason")))
+                .andExpect(jsonPath("$.errors[0].code").value("required"));
     }
 }

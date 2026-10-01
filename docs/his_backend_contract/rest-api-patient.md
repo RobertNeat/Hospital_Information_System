@@ -25,7 +25,7 @@ Endpointy `PatientController` (`/api/v1/patients`). Powrót: [README.md](README.
 ### Rejestracja i edycja
 
 - PESEL: 11 cyfr albo `null`. Gdy `pesel` jest pusty, wymagany `noPeselReason` (inaczej 422, `errors[].field="noPeselReason"`, `code="required"`).
-- Duplikat PESEL -> 409 "Pacjent o podanym numerze PESEL juz istnieje" (także przy `PATCH` na PESEL innego pacjenta).
+- Duplikat PESEL -> 409 "Pacjent o podanym numerze PESEL juz istnieje" z `errors[]`: `{ field: "pesel", code: "duplicate" }` (także przy `PATCH` na PESEL innego pacjenta).
 - `birthDate` nie z przyszłości (`@PastOrPresent`); `address` i `insurance` wymagane; `emergencyContact` i `identityDocument` - wszystkie pola razem albo wcale.
 - `mrn`, `status`, `currentAdmission`, audyt i `version` w żądaniu są ignorowane. `mrn` nadaje backend (`HIS/<rok>/<6 cyfr>`).
 - `PATCH`: brak pola = bez zmian, `null` = wyczyść; obiekty zagnieżdżone zastępowane w całości. Zmiana jest scalana ze stanem bieżącym i walidowana jak rejestracja (błędy jako 422 z `errors[]`). Patchowalne pola: `pesel`, `noPeselReason`, `identityDocument`, `firstName`, `secondName`, `lastName`, `birthDate`, `gender`, `phone`, `email`, `address`, `emergencyContact`, `insurance`, `bloodType`, `flags`. Opcjonalne `version` (liczba całkowita) porównywane z wersją pacjenta (409 przy niezgodności; nie-liczba -> 422).
@@ -34,7 +34,8 @@ Endpointy `PatientController` (`/api/v1/patients`). Powrót: [README.md](README.
 ### Przyjęcie (`POST .../admissions`)
 
 - Co najwyżej jedno aktywne przyjęcie na pacjenta; drugie -> 409 "Pacjent ma juz aktywne przyjecie".
-- 422 gdy `wardId` nie istnieje albo `attendingPhysicianId` nie wskazuje pracownika w roli `doctor` (`errors[].code="notFound"`).
+- 422 gdy `wardId` nie istnieje albo `attendingPhysicianId` nie wskazuje pracownika w roli `doctor` (`errors[].code="notFound"`). Poza `outpatient` pola `wardId`, `attendingPhysicianId` i `reason` są wymagane (422, `code="required"`).
+- Dla `admissionType=outpatient` pola `wardId`, `attendingPhysicianId` i `reason` są opcjonalne: bez nich `Admission.wardId`/`attendingPhysicianId` i `Encounter.wardId`/`practitionerId` są nieobecne w odpowiedzi, a `reason` przyjmuje wartość "Wizyta ambulatoryjna". Pacjent bez oddziału nie występuje na listach filtrowanych po `wardId` ani w widokach oddziałowych.
 - `admissionType=outpatient` tworzy `Encounter` typu `visit` i status pacjenta `outpatient`; pozostałe typy tworzą `Encounter` `hospitalization` i status `admitted`.
 - Odpowiedź to zaktualizowany `PatientResponse` (`currentAdmission` + `status`), nie `AdmissionResponse`.
 - Zdarzenie: `PatientAdmitted` ([events.md](events.md)).

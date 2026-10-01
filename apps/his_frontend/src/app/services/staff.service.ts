@@ -1,45 +1,95 @@
-import { Injectable, computed, inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Injectable, computed, inject, signal } from '@angular/core';
 import type { Signal } from '@angular/core';
+import { finalize, of, shareReplay, tap } from 'rxjs';
 import type { Observable } from 'rxjs';
-import { MOCK_LATENCY_MS } from '../config/mock-api.config';
-import { AuthService } from './auth.service';
-import { STAFF } from '../mock-data/staff.mock';
+import { STAFF_URL, staffUrl } from '../config/api.config';
 import type { StaffMember, StaffRole } from '../models';
 import type { CurrentUser } from '../models/api';
-import { mockError, mockResponse } from '../utils/mock-response';
+import { toHttpParams } from '../utils/http-params';
+import { AuthService } from './auth.service';
 
+/**
+ * Staff directory backed by `GET /staff` plus the signed-in user from `AuthService`.
+ *
+ * The unfiltered list is cached in a signal (`load()`); filtered queries hit the API and
+ * their results are merged into the lookup used by `nameOf()`. `nameOf()` is synchronous
+ * and, while nothing is cached and the user is signed in, triggers one background load
+ * (never retried after a failure, e.g. 403 without `staff:read`).
+ */
 @Injectable({ providedIn: 'root' })
 export class StaffService {
-  private readonly latency = inject(MOCK_LATENCY_MS);
-  private readonly staff: StaffMember[] = structuredClone(STAFF);
-
+  private readonly http = inject(HttpClient);
   private readonly auth = inject(AuthService);
-  private readonly fallbackUser: CurrentUser =
-    this.staff.find((s) => s.id === 'stf-001') ?? this.staff[0];
+
+  private readonly cache = signal<StaffMember[] | null>(null);
+  private readonly known = signal<ReadonlyMap<string, StaffMember>>(new Map());
+  private inflight: Observable<StaffMember[]> | undefined;
+  private loadFailed = false;
 
   /**
-   * The signed-in user (from `AuthService`). Falls back to the mock "lek. Anna Nowak"
-   * (stf-001) only when no session exists -- routes are guarded, so this happens in
-   * unit tests and never in the running app. Mock services key their data by mock ids.
+   * The signed-in user from `AuthService`. Routes are guarded, so a session exists whenever
+   * this is read; the last known user is kept while the session is being torn down on logout
+   * (avoids a throw during the final change detection), and reading it before any sign-in throws.
    */
-  readonly currentUser: Signal<CurrentUser> = computed(
-    () => this.auth.currentUser() ?? this.fallbackUser,
-  );
+  readonly currentUser: Signal<CurrentUser> = computed(() => {
+    const user = this.auth.currentUser() ?? this.lastUser;
+    if (!user) throw new Error('Brak zalogowanego użytkownika');
+    this.lastUser = user;
+    return user;
+  });
+  private lastUser: CurrentUser | null = null;
 
-  getStaff(role?: StaffRole): Observable<StaffMember[]> {
-    const result = role ? this.staff.filter((s) => s.role === role) : this.staff;
-    return mockResponse(result, this.latency);
+  /** Cached staff (empty until loaded). */
+  readonly staff = computed(() => this.cache() ?? []);
+
+  /** Emits the cached full list, fetching it first when missing (or when `force`). */
+  load(force = false): Observable<StaffMember[]> {
+    const cached = this.cache();
+    if (cached && !force) return of(cached);
+    this.inflight ??= this.http.get<StaffMember[]>(STAFF_URL).pipe(
+      tap({
+        next: (staff) => {
+          this.cache.set(staff);
+          this.remember(staff);
+        },
+        error: () => (this.loadFailed = true),
+      }),
+      finalize(() => (this.inflight = undefined)),
+      shareReplay({ bufferSize: 1, refCount: false }),
+    );
+    return this.inflight;
+  }
+
+  /** Staff filtered by role and/or ward; unfiltered calls use the cache. */
+  getStaff(role?: StaffRole, wardId?: string): Observable<StaffMember[]> {
+    if (!role && !wardId) return this.load();
+    return this.http
+      .get<StaffMember[]>(STAFF_URL, { params: toHttpParams({ role, wardId }) })
+      .pipe(tap((staff) => this.remember(staff)));
   }
 
   getById(id: string): Observable<StaffMember> {
-    const found = this.staff.find((s) => s.id === id);
-    if (!found) return mockError(`Nie znaleziono pracownika o id ${id}`, this.latency);
-    return mockResponse(found, this.latency);
+    return this.http.get<StaffMember>(staffUrl(id)).pipe(tap((member) => this.remember([member])));
   }
 
-  /** Synchronous lookup from the in-memory cache, used by `staff-name.pipe`. */
+  /** Synchronous lookup for pipes/templates; falls back to the id. */
   nameOf(id: string): string {
-    const s = this.staff.find((m) => m.id === id);
+    if (this.cache() === null && !this.loadFailed && this.auth.isAuthenticated())
+      this.load().subscribe({ error: () => undefined });
+    const s = this.known().get(id);
     return s ? `${s.title} ${s.firstName} ${s.lastName}` : id;
+  }
+
+  /** Drops cached data (e.g. on logout). */
+  clear(): void {
+    this.cache.set(null);
+    this.known.set(new Map());
+    this.loadFailed = false;
+    this.lastUser = null;
+  }
+
+  private remember(staff: StaffMember[]): void {
+    this.known.update((m) => new Map([...m, ...staff.map((s) => [s.id, s] as const)]));
   }
 }

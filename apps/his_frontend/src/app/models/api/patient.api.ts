@@ -10,8 +10,15 @@ import type {
 
 export type PatientCreateRequest = PatientDraft;
 
-export type PatientUpdateRequest = Partial<PatientDraft> & Versioned;
+/**
+ * PATCH body: an absent field is left unchanged, `null` clears it, nested objects are replaced.
+ * `version` is the patient version for optimistic locking (409 on mismatch).
+ */
+export type PatientUpdateRequest = {
+  [K in keyof PatientDraft]?: PatientDraft[K] | null;
+} & Versioned;
 
+/** Filters of `GET /patients`; the service handles paging. */
 export interface PatientSearchQuery {
   term?: string;
   status?: AdmissionStatus;
@@ -38,8 +45,14 @@ export interface DischargePatientRequest {
   version?: number;
 }
 
-/** Optional discharge details (client-side call shape; subset of `DischargePatientRequest`). */
-export type DischargeOptions = Pick<DischargePatientRequest, 'disposition' | 'summaryNoteId'>;
+/**
+ * Optional discharge details (client-side call shape; subset of `DischargePatientRequest`).
+ * `version` is the version of the active admission (`currentAdmission.version`), not the patient's.
+ */
+export type DischargeOptions = Pick<
+  DischargePatientRequest,
+  'disposition' | 'summaryNoteId' | 'version'
+>;
 
 export interface AdmissionQuery {
   patientId?: ID;

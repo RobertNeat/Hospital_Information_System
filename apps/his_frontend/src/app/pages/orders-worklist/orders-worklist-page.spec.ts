@@ -1,3 +1,7 @@
+import { labOrderServiceStub } from '../../testing/lab-order-service.stub';
+import { patientServiceStub } from '../../testing/patient-service.stub';
+import { ehrServiceStub } from '../../testing/ehr-service.stub';
+import { wardServiceStub } from '../../testing/ward-service.stub';
 import { describe, expect, it, beforeEach } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
@@ -8,7 +12,15 @@ import { OrdersWorklistPage } from './orders-worklist-page';
 describe('OrdersWorklistPage', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [provideRouter([]), MessageService, { provide: MOCK_LATENCY_MS, useValue: 0 }],
+      providers: [
+        patientServiceStub,
+        ehrServiceStub,
+        wardServiceStub,
+        provideRouter([]),
+        MessageService,
+        labOrderServiceStub,
+        { provide: MOCK_LATENCY_MS, useValue: 0 },
+      ],
     });
   });
 

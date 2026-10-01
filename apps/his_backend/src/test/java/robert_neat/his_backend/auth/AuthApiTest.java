@@ -433,4 +433,15 @@ class AuthApiTest extends ApiIntegrationTest {
         assertThat(hash).startsWith("$2a$10$");
         assertThat(new BCryptPasswordEncoder().matches("admin", hash)).isTrue();
     }
+
+    @Test
+    void registrationWardsArePublicAndMinimal() throws Exception {
+        mvc.perform(get("/api/v1/auth/register/wards").header(HttpHeaders.AUTHORIZATION, "Bearer to.nie.jest.token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").exists())
+                .andExpect(jsonPath("$[0].name").exists())
+                .andExpect(jsonPath("$[0].beds").doesNotExist())
+                .andExpect(jsonPath("$[0].floor").doesNotExist());
+        mvc.perform(post("/api/v1/auth/register/wards")).andExpect(status().isUnauthorized());
+    }
 }

@@ -1,3 +1,5 @@
+import { prescriptionServiceStub } from '../../testing/prescription-service.stub';
+import { staffServiceStub } from '../../testing/staff-service.stub';
 import { describe, expect, it, beforeEach } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
@@ -7,7 +9,12 @@ import { PrescriptionsListPage } from './prescriptions-list-page';
 describe('PrescriptionsListPage', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [provideRouter([]), { provide: MOCK_LATENCY_MS, useValue: 0 }],
+      providers: [
+        staffServiceStub,
+        prescriptionServiceStub,
+        provideRouter([]),
+        { provide: MOCK_LATENCY_MS, useValue: 0 },
+      ],
     });
   });
 

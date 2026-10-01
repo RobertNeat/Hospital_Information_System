@@ -58,6 +58,10 @@ a `REGISTRY`/`IMAGE_TAG` domyślnie `local`/`dev`; zgodność defaultów z
 - Healthchecki: postgres `pg_isready`; backend i `e-*` `curl -fsS .../actuator/health/readiness`
   (`curl` doinstalowany w runtime `spring.Dockerfile`); frontend `wget` (busybox w nginx:alpine).
   Backend zależy tylko od `postgres: service_healthy` (nie od `e-*` ani Snowstorma).
+- Integracja FHIR recept: `his-backend` wysyła recepty `e_prescription` do `http://e-receipt:10421/fhir`,
+  a `e-receipt` odsyła zmianę stanu na `http://his-backend:10420/fhir` z nagłówkiem klucza usługowego
+  (`HIS_FHIR_SERVICE_KEY`, ta sama wartość po obu stronach; docelowo mTLS). Przełączniki
+  `HIS_ERECEIPT_ENABLED` i `ERECEIPT_HIS_ENABLED` (domyślnie `false`) ustawić w `config.env`.
 - `deploy/compose.dev.yml` - nakładka lokalna (tylko różnice deweloperskie: `build:` z tymi
   samymi build-args co `create_docker_image.sh`, porty na `127.0.0.1`, postgres na `127.0.0.1:5432`,
   Snowstorm na `127.0.0.1:8080`); `deploy/local.env` - lokalne wartości (bez sekretów).
@@ -79,7 +83,8 @@ Zmienne do ręcznego dopisania w zdalnym `config.env` (istniejący plik nie jest
 `HIS_JWT_SECRET` (WYMAGANE, min. 32 bajty - backend bez niego nie wystartuje; compose przekazuje
 je jako `${HIS_JWT_SECRET:-}`), opcjonalnie `HIS_JWT_TTL`, `HIS_JWT_ISSUER`,
 `HIS_LOCKOUT_MAX_ATTEMPTS`, `HIS_LOCKOUT_DURATION`, `HIS_CORS_ALLOWED_ORIGINS`,
-`HIS_WS_ALLOWED_ORIGINS`, `HIS_LIQUIBASE_CONTEXTS`, `HIS_SNOWSTORM_*`, `COMPOSE_PROFILES=terminology`
+`HIS_WS_ALLOWED_ORIGINS`, `HIS_LIQUIBASE_CONTEXTS`, `HIS_SNOWSTORM_*`, `HIS_FHIR_SERVICE_KEY`,
+`HIS_ERECEIPT_ENABLED`, `ERECEIPT_HIS_ENABLED`, `COMPOSE_PROFILES=terminology`
 (wzór: `.env.example`).
 
 ## PostgreSQL

@@ -27,7 +27,8 @@ import robert_neat.his_backend.common.persistence.VersionedEntity;
 
 /**
  * Recepta / zlecenie szpitalne (`prescription`). Zapisany status zmienia sie wylacznie przez {@link #cancel}
- * (realizacje - `dispensed`/`partially_dispensed` - ustawi e-recepta/apteka, poza ta iteracja).
+ * (oraz {@link #applyExternalStatus} wywolywane przez integracje e-receipt: realizacja `dispensed`/`partially_dispensed`,
+ * `expired`, anulowanie).
  * <p>
  * Wygasniecie NIE jest zapisywane: {@link #effectiveStatus(LocalDate)} wylicza `expired` przy odczycie, gdy zapisany
  * status jest "zywy" (`issued`/`partially_dispensed`), a `validUntil` minelo. Zapisany `expired` (np. dane mock)
@@ -72,9 +73,12 @@ public class Prescription extends VersionedEntity {
     @Column(name = "access_code", nullable = false, updatable = false, length = 4)
     private String accessCode;
 
-    /** Kolumna `char(44)`: lokalny klucz e-recepty (patrz {@link PrescriptionCodeGenerator}). */
+    /**
+     * Kolumna `char(44)`: lokalny klucz e-recepty ({@link PrescriptionCodeGenerator}), po wystawieniu podmieniany
+     * kluczem z e-receipt przez {@code PrescriptionRepository#updateERxKey} (bez zmiany `version`).
+     */
     @JdbcTypeCode(SqlTypes.CHAR)
-    @Column(name = "erx_key", nullable = false, updatable = false, length = 44)
+    @Column(name = "erx_key", nullable = false, length = 44)
     private String eRxKey;
 
     @Column(name = "notes", columnDefinition = "text")
@@ -120,6 +124,15 @@ public class Prescription extends VersionedEntity {
     /** Status widoczny dla klienta: zapisany, chyba ze "zywa" recepta po terminie - wtedy `expired`. */
     public PrescriptionStatus effectiveStatus(LocalDate today) {
         return status.isOpen() && validUntil.isBefore(today) ? PrescriptionStatus.EXPIRED : status;
+    }
+
+    /** Zmiana stanu zainicjowana przez e-receipt (poprawnosc przejscia sprawdza wywolujacy serwis). */
+    public void applyExternalStatus(PrescriptionStatus target, Instant at, String reason) {
+        this.status = target;
+        if (target == PrescriptionStatus.CANCELLED) {
+            this.cancelledAt = at;
+            this.cancelReason = reason;
+        }
     }
 
     /** Anulowanie (poprawnosc przejscia sprawdza serwis). */

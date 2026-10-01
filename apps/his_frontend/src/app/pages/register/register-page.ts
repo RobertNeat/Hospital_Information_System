@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { catchError, of } from 'rxjs';
 import { MessageService } from 'primeng/api';
 import { ButtonDirective } from 'primeng/button';
 import { Checkbox } from 'primeng/checkbox';
@@ -49,7 +50,19 @@ export class RegisterPage {
   protected readonly roleOptions = STAFF_ROLE_OPTIONS;
   protected readonly titleOptions = ACADEMIC_TITLE_OPTIONS;
   protected readonly specializationOptions = SPECIALIZATION_OPTIONS;
-  protected readonly wards = toSignal(inject(WardService).getWards(), { initialValue: [] });
+  protected readonly wardsError = signal(false);
+  // The ward list may be unavailable before sign-in (401/403): keep the select empty and warn.
+  protected readonly wards = toSignal(
+    inject(WardService)
+      .getWards()
+      .pipe(
+        catchError(() => {
+          this.wardsError.set(true);
+          return of([]);
+        }),
+      ),
+    { initialValue: [] },
+  );
 
   protected readonly form = inject(FormBuilder).nonNullable.group(
     {

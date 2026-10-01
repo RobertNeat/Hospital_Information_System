@@ -661,4 +661,30 @@ class EhrApiTest extends ApiIntegrationTest {
     private static String allergyJson() {
         return "{\"substance\":\"Pyłki\",\"category\":\"environment\",\"reaction\":\"Katar\",\"severity\":\"mild\"}";
     }
+
+    @Test
+    void singleResourcesBehindLocationHeaderAreReadable() throws Exception {
+        String noteId = JsonPath.read(mvcPost("doctor", "/api/v1/patients/" + KOWALSKI + "/clinical-notes",
+                noteJson("progress")).andReturn().getResponse().getContentAsString(), "$.id");
+        read("doctor", KOWALSKI, "clinical-notes/" + noteId).andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(noteId)).andExpect(jsonPath("$.patientId").value(KOWALSKI));
+        // notatka innego pacjenta, nieznane id i zly format -> 404; rola bez pelnego odczytu -> 403
+        read("doctor", WISNIEWSKA, "clinical-notes/" + noteId).andExpect(status().isNotFound());
+        read("doctor", KOWALSKI, "clinical-notes/" + UUID.randomUUID()).andExpect(status().isNotFound());
+        read("doctor", KOWALSKI, "clinical-notes/zly").andExpect(status().isNotFound());
+        read("pharmacist", KOWALSKI, "clinical-notes/" + noteId).andExpect(status().isForbidden());
+
+        String diagnosisId = JsonPath.read(read("doctor", KOWALSKI, "diagnoses").andReturn().getResponse()
+                .getContentAsString(), "$[0].id");
+        read("pharmacist", KOWALSKI, "diagnoses/" + diagnosisId).andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(diagnosisId));
+        read("doctor", WISNIEWSKA, "diagnoses/" + diagnosisId).andExpect(status().isNotFound());
+
+        String allergyId = JsonPath.read(read("doctor", KOWALSKI, "allergies").andReturn().getResponse()
+                .getContentAsString(), "$[0].id");
+        read("pharmacist", KOWALSKI, "allergies/" + allergyId).andExpect(status().isOk())
+                .andExpect(jsonPath("$.substance").value("Penicylina"));
+        read("doctor", WISNIEWSKA, "allergies/" + allergyId).andExpect(status().isNotFound());
+        read("registrar", KOWALSKI, "allergies/" + allergyId).andExpect(status().isForbidden());
+    }
 }

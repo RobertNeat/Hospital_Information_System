@@ -45,8 +45,8 @@ export function computeDailyDose(input: DailyDoseInput): number | null {
 /**
  * Warns when the computed daily dose exceeds `drug.maxDailyDose`, ONLY when the dose unit
  * matches the max-dose unit exactly (mixed units, e.g. mg vs mcg, are not converted).
- * `DrugService.checkSafety` deliberately does not perform this check (no dosage context) --
- * see ADDENDUM D.6 -- so this client-side computation is the only place it happens.
+ * Instant UI hint while editing the dosage; the backend repeats the check (`max_dose`) in
+ * `POST /drug-safety-checks` when the dosage is sent.
  */
 export function exceedsMaxDailyDose(
   dailyDose: number | null,

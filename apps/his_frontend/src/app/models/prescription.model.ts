@@ -66,11 +66,16 @@ export interface Prescription extends Versioned, Partial<Auditable> {
   validUntil: ISODate;
   kind: PrescriptionKind;
   items: PrescriptionItem[];
+  /** Effective status: `expired` is derived by the backend from `validUntil` on read. */
   status: PrescriptionStatus;
   /** 4 digits. Assigned by the backend; the client does not send it. */
   accessCode: string;
-  /** Mock 44-character key. Assigned by the backend; the client does not send it. */
-  eRxKey: string;
+  /**
+   * 44-character key assigned by the backend; the client does not send it. For `e_prescription`
+   * the e-receipt key may replace the initial local one after issuing, so re-read the
+   * prescription instead of treating the key from the issue response as final.
+   */
+  eRxKey?: string;
   notes?: string;
   cancelledAt?: ISODateTime;
   cancelReason?: string;

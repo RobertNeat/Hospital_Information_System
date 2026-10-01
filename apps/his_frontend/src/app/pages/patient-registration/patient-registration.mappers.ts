@@ -10,7 +10,8 @@ import {
   NO_PESEL_REASON_LABELS,
   TRIAGE_LABELS,
 } from '../../constants/labels';
-import type { AdmissionStatus, AdmitPatientRequest, Patient, PatientDraft } from '../../models';
+import type { AdmitPatientRequest, Patient, PatientDraft } from '../../models';
+import type { PatientUpdateRequest } from '../../models/api';
 import {
   toIsoDate,
   type AdmissionForm,
@@ -121,14 +122,7 @@ export function buildSummarySections(input: SummaryInput): RegistrationSummarySe
 }
 
 /** Maps the raw step-form values to the patient payload sent to the API. */
-export function buildPatientDraft({ s1, s2, s3, s4, mode, original }: DraftInput): PatientDraft {
-  const status: AdmissionStatus =
-    mode === 'edit'
-      ? (original?.status ?? 'registered')
-      : s4.admissionType === 'outpatient'
-        ? 'outpatient'
-        : 'registered';
-
+export function buildPatientDraft({ s1, s2, s3, original }: DraftInput): PatientDraft {
   return {
     pesel: s1.noPesel ? null : s1.pesel || null,
     noPeselReason: s1.noPesel ? (s1.noPeselReason ?? undefined) : undefined,
@@ -166,10 +160,29 @@ export function buildPatientDraft({ s1, s2, s3, s4, mode, original }: DraftInput
       ewusVerifiedAt: s3.ewusVerifiedAt ?? undefined,
     },
     bloodType: (s3.bloodType as PatientDraft['bloodType']) ?? undefined,
-    status,
-    currentAdmission: original?.currentAdmission,
     flags: original?.flags ?? [],
   };
+}
+
+/** Optional fields the edit form can empty; PATCH clears them only when sent as `null`. */
+const CLEARABLE_FIELDS = [
+  'noPeselReason',
+  'identityDocument',
+  'secondName',
+  'phone',
+  'email',
+  'emergencyContact',
+  'bloodType',
+] as const;
+
+/** PATCH payload for edit mode: emptied optional fields as `null`, plus the loaded `version`. */
+export function buildPatientUpdate(input: DraftInput): PatientUpdateRequest {
+  const draft = buildPatientDraft(input);
+  const update: PatientUpdateRequest = { ...draft, version: input.original?.version };
+  for (const key of CLEARABLE_FIELDS) {
+    update[key] ??= null;
+  }
+  return update;
 }
 
 export function buildAdmission(s4: RegistrationValues['s4']): AdmitPatientRequest {

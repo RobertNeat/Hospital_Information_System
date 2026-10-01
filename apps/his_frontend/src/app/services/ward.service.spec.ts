@@ -1,28 +1,104 @@
-import { describe, expect, it, beforeEach } from 'vitest';
+import { describe, expect, it, beforeEach, afterEach } from 'vitest';
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { firstValueFrom } from 'rxjs';
-import { MOCK_LATENCY_MS } from '../config/mock-api.config';
+import { WARDS_URL } from '../config/api.config';
+import type { Ward } from '../models';
+import { AuthService } from './auth.service';
 import { WardService } from './ward.service';
+
+const SOR: Ward = {
+  id: 'w-1',
+  name: 'Szpitalny Oddział Ratunkowy',
+  shortName: 'SOR',
+  floor: '0',
+  beds: 10,
+};
+const INT: Ward = { id: 'w-2', name: 'Interna', shortName: 'INT', floor: '2', beds: 20 };
 
 describe('WardService', () => {
   let service: WardService;
+  let http: HttpTestingController;
+  let authenticated: boolean;
 
   beforeEach(() => {
-    TestBed.configureTestingModule({ providers: [{ provide: MOCK_LATENCY_MS, useValue: 0 }] });
+    authenticated = false;
+    TestBed.configureTestingModule({
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: AuthService, useValue: { isAuthenticated: () => authenticated } },
+      ],
+    });
     service = TestBed.inject(WardService);
+    http = TestBed.inject(HttpTestingController);
   });
 
-  it('returns all wards', async () => {
-    const wards = await firstValueFrom(service.getWards());
-    expect(wards.length).toBeGreaterThan(0);
-    expect(wards.some((w) => w.shortName === 'SOR')).toBe(true);
+  afterEach(() => http.verify());
+
+  it('GETs wards, fills the cache and reuses it', async () => {
+    const first = firstValueFrom(service.getWards());
+    http.expectOne({ method: 'GET', url: WARDS_URL }).flush([SOR, INT]);
+    expect(await first).toEqual([SOR, INT]);
+
+    expect(await firstValueFrom(service.getWards())).toEqual([SOR, INT]);
+    http.expectNone(WARDS_URL);
   });
 
-  it('nameOf resolves a known ward id synchronously', () => {
-    expect(service.nameOf('ward-sor')).toContain('Ratunkowy');
+  it('shares one in-flight request between concurrent callers', () => {
+    service.load().subscribe();
+    service.load().subscribe();
+    http.expectOne(WARDS_URL).flush([SOR]);
+  });
+
+  it('load(true) refetches', () => {
+    service.load().subscribe();
+    http.expectOne(WARDS_URL).flush([SOR]);
+    service.load(true).subscribe();
+    http.expectOne(WARDS_URL).flush([SOR, INT]);
+    expect(service.wards()).toHaveLength(2);
+  });
+
+  it('nameOf resolves a loaded ward id synchronously', () => {
+    service.load().subscribe();
+    http.expectOne(WARDS_URL).flush([SOR, INT]);
+    expect(service.nameOf('w-1')).toContain('Ratunkowy');
   });
 
   it('nameOf falls back to the id for an unknown ward', () => {
-    expect(service.nameOf('ward-unknown')).toBe('ward-unknown');
+    service.load().subscribe();
+    http.expectOne(WARDS_URL).flush([SOR]);
+    expect(service.nameOf('w-unknown')).toBe('w-unknown');
+  });
+
+  it('nameOf does not call the API when signed out', () => {
+    expect(service.nameOf('w-1')).toBe('w-1');
+    http.expectNone(WARDS_URL);
+  });
+
+  it('nameOf lazily loads the cache once when signed in', () => {
+    authenticated = true;
+    expect(service.nameOf('w-2')).toBe('w-2');
+    expect(service.nameOf('w-2')).toBe('w-2');
+    http.expectOne(WARDS_URL).flush([SOR, INT]);
+    expect(service.nameOf('w-2')).toBe('Interna');
+  });
+
+  it('nameOf does not retry after a failed lazy load', () => {
+    authenticated = true;
+    service.nameOf('w-1');
+    http.expectOne(WARDS_URL).flush(null, { status: 403, statusText: 'Forbidden' });
+    service.nameOf('w-1');
+    http.expectNone(WARDS_URL);
+  });
+
+  it('clear() empties the cache so the next load refetches', () => {
+    service.load().subscribe();
+    http.expectOne(WARDS_URL).flush([SOR]);
+    service.clear();
+    expect(service.wards()).toEqual([]);
+    service.load().subscribe();
+    http.expectOne(WARDS_URL).flush([SOR]);
   });
 });

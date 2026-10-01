@@ -1,6 +1,6 @@
 # REST API - indeks i zasady wspólne
 
-Indeks 82 endpointów REST `his_backend` (liczba zweryfikowana grepem po `@GetMapping`/`@PostMapping`/`@PatchMapping`; brak `PUT` i `DELETE`) oraz zasady czytania podplików. Powrót: [README.md](README.md).
+Indeks 82 endpointów REST `his_backend` (liczba zweryfikowana grepem po `@GetMapping`/`@PostMapping`/`@PatchMapping`; w `/api/v1` brak `PUT` i `DELETE`; `PUT` istnieje tylko w `/fhir`, patrz [rest-api-fhir.md](rest-api-fhir.md)) oraz zasady czytania podplików. Powrót: [README.md](README.md).
 
 ## Zasady czytania
 
@@ -16,7 +16,7 @@ Indeks 82 endpointów REST `his_backend` (liczba zweryfikowana grepem po `@GetMa
 
 | Plik | Endpointy |
 | --- | --- |
-| [rest-api-auth-staff.md](rest-api-auth-staff.md) | `/auth/*` (4), `/staff` (4), `/wards` (1), `/dashboard/stats` (1) |
+| [rest-api-auth-staff.md](rest-api-auth-staff.md) | `/auth/*` (5), `/staff` (4), `/wards` (1), `/dashboard/stats` (1) |
 | [rest-api-patient.md](rest-api-patient.md) | `/patients*` (8) |
 | [rest-api-ehr.md](rest-api-ehr.md) | `/patients/{id}/...` EHR (11), `/dictionaries/icd-10` (1) |
 | [rest-api-lab.md](rest-api-lab.md) | katalog (2), zlecenia (5), wyniki (6) |
@@ -25,6 +25,7 @@ Indeks 82 endpointów REST `his_backend` (liczba zweryfikowana grepem po `@GetMa
 | [rest-api-vitals.md](rest-api-vitals.md) | odczyty (3), `ward-overview` (1), `/vital-thresholds` (1) |
 | [rest-api-messaging.md](rest-api-messaging.md) | wątki (6), zadania (3), przekazania (2), alerty (2) |
 | [terminology-snomed.md](terminology-snomed.md) | `/terminology/snomed/*` (2) |
+| [rest-api-fhir.md](rest-api-fhir.md) | `/fhir/MedicationRequest/{id}` (GET, PUT; poza `/api/v1`, klucz usługowy; nie wliczone do 82) |
 
 ## Pełna lista
 
@@ -34,6 +35,7 @@ Indeks 82 endpointów REST `his_backend` (liczba zweryfikowana grepem po `@GetMa
 | POST | `/auth/logout` | uwierz. | auth-staff |
 | GET | `/auth/me` | uwierz. | auth-staff |
 | POST | `/auth/register` | publiczny | auth-staff |
+| GET | `/auth/register/wards` | publiczny | auth-staff |
 | GET | `/staff` | `staff:read` | auth-staff |
 | GET | `/staff/{staffId}` | `staff:read` | auth-staff |
 | POST | `/staff/{staffId}/activate` | `account:manage` | auth-staff |

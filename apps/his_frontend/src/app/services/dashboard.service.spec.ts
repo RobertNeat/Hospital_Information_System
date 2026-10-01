@@ -1,3 +1,9 @@
+import { labOrderServiceStub } from '../testing/lab-order-service.stub';
+import { labResultServiceStub } from '../testing/lab-result-service.stub';
+import { patientServiceStub } from '../testing/patient-service.stub';
+import { ehrServiceStub } from '../testing/ehr-service.stub';
+import { wardServiceStub } from '../testing/ward-service.stub';
+import { staffServiceStub } from '../testing/staff-service.stub';
 import { describe, expect, it, beforeEach } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { firstValueFrom } from 'rxjs';
@@ -10,7 +16,17 @@ describe('DashboardService', () => {
   let service: DashboardService;
 
   beforeEach(() => {
-    TestBed.configureTestingModule({ providers: [{ provide: MOCK_LATENCY_MS, useValue: 0 }] });
+    TestBed.configureTestingModule({
+      providers: [
+        patientServiceStub,
+        ehrServiceStub,
+        wardServiceStub,
+        staffServiceStub,
+        labOrderServiceStub,
+        labResultServiceStub,
+        { provide: MOCK_LATENCY_MS, useValue: 0 },
+      ],
+    });
     service = TestBed.inject(DashboardService);
   });
 

@@ -50,6 +50,12 @@
                   Sprawdzanie bezpieczeństwa...
                 </p>
               } @else {
+                @if (safetyCheckFailed()) {
+                  <p-message id="prescription-wizard-p-message-check-failed" severity="warn">
+                    Nie udało się sprawdzić bezpieczeństwa leku. Zweryfikuj interakcje i alergie
+                    samodzielnie.
+                  </p-message>
+                }
                 @for (warning of safetyWarnings(); track warning.message; let idx0 = $index) {
                   <p-message
                     [id]="'prescription-wizard-p-message-' + idx0"

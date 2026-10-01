@@ -4,7 +4,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { MessageService } from 'primeng/api';
-import { AUTH_REGISTER_URL } from '../../config/api.config';
+import { AUTH_REGISTER_URL, WARDS_URL } from '../../config/api.config';
 import { authInterceptor } from '../../interceptors/auth.interceptor';
 import { errorInterceptor } from '../../interceptors/error.interceptor';
 import { RegisterPage } from './register-page';
@@ -56,6 +56,16 @@ describe('RegisterPage', () => {
 
   const page = () =>
     TestBed.createComponent(RegisterPage).componentInstance as unknown as Internals;
+
+  it('shows a message and an empty select when wards cannot be loaded (401)', () => {
+    const fixture = TestBed.createComponent(RegisterPage);
+    http.expectOne(WARDS_URL).flush(null, { status: 401, statusText: 'Unauthorized' });
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('#register-ward-error')).not.toBeNull();
+    expect((fixture.componentInstance as unknown as { wards(): unknown[] }).wards()).toEqual([]);
+    http.expectNone(WARDS_URL);
+  });
 
   it('flags mismatching passwords', () => {
     const p = page();

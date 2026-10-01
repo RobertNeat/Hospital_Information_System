@@ -1,100 +1,34 @@
+import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { forkJoin, map } from 'rxjs';
 import type { Observable } from 'rxjs';
-import { MOCK_LATENCY_MS } from '../config/mock-api.config';
-import { DRUGS } from '../mock-data/drugs.mock';
+import { DRUG_SAFETY_CHECKS_URL, DRUGS_URL, drugUrl } from '../config/api.config';
 import type { Drug, DrugSafetyWarning, ID } from '../models';
-import { mockError, mockResponse } from '../utils/mock-response';
-import { EhrService } from './ehr.service';
-import { PrescriptionService } from './prescription.service';
+import type { DrugSafetyCheckRequest, DrugSafetyItemRequest } from '../models/api';
+import { toHttpParams } from '../utils/http-params';
 
-function normalize(s: string): string {
-  return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-}
-
+/**
+ * Drug catalog (`/drugs`, read-only, max 50 results) and the backend safety check. Searching
+ * needs `drug:read`; the safety check is restricted to doctors (403 otherwise).
+ */
 @Injectable({ providedIn: 'root' })
 export class DrugService {
-  private readonly latency = inject(MOCK_LATENCY_MS);
-  private readonly ehrService = inject(EhrService);
-  private readonly prescriptionService = inject(PrescriptionService);
-  private readonly drugs: Drug[] = structuredClone(DRUGS);
+  private readonly http = inject(HttpClient);
 
-  /** Matches trade name, active substance and ATC code. */
+  /** Server-side match of trade name, active substance and ATC code (every token must match). */
   search(term: string): Observable<Drug[]> {
-    const t = normalize(term);
-    const result = t
-      ? this.drugs.filter(
-          (d) =>
-            normalize(d.name).includes(t) ||
-            normalize(d.activeSubstance).includes(t) ||
-            normalize(d.atcCode).includes(t),
-        )
-      : this.drugs;
-    return mockResponse(result, this.latency);
+    return this.http.get<Drug[]>(DRUGS_URL, { params: toHttpParams({ term: term.trim() }) });
   }
 
   getById(id: ID): Observable<Drug> {
-    const found = this.drugs.find((d) => d.id === id);
-    if (!found) return mockError(`Nie znaleziono leku o id ${id}`, this.latency);
-    return mockResponse(found, this.latency);
+    return this.http.get<Drug>(drugUrl(id));
   }
 
-  // mock-only: backend authoritative (POST /drug-safety-checks)
-  /** Checks a drug against the patient's allergies, active prescriptions and max daily dose. */
-  checkSafety(drug: Drug, patientId: ID): Observable<DrugSafetyWarning[]> {
-    return forkJoin({
-      allergies: this.ehrService.getAllergies(patientId),
-      activeMedications: this.prescriptionService.getActiveMedications(patientId),
-    }).pipe(
-      map(({ allergies, activeMedications }) => {
-        const warnings: DrugSafetyWarning[] = [];
-
-        for (const allergy of allergies) {
-          const substanceMatch = normalize(allergy.substance) === normalize(drug.activeSubstance);
-          const atcMatch = (allergy.atcCodes ?? []).some((code) => drug.atcCode.startsWith(code));
-          if (substanceMatch || atcMatch) {
-            warnings.push({
-              type: 'allergy',
-              drugId: drug.id,
-              severity:
-                allergy.severity === 'life_threatening' || allergy.severity === 'severe'
-                  ? 'danger'
-                  : 'warn',
-              message: `Pacjent ma odnotowaną alergię na ${allergy.substance} (${allergy.reaction}).`,
-            });
-          }
-        }
-
-        const duplicateAtc = activeMedications.some(
-          (item) => item.drugId !== drug.id && item.activeSubstance === drug.activeSubstance,
-        );
-        if (duplicateAtc) {
-          warnings.push({
-            type: 'duplicate',
-            drugId: drug.id,
-            severity: 'warn',
-            message: `Pacjent ma już przepisany lek zawierający ${drug.activeSubstance}.`,
-          });
-        }
-
-        for (const item of activeMedications) {
-          if ((drug.interactsWithAtc ?? []).length === 0) continue;
-          const activeDrugAtc = this.drugs.find((d) => d.id === item.drugId)?.atcCode;
-          if (
-            activeDrugAtc &&
-            drug.interactsWithAtc?.some((code) => activeDrugAtc.startsWith(code))
-          ) {
-            warnings.push({
-              type: 'interaction',
-              drugId: item.drugId,
-              severity: 'warn',
-              message: `Możliwa interakcja z aktualnie przyjmowanym lekiem ${item.drugName}.`,
-            });
-          }
-        }
-
-        return warnings;
-      }),
-    );
+  /**
+   * Checks the whole working prescription (allergies, duplicates, interactions, max dose).
+   * Warnings are advisory and refer to the checked item by `drugId`; an empty list means none.
+   */
+  checkSafety(patientId: ID, items: DrugSafetyItemRequest[]): Observable<DrugSafetyWarning[]> {
+    const body: DrugSafetyCheckRequest = { patientId, items };
+    return this.http.post<DrugSafetyWarning[]>(DRUG_SAFETY_CHECKS_URL, body);
   }
 }

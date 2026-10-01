@@ -25,12 +25,12 @@
 
 ### Status efektywny
 
-`status` w odpowiedzi jest **efektywny**: zapisana recepta `issued` lub `partially_dispensed` z `validUntil` wcześniejszym niż dziś (UTC) jest zwracana jako `expired` (nic nie jest zapisywane). Filtr `status` działa na statusie efektywnym: `expired` obejmuje także takie "żywe" recepty po terminie, a `issued`/`partially_dispensed` tylko te, których termin nie minął. Zapisane `dispensed`, `cancelled`, `expired` są końcowe. Backend nie ma endpointu realizacji (`dispensed`/`partially_dispensed` pochodzą z mocków).
+`status` w odpowiedzi jest **efektywny**: zapisana recepta `issued` lub `partially_dispensed` z `validUntil` wcześniejszym niż dziś (UTC) jest zwracana jako `expired` (nic nie jest zapisywane). Filtr `status` działa na statusie efektywnym: `expired` obejmuje także takie "żywe" recepty po terminie, a `issued`/`partially_dispensed` tylko te, których termin nie minął. Zapisane `dispensed`, `cancelled`, `expired` są końcowe. REST `/api/v1` nie ma endpointu realizacji: `partially_dispensed`/`dispensed`/`expired` ustawia e-receipt przez `PUT /fhir/MedicationRequest/{id}` ([rest-api-fhir.md](rest-api-fhir.md)) albo pochodzą z mocków.
 
 ### Wystawienie
 
 - Aktor (`prescriberId`) z tokenu; status początkowy `issued`; `issuedAt` = teraz.
-- `accessCode` = 4 losowe cyfry (`SecureRandom`, niewymagana unikalność); `eRxKey` = **lokalny** losowy klucz 44 znaków `A-Z0-9` (nie jest to klucz e-recepty; ma go podmienić integracja e-receipt).
+- `accessCode` = 4 losowe cyfry (`SecureRandom`, niewymagana unikalność); `eRxKey` = **lokalny** losowy klucz 44 znaków `A-Z0-9`. Dla `kind = e_prescription`, gdy integracja z e-receipt jest włączona, po commicie klucz jest podmieniany kluczem z e-receipt (bez zmiany `version`; odpowiedź `201` ma jeszcze klucz lokalny, nowy widać przy kolejnym odczycie). `hospital_order` i recepty z niedostępnym e-receipt zachowują klucz lokalny ([rest-api-fhir.md](rest-api-fhir.md)).
 - Pozycje (`items[]`, min. 1): `drugId` musi istnieć (422 `items[i].drugId`/`notFound`); `dosage.route` musi być jedną z dróg podania leku (`items[i].dosage.route`/`notAllowed`); `reimbursement` musi być wśród opcji refundacji leku (`items[i].reimbursement`/`notAllowed`).
 - Snapshot z katalogu: `drugName`, `activeSubstance`, `strength`, `form` (z żądania ignorowane).
 - 422 także: `validUntil` przed `validFrom` (`beforeValidFrom`), `encounterId` nie należy do pacjenta, `patientId` niezgodny ze ścieżką.
@@ -40,7 +40,7 @@
 
 ### Anulowanie
 
-Dozwolone dla statusu efektywnego `issued`/`partially_dispensed`; `dispensed`, `cancelled`, `expired` (także wygasła wg terminu) lub niezgodne `version` -> 409. Ciało opcjonalne. Ustawia `cancelledAt`, `cancelReason` (puste -> `null`). Zdarzenie: `PrescriptionCancelled`.
+Dozwolone dla statusu efektywnego `issued`/`partially_dispensed`; `dispensed`, `cancelled`, `expired` (także wygasła wg terminu) lub niezgodne `version` -> 409. Ciało opcjonalne. Ustawia `cancelledAt`, `cancelReason` (puste -> `null`). Zdarzenie: `PrescriptionCancelled`; dla `e_prescription` stan jest przekazywany do e-receipt (best effort).
 
 ### Aktywne leki
 

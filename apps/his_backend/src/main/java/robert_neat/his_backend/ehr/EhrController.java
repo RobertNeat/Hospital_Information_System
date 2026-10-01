@@ -57,6 +57,24 @@ public class EhrController {
         return service.notes(patientId);
     }
 
+    @GetMapping("/clinical-notes/{noteId}")
+    @PreAuthorize(READ)
+    public ClinicalNoteResponse note(@PathVariable String patientId, @PathVariable String noteId) {
+        return service.note(patientId, noteId);
+    }
+
+    @GetMapping("/diagnoses/{diagnosisId}")
+    @PreAuthorize(READ_LIMITED)
+    public DiagnosisResponse diagnosis(@PathVariable String patientId, @PathVariable String diagnosisId) {
+        return service.diagnosis(patientId, diagnosisId);
+    }
+
+    @GetMapping("/allergies/{allergyId}")
+    @PreAuthorize(READ_LIMITED)
+    public AllergyResponse allergy(@PathVariable String patientId, @PathVariable String allergyId) {
+        return service.allergy(patientId, allergyId);
+    }
+
     /** Wymaga ktoregos z `ehr:note:write*`; dozwolona kategoria zalezy od roli (403 gdy niedozwolona). */
     @PostMapping("/clinical-notes")
     @PreAuthorize("hasAnyAuthority('ehr:note:write', 'ehr:note:write-nursing', 'ehr:note:write-consultation')")

@@ -52,6 +52,9 @@ import tools.jackson.databind.node.ObjectNode;
 @Transactional(readOnly = true)
 public class PatientService {
 
+    /** Powod domyslny przyjecia ambulatoryjnego bez podanego powodu (kolumny `reason` sa NOT NULL). */
+    private static final String OUTPATIENT_DEFAULT_REASON = "Wizyta ambulatoryjna";
+
     private static final SortWhitelist SORT = SortWhitelist.of(Sort.by("lastName", "firstName"),
             "lastName", "firstName", "birthDate", "mrn", "status", "createdAt");
 
@@ -140,7 +143,7 @@ public class PatientService {
             throw new ValidationFailedException(errors);
         }
         if (request.pesel() != null && patients.existsByPesel(request.pesel())) {
-            throw new ConflictException("Pacjent o podanym numerze PESEL juz istnieje");
+            throw peselConflict();
         }
         Patient saved = patients.saveAndFlush(Patient.register(nextMrn(), request));
         return PatientMapper.toResponse(saved, null);
@@ -171,7 +174,7 @@ public class PatientService {
             throw new ValidationFailedException(errors);
         }
         if (merged.pesel() != null && patients.existsByPeselAndIdNot(merged.pesel(), patient.getId())) {
-            throw new ConflictException("Pacjent o podanym numerze PESEL juz istnieje");
+            throw peselConflict();
         }
         patient.apply(merged);
         patients.saveAndFlush(patient);
@@ -186,23 +189,38 @@ public class PatientService {
         if (admissions.existsByPatientIdAndStatus(patient.getId(), AdmissionRecordStatus.ACTIVE)) {
             throw new ConflictException("Pacjent ma juz aktywne przyjecie");
         }
+        boolean outpatient = request.admissionType() == AdmissionType.OUTPATIENT;
         List<FieldError> errors = new ArrayList<>();
-        if (!wards.existsById(request.wardId())) {
+        if (request.wardId() == null) {
+            if (!outpatient) {
+                errors.add(new FieldError("wardId", "Oddzial jest wymagany", "required"));
+            }
+        } else if (!wards.existsById(request.wardId())) {
             errors.add(new FieldError("wardId", "Oddzial o podanym identyfikatorze nie istnieje", "notFound"));
         }
-        Optional<StaffMember> physician = staff.findById(request.attendingPhysicianId());
-        if (physician.isEmpty() || physician.get().getRole() != StaffRole.DOCTOR) {
-            errors.add(new FieldError("attendingPhysicianId",
-                    "Lekarz prowadzacy musi byc pracownikiem w roli doctor", "notFound"));
+        if (request.attendingPhysicianId() == null) {
+            if (!outpatient) {
+                errors.add(new FieldError("attendingPhysicianId", "Lekarz prowadzacy jest wymagany", "required"));
+            }
+        } else {
+            Optional<StaffMember> physician = staff.findById(request.attendingPhysicianId());
+            if (physician.isEmpty() || physician.get().getRole() != StaffRole.DOCTOR) {
+                errors.add(new FieldError("attendingPhysicianId",
+                        "Lekarz prowadzacy musi byc pracownikiem w roli doctor", "notFound"));
+            }
+        }
+        boolean noReason = request.reason() == null || request.reason().isBlank();
+        if (noReason && !outpatient) {
+            errors.add(new FieldError("reason", "Powod przyjecia jest wymagany", "required"));
         }
         if (!errors.isEmpty()) {
             throw new ValidationFailedException(errors);
         }
-        boolean outpatient = request.admissionType() == AdmissionType.OUTPATIENT;
+        String reason = noReason ? OUTPATIENT_DEFAULT_REASON : request.reason();
         Encounter encounter = encounters.saveAndFlush(Encounter.start(patient.getId(),
                 outpatient ? EncounterType.VISIT : EncounterType.HOSPITALIZATION, request.admittedAt(),
-                request.wardId(), request.attendingPhysicianId(), request.reason()));
-        Admission admission = admissions.saveAndFlush(Admission.open(patient.getId(), encounter.getId(), request));
+                request.wardId(), request.attendingPhysicianId(), reason));
+        Admission admission = admissions.saveAndFlush(Admission.open(patient.getId(), encounter.getId(), request, reason));
         patient.changeStatus(outpatient ? PatientStatus.OUTPATIENT : PatientStatus.ADMITTED);
         patients.saveAndFlush(patient);
         events.publishEvent(new PatientAdmitted(patient.getId(), admission.getId(), encounter.getId(),
@@ -247,6 +265,11 @@ public class PatientService {
     }
 
     // --- pomocnicze ---
+
+    private static ConflictException peselConflict() {
+        return new ConflictException("Pacjent o podanym numerze PESEL juz istnieje",
+                List.of(new FieldError("pesel", "Pacjent o podanym numerze PESEL juz istnieje", "duplicate")));
+    }
 
     /** `id` jest nieprzezroczysty dla klienta: niepoprawny format to po prostu "nie istnieje" (404). */
     private Patient require(String id) {

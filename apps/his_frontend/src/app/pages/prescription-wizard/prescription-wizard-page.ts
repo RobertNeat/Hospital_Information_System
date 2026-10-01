@@ -23,6 +23,7 @@ import type { HasUnsavedChanges } from '../../guards/unsaved-changes.guard';
 import type { Drug, Prescription, PrescriptionItem } from '../../models';
 import { PatientContextService } from '../../services/patient-context.service';
 import { PrescriptionService } from '../../services/prescription.service';
+import { toApiError } from '../../utils/api-error';
 import { StaffService } from '../../services/staff.service';
 import { tryAdvance } from '../../utils/wizard';
 import { createDrugSafetyState } from './prescription-wizard.safety';
@@ -93,10 +94,13 @@ export class PrescriptionWizardPage implements HasUnsavedChanges {
   // ---- step 1: drug selection + safety check ----
   protected readonly selectedDrug = signal<Drug | null>(null);
 
-  private readonly safety = createDrugSafetyState(this.selectedDrug, this.patientId);
+  protected readonly items = signal<PrescriptionItem[]>([]);
+
+  private readonly safety = createDrugSafetyState(this.selectedDrug, this.patientId, this.items);
   protected readonly safetyStep1Form = this.safety.form;
   protected readonly safetyWarnings = this.safety.warnings;
   protected readonly safetyLoading = this.safety.loading;
+  protected readonly safetyCheckFailed = this.safety.checkFailed;
   protected readonly hasAllergyDanger = this.safety.hasAllergyDanger;
 
   // ---- step 2: dosage ----
@@ -113,7 +117,6 @@ export class PrescriptionWizardPage implements HasUnsavedChanges {
     validFrom: this.fb.control<Date>(new Date(), Validators.required),
   });
 
-  protected readonly items = signal<PrescriptionItem[]>([]);
   protected readonly canAddMore = computed(() => this.items().length < MAX_ITEMS);
 
   protected readonly isLongTerm = computed(() => {
@@ -260,11 +263,12 @@ export class PrescriptionWizardPage implements HasUnsavedChanges {
         this.issuedPrescription.set(prescription);
         this.messageService.add({ severity: 'success', summary: 'e-Recepta wystawiona.' });
       },
-      error: () => {
+      error: (err: unknown) => {
         this.issuing.set(false);
         this.messageService.add({
           severity: 'error',
           summary: 'Nie udało się wystawić recepty.',
+          detail: toApiError(err).problem.detail,
         });
       },
     });

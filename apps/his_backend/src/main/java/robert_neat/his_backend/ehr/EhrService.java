@@ -105,6 +105,24 @@ public class EhrService {
         return notes.findByPatientIdOrderByCreatedAtDescIdAsc(id).stream().map(EhrMapper::toResponse).toList();
     }
 
+    public ClinicalNoteResponse note(String patientId, String noteId) {
+        UUID id = requirePatient(patientId);
+        return notes.findByIdAndPatientId(requireId("Notatka kliniczna", noteId), id).map(EhrMapper::toResponse)
+                .orElseThrow(() -> NotFoundException.of("Notatka kliniczna", noteId));
+    }
+
+    public DiagnosisResponse diagnosis(String patientId, String diagnosisId) {
+        UUID id = requirePatient(patientId);
+        return diagnoses.findByIdAndPatientId(requireId("Diagnoza", diagnosisId), id).map(EhrMapper::toResponse)
+                .orElseThrow(() -> NotFoundException.of("Diagnoza", diagnosisId));
+    }
+
+    public AllergyResponse allergy(String patientId, String allergyId) {
+        UUID id = requirePatient(patientId);
+        return allergies.findByIdAndPatientId(requireId("Alergia", allergyId), id).map(EhrMapper::toResponse)
+                .orElseThrow(() -> NotFoundException.of("Alergia", allergyId));
+    }
+
     public List<DiagnosisResponse> diagnoses(String patientId) {
         UUID id = requirePatient(patientId);
         return diagnoses.findByPatientIdOrderByDiagnosedAtDescIdAsc(id).stream().map(EhrMapper::toResponse).toList();
@@ -216,6 +234,15 @@ public class EhrService {
             throw NotFoundException.of("Pacjent", patientId);
         }
         return id;
+    }
+
+    /** Identyfikator zasobu jest nieprzezroczysty: zly format to 404. */
+    private static UUID requireId(String resource, String id) {
+        UUID uuid = parse(id);
+        if (uuid == null) {
+            throw NotFoundException.of(resource, id);
+        }
+        return uuid;
     }
 
     private UUID actor() {

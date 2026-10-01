@@ -124,9 +124,17 @@ export type PatientSummary = Pick<
 
 /**
  * Payload for registering a patient; `PatientCreateRequest` (models/api) is an alias.
- * Server-assigned and audit fields are never sent by the client.
+ * Server-assigned fields (`id`, `mrn`, `status`, `currentAdmission`), audit fields and `version` are never sent by the client.
  */
 export type PatientDraft = Omit<
   Patient,
-  'id' | 'mrn' | 'createdAt' | 'updatedAt' | 'createdById' | 'updatedById' | 'version'
+  | 'id'
+  | 'mrn'
+  | 'status'
+  | 'currentAdmission'
+  | 'createdAt'
+  | 'updatedAt'
+  | 'createdById'
+  | 'updatedById'
+  | 'version'
 >;

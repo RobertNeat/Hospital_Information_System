@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, input, signal } f
 import { Router } from '@angular/router';
 import { rxResource } from '@angular/core/rxjs-interop';
 import {
+  type AbstractControl,
   FormBuilder,
   FormControl,
   FormRecord,
@@ -25,11 +26,13 @@ import { SummaryList, type SummaryItem } from '../../components/summary-list/sum
 import { WizardStepFooter } from '../../components/wizard-step-footer/wizard-step-footer';
 import { SPECIMEN_LABELS, URGENCY_OPTIONS } from '../../constants/labels';
 import type { HasUnsavedChanges } from '../../guards/unsaved-changes.guard';
+import type { FieldError } from '../../models/api';
 import type { LabTest, OrderUrgency, SpecimenType } from '../../models';
 import { PatientContextService } from '../../services/patient-context.service';
 import { EhrService } from '../../services/ehr.service';
 import { LabOrderService } from '../../services/lab-order.service';
 import { StaffService } from '../../services/staff.service';
+import { toApiError } from '../../utils/api-error';
 import { buildDiagnosisOptions, type DiagnosisOption } from '../../utils/diagnosis-options';
 import { orderSubmitObserver, warnIncompleteOrder } from '../../utils/order-wizard';
 import { tryAdvance } from '../../utils/wizard';
@@ -284,8 +287,37 @@ export class LabOrderWizardPage implements HasUnsavedChanges {
           orderType: 'lab',
           isCito: this.step2Form.controls.urgency.value === 'stat',
           successDetail: 'Zlecenie laboratoryjne zostało zapisane.',
+          onError: (error) => this.applyServerErrors(toApiError(error).fieldErrors),
         }),
       );
+  }
+
+  /** Puts 422 `errors[]` on matching form fields (others go to a toast); false when there are none. */
+  private applyServerErrors(errors: FieldError[]): boolean {
+    if (errors.length === 0) return false;
+    const controls: Record<string, AbstractControl> = {
+      urgency: this.step2Form.controls.urgency,
+      fasting: this.step2Form.controls.fasting,
+      plannedCollectionAt: this.step2Form.controls.plannedCollectionAt,
+      clinicalInfo: this.step3Form.controls.clinicalInfo,
+      notes: this.step3Form.controls.notes,
+    };
+    const rest: string[] = [];
+    for (const e of errors) {
+      const control = controls[e.field];
+      if (!control) {
+        rest.push(e.message);
+        continue;
+      }
+      control.setErrors({ server: e.message });
+      control.markAsTouched();
+    }
+    this.toast.add({
+      severity: 'error',
+      summary: 'Nie udało się wysłać zlecenia',
+      detail: rest.join(' ') || 'Popraw zaznaczone pola formularza.',
+    });
+    return true;
   }
 
   protected cancel(): void {

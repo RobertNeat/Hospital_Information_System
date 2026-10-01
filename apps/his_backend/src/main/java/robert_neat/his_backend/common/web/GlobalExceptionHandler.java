@@ -73,7 +73,11 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(ConflictException.class)
     ResponseEntity<ProblemDetail> conflict(ConflictException e) {
-        return respond(HttpStatus.CONFLICT, ApiErrorCode.CONFLICT, e.getMessage());
+        ProblemDetail pd = ApiProblem.of(HttpStatus.CONFLICT, ApiErrorCode.CONFLICT, e.getMessage());
+        if (!e.getErrors().isEmpty()) {
+            pd.setProperty(ApiProblem.PROPERTY_ERRORS, e.getErrors());
+        }
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(pd);
     }
 
     @ExceptionHandler({OptimisticLockingFailureException.class, OptimisticLockException.class})

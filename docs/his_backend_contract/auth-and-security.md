@@ -33,8 +33,12 @@ Uprawnienia pochodzą wyłącznie z claima `authorities` (bez odczytu bazy przy 
 
 - Blokada konta, zmiana roli lub wyłączenie nie unieważniają już wydanych tokenów (brak odwołania); token działa do `exp`.
 - Niepoprawne lub brakujące claimy (`role`, `staffId`, `wardId`, `sub` nie-UUID) -> 401 ("Niepoprawne claimy tokenu").
-- Przeterminowany lub błędny nagłówek Bearer jest ignorowany na `/api/v1/auth/login`, `/api/v1/auth/register` i `/ws` (nie blokuje publicznych ścieżek).
+- Przeterminowany lub błędny nagłówek Bearer jest ignorowany na `/api/v1/auth/login`, `/api/v1/auth/register`, `/api/v1/auth/register/wards` i `/ws` (nie blokuje publicznych ścieżek).
 - Hasła: BCrypt cost 10, hashe w bazie bez prefiksu `{bcrypt}`; hasło ma maks. 72 bajty UTF-8.
+
+## Wywołania usług e-* (`/fhir/**`)
+
+Osobny łańcuch `FhirSecurityConfig` (`@Order(1)`, `securityMatcher("/fhir/**")`) przed łańcuchem JWT: bezstanowy, bez CSRF/CORS, autoryzacja nagłówkiem `X-Service-Key` równym `his.fhir.service-key` (`HIS_FHIR_SERVICE_KEY`, porównanie w stałym czasie, pusty klucz = zawsze 401). Błąd 401 to `OperationOutcome`. Token JWT nie działa na `/fhir/**`. Rozwiązanie przejściowe (jeden współdzielony klucz dla wszystkich usług `e-*`); docelowo mTLS. Szczegóły: [rest-api-fhir.md](rest-api-fhir.md).
 
 ## Endpointy auth
 
@@ -46,6 +50,7 @@ Szczegóły ścieżek: [rest-api-auth-staff.md](rest-api-auth-staff.md). Typy: [
 | `POST /api/v1/auth/logout` | uwierzytelniony | 204; **bezstanowy** (nic nie unieważnia); klient usuwa token |
 | `GET /api/v1/auth/me` | uwierzytelniony | `CurrentUser` = `StaffMember` + `permissions` (bez `ROLE_*`) |
 | `POST /api/v1/auth/register` | publiczny | 201 `StaffRegistrationResponse`; konto `pending` |
+| `GET /api/v1/auth/register/wards` | publiczny | 200 `PublicWardResponse[]` (`id`, `name`, `shortName`) |
 | `POST /api/v1/staff/{staffId}/activate` | `account:manage` (admin) | ustawia `active`, zeruje licznik prób i blokadę czasową |
 | `POST /api/v1/staff/{staffId}/lock` | `account:manage` (admin) | ustawia `locked`; własnego konta nie można zablokować (409) |
 
@@ -168,12 +173,13 @@ Uwagi:
 
 | Wzorzec | Reguła |
 | --- | --- |
-| `/api/v1/auth/login`, `/api/v1/auth/register` | `permitAll` |
+| `/api/v1/auth/login`, `/api/v1/auth/register`, `GET /api/v1/auth/register/wards` | `permitAll` |
 | `/actuator/health/**` | `permitAll` |
 | `/ws/**` | `permitAll` na poziomie HTTP (handshake); uwierzytelnienie w ramce STOMP CONNECT |
 | `/api/**` | `authenticated` |
 | każde inne żądanie | `denyAll` |
 | dispatcher `ERROR` | `permitAll` |
+| `/fhir/**` | osobny łańcuch `FhirSecurityConfig` (klucz usługowy), patrz wyżej |
 
 Autoryzacja metod: `@EnableMethodSecurity` + `@PreAuthorize("hasAuthority('...')")` na kontrolerach (patrz tabela wyżej). Sesja `STATELESS`, form login / HTTP Basic / logout Springa wyłączone.
 

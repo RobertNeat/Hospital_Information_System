@@ -4,9 +4,10 @@ Zdarzenia publikowane przez `his_backend` (rekordy w `*/events`), ich konsumenci
 
 ## Mechanizm
 
-- Zdarzenia to Java `record` publikowane przez `ApplicationEventPublisher` **w transakcji zapisu** (to wewnętrzne zdarzenia JVM; nie są wystawiane na zewnątrz poza pushem STOMP).
+- Zdarzenia to Java `record` publikowane przez `ApplicationEventPublisher` **w transakcji zapisu** (to wewnętrzne zdarzenia JVM; na zewnątrz trafiają tylko przez push STOMP i integrację FHIR z e-receipt).
 - `AlertEventListener` (`@EventListener`, **synchroniczny**) tworzy alerty w transakcji publikującego (`AlertService.raise` ma `Propagation.MANDATORY`). Skutek: błąd utworzenia alertu **wycofuje także zapis źródłowy** (np. zapis odczytu parametrów życiowych).
 - `RealtimePublisher` (`@TransactionalEventListener(AFTER_COMMIT)`) wysyła push dopiero po commicie; rollback niczego nie wysyła, błąd pushu jest tylko logowany. Projekcje dla pushu (`MessagingPushProjection`) budowane w osobnej transakcji `REQUIRES_NEW`.
+- `EReceiptIntegration` (`@TransactionalEventListener(AFTER_COMMIT)`) wysyła recepty `e_prescription` do e-receipt i przekazuje anulowanie; błędy sieci/HTTP są tylko logowane, a klucz `eRxKey` zapisuje w osobnej transakcji `REQUIRES_NEW` ([rest-api-fhir.md](rest-api-fhir.md)).
 - `PresenceEventListener` konsumuje zdarzenia sesji STOMP (`SessionConnectedEvent`/`SessionDisconnectEvent`), nie zdarzenia domenowe.
 - Komentarze w rekordach `*/events` wskazują konsumenta zgodnie z rejestrem poniżej.
 
@@ -25,8 +26,8 @@ Kolumna "Publikuje" wskazuje miejsce w kodzie; "Konsument" - faktyczne listenery
 | `LabResultRecorded` (`lab`) | `resultId`, `patientId`, `orderId`, `orderedById`, `testCode`, `status`, `critical`, `criticalAnalyteCodes`, `recordedAt`, `actorId` | `LabResultRecordingService.recordResult` (bez endpointu HTTP) | `AlertEventListener` |
 | `ImagingOrderStatusChanged` (`imaging`) | jak lab (`orderId`, `patientId`, `orderedById`, `previousStatus`, `status`, `at`, `actorId`, `note`) | `ImagingOrderService.transition`; `ImagingResultRecordingService` (auto-`completed`) | `AlertEventListener` |
 | `ImagingResultRecorded` (`imaging`) | `resultId`, `patientId`, `orderId`, `orderedById`, `modality`, `status`, `critical`, `recordedAt`, `actorId` | `ImagingResultRecordingService.recordResult` (bez endpointu HTTP) | `AlertEventListener` |
-| `PrescriptionIssued` (`prescription`) | `prescriptionId`, `patientId`, `prescriberId`, `kind`, `validFrom`, `validUntil`, `itemCount`, `issuedAt` | `PrescriptionService.issue` | brak |
-| `PrescriptionCancelled` (`prescription`) | `prescriptionId`, `patientId`, `prescriberId`, `actorId`, `reason`, `cancelledAt` | `PrescriptionService.cancel` | brak |
+| `PrescriptionIssued` (`prescription`) | `prescriptionId`, `patientId`, `prescriberId`, `kind`, `validFrom`, `validUntil`, `itemCount`, `issuedAt` | `PrescriptionService.issue` | `EReceiptIntegration` (tylko `kind = e_prescription`, gdy integracja włączona) |
+| `PrescriptionCancelled` (`prescription`) | `prescriptionId`, `patientId`, `prescriberId`, `actorId` (null = zmiana z e-receipt), `reason`, `cancelledAt` | `PrescriptionService.cancel`; `PrescriptionExternalService.applyStatus` (`PUT /fhir/MedicationRequest/{id}`, `actorId = null`) | `EReceiptIntegration` (tylko z `actorId` != null) |
 | `VitalAnomalyDetected` (`vitals`) | `patientId`, `vitalsId`, `anomalies` (tylko `critical`), `recordedAt`, `actorId` | `VitalsService.record` - tylko gdy jest anomalia `critical` | `AlertEventListener` |
 | `MessageSent` (`messaging`) | `messageId`, `threadId`, `threadSubject`, `patientId`, `senderId`, `priority`, `sentAt`, `recipientIds` (uczestnicy poza nadawcą) | `MessageThreadService` (utworzenie wątku i wysyłka) | `RealtimePublisher` |
 | `ThreadMarkedRead` (`messaging`) | `staffId`, `thread` (`MessageThreadResponse`, `unreadCount=0`) | `MessageThreadService.markRead` | `RealtimePublisher` |
@@ -35,7 +36,7 @@ Kolumna "Publikuje" wskazuje miejsce w kodzie; "Konsument" - faktyczne listenery
 | `AlertCreated` (`alert`) | `alertId`, `type`, `severity`, `patientId`, `message`, `createdAt`, `target`, `wardId`, `recipientIds` | `AlertService.raise` | `RealtimePublisher` |
 | `AlertAcknowledged` (`alert`) | `staffId`, `alert` (`AlertResponse` widza) | `AlertService.acknowledge` | `RealtimePublisher` |
 
-Zdarzenia bez konsumenta (`PatientAdmitted`, `PatientDischarged`, `ClinicalNoteCreated`, `DiagnosisRecorded`, `AllergyRecorded`, `PrescriptionIssued`, `PrescriptionCancelled`) są publikowane, brak konsumenta (punkty rozszerzeń, np. integracja e-receipt).
+Zdarzenia bez konsumenta (`PatientAdmitted`, `PatientDischarged`, `ClinicalNoteCreated`, `DiagnosisRecorded`, `AllergyRecorded`) są publikowane, brak konsumenta (punkty rozszerzeń).
 
 ## Zdarzenie -> alert (`AlertEventListener`)
 
@@ -51,7 +52,7 @@ Alert nie ma adresata w modelu (widzą go wszyscy z `alert:read`); `recipientIds
 | `TaskAssigned` | zawsze | `task` | `info` dla `priority=normal`, w pozostałych `warning` | `task` (`taskId`) | osoba przypisana | "Nowe zadanie: <tytuł>[ (pacjent ...)]." |
 
 - Zmiany statusu zlecenia inne niż `completed`/`cancelled` (np. `scheduled`, `in_progress`) alertu nie tworzą. Auto-`completed` po wyniku też tworzy alert `order_status`.
-- Brak alertów dla: przyjęcia/wypisu, notatek, diagnoz, alergii, recept, wiadomości, zmiany statusu zadania (poza pushem `/user/queue/tasks`), anomalii o nasileniu `warning`.
+- Brak alertów dla: przyjęcia/wypisu, notatek, diagnoz, alergii, recept (także zmiany stanu z e-receipt), wiadomości, zmiany statusu zadania (poza pushem `/user/queue/tasks`), anomalii o nasileniu `warning`.
 - `AlertType.system` i `AlertTargetKind.patient` nie są przez nic tworzone.
 - `critical_result` dla wyników laboratoryjnych/obrazowych powstaje tylko przez wewnętrzne serwisy zapisu wyników (brak endpointu HTTP), a w danych demo - przez migracje `mock`.
 

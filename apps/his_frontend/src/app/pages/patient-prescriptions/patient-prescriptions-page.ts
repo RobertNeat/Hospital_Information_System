@@ -21,6 +21,7 @@ import { StatusTag } from '../../components/status-tag/status-tag';
 import { LabelPipe } from '../../pipes/label.pipe';
 import type { ActiveMedication, Prescription, PrescriptionItem } from '../../models';
 import { PrescriptionService } from '../../services/prescription.service';
+import { toApiError } from '../../utils/api-error';
 
 interface ActiveMedicationRow {
   prescriptionId: string;
@@ -128,16 +129,19 @@ export class PatientPrescriptionsPage {
       acceptLabel: 'Tak, anuluj',
       rejectLabel: 'Nie',
       accept: () => {
-        this.prescriptionService.cancel(p.id).subscribe({
+        this.prescriptionService.cancel(p.id, undefined, p.version).subscribe({
           next: () => {
             this.messageService.add({ severity: 'success', summary: 'Recepta anulowana.' });
             this.load(this.patientId());
           },
-          error: () => {
+          error: (err: unknown) => {
             this.messageService.add({
               severity: 'error',
               summary: 'Nie udało się anulować recepty.',
+              detail: toApiError(err).problem.detail,
             });
+            // 409: the prescription changed (version/status); show the current state.
+            this.load(this.patientId());
           },
         });
       },

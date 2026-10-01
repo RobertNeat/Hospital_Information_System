@@ -12,8 +12,8 @@ export type SortDirection = 'asc' | 'desc';
 export interface PageQuery {
   page?: number;
   size?: number;
-  /** Spring Pageable format, e.g. `'lastName,asc'`. */
-  sort?: string;
+  /** Spring Pageable format, e.g. `'lastName,asc'`; an array is sent as repeated `sort` params. */
+  sort?: string | string[];
 }
 
 export interface FieldError {

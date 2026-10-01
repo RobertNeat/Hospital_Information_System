@@ -1,45 +1,83 @@
-import { describe, expect, it, beforeEach } from 'vitest';
+import { describe, expect, it, beforeEach, afterEach } from 'vitest';
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { firstValueFrom } from 'rxjs';
-import { MOCK_LATENCY_MS } from '../config/mock-api.config';
+import { DRUG_SAFETY_CHECKS_URL, DRUGS_URL, drugUrl } from '../config/api.config';
+import { DRUGS } from '../mock-data/drugs.mock';
+import type { DrugSafetyWarning } from '../models';
 import { DrugService } from './drug.service';
 
 describe('DrugService', () => {
   let service: DrugService;
+  let http: HttpTestingController;
 
   beforeEach(() => {
-    TestBed.configureTestingModule({ providers: [{ provide: MOCK_LATENCY_MS, useValue: 0 }] });
+    TestBed.configureTestingModule({
+      providers: [provideHttpClient(), provideHttpClientTesting()],
+    });
     service = TestBed.inject(DrugService);
+    http = TestBed.inject(HttpTestingController);
   });
 
-  it('search matches by trade name', async () => {
-    const results = await firstValueFrom(service.search('Polpril'));
-    expect(results.some((d) => d.name === 'Polpril')).toBe(true);
+  afterEach(() => http.verify());
+
+  it('search GETs /drugs with the trimmed term', async () => {
+    const result = firstValueFrom(service.search(' ramipril '));
+    const req = http.expectOne((r) => r.url === DRUGS_URL);
+    expect(req.request.method).toBe('GET');
+    expect(req.request.params.get('term')).toBe('ramipril');
+    req.flush([DRUGS[0]]);
+    expect(await result).toEqual([DRUGS[0]]);
   });
 
-  it('search matches by active substance', async () => {
-    const results = await firstValueFrom(service.search('ramipril'));
-    expect(results.some((d) => d.activeSubstance === 'Ramipril')).toBe(true);
+  it('search omits an empty term', () => {
+    service.search('  ').subscribe();
+    const req = http.expectOne((r) => r.url === DRUGS_URL);
+    expect(req.request.params.has('term')).toBe(false);
+    req.flush([]);
   });
 
-  it('search matches by ATC code', async () => {
-    const results = await firstValueFrom(service.search('J01C'));
-    expect(results.some((d) => d.atcCode.startsWith('J01C'))).toBe(true);
+  it('getById GETs /drugs/{id}', async () => {
+    const result = firstValueFrom(service.getById('drg-001'));
+    http.expectOne({ method: 'GET', url: drugUrl('drg-001') }).flush(DRUGS[0]);
+    expect(await result).toEqual(DRUGS[0]);
   });
 
-  it('getById errors for an unknown id', async () => {
-    await expect(firstValueFrom(service.getById('drg-999'))).rejects.toThrow();
+  it('getById surfaces 404 as an error', async () => {
+    const result = firstValueFrom(service.getById('drg-999'));
+    http.expectOne(drugUrl('drg-999')).flush(null, { status: 404, statusText: 'Not Found' });
+    await expect(result).rejects.toMatchObject({ status: 404 });
   });
 
-  it('checkSafety flags an allergy warning for a J01C drug and a penicillin-allergic patient', async () => {
-    const augmentin = await firstValueFrom(service.getById('drg-011')); // Augmentin, J01CR02
-    const warnings = await firstValueFrom(service.checkSafety(augmentin, 'pat-001')); // allergic to Penicylina/J01C
-    expect(warnings.some((w) => w.type === 'allergy')).toBe(true);
+  it('checkSafety POSTs the whole working prescription as items[]', async () => {
+    const warnings: DrugSafetyWarning[] = [
+      { type: 'allergy', severity: 'danger', drugId: 'drg-011', message: 'Alergia' },
+    ];
+    const items = [
+      { drugId: 'drg-001' },
+      {
+        drugId: 'drg-011',
+        dosage: {
+          dose: 500,
+          doseUnit: 'mg',
+          route: 'oral' as const,
+          frequency: 'TID' as const,
+          durationDays: 5,
+          asNeeded: false,
+        },
+      },
+    ];
+    const result = firstValueFrom(service.checkSafety('pat-001', items));
+    const req = http.expectOne({ method: 'POST', url: DRUG_SAFETY_CHECKS_URL });
+    expect(req.request.body).toEqual({ patientId: 'pat-001', items });
+    req.flush(warnings);
+    expect(await result).toEqual(warnings);
   });
 
-  it('checkSafety returns no warnings for an unrelated drug and patient', async () => {
-    const paracetamol = await firstValueFrom(service.getById('drg-014'));
-    const warnings = await firstValueFrom(service.checkSafety(paracetamol, 'pat-006'));
-    expect(warnings).toEqual([]);
+  it('checkSafety surfaces 403 (non-doctor) as an error', async () => {
+    const result = firstValueFrom(service.checkSafety('pat-001', [{ drugId: 'drg-001' }]));
+    http.expectOne(DRUG_SAFETY_CHECKS_URL).flush(null, { status: 403, statusText: 'Forbidden' });
+    await expect(result).rejects.toMatchObject({ status: 403 });
   });
 });

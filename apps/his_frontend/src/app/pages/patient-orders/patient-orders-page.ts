@@ -16,6 +16,7 @@ import { StatusTag } from '../../components/status-tag/status-tag';
 import { OrderStatusTimeline } from '../../components/order-status-timeline/order-status-timeline';
 import { LabelPipe } from '../../pipes/label.pipe';
 import type { ImagingOrder, LabOrder, TableColumn } from '../../models';
+import { toApiError } from '../../utils/api-error';
 import { LabOrderService } from '../../services/lab-order.service';
 import { ImagingOrderService } from '../../services/imaging-order.service';
 
@@ -151,7 +152,18 @@ export class PatientOrdersPage {
       else this.imagingResource.reload();
     };
     if (kind === 'lab') {
-      this.labOrderService.cancelOrder(id, reason).subscribe(onCancelled);
+      const version = this.labResource.value()?.find((o) => o.id === id)?.version;
+      this.labOrderService.cancelOrder(id, reason, version).subscribe({
+        next: onCancelled,
+        error: (error: unknown) => {
+          this.toast.add({
+            severity: 'error',
+            summary: 'Nie udało się anulować zlecenia',
+            detail: toApiError(error).problem.detail,
+          });
+          this.labResource.reload();
+        },
+      });
     } else {
       this.imagingOrderService.cancelOrder(id, reason).subscribe(onCancelled);
     }

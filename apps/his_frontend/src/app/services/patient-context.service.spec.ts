@@ -1,7 +1,8 @@
 import { describe, expect, it, beforeEach } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { firstValueFrom } from 'rxjs';
-import { MOCK_LATENCY_MS } from '../config/mock-api.config';
+import { patientServiceStub } from '../testing/patient-service.stub';
+import { wardServiceStub } from '../testing/ward-service.stub';
 import { PatientContextService } from './patient-context.service';
 import { PatientService } from './patient.service';
 
@@ -11,7 +12,7 @@ describe('PatientContextService', () => {
 
   beforeEach(() => {
     sessionStorage.clear();
-    TestBed.configureTestingModule({ providers: [{ provide: MOCK_LATENCY_MS, useValue: 0 }] });
+    TestBed.configureTestingModule({ providers: [patientServiceStub, wardServiceStub] });
     ctx = TestBed.inject(PatientContextService);
     patientService = TestBed.inject(PatientService);
   });
@@ -63,5 +64,22 @@ describe('PatientContextService', () => {
     const refreshed = await firstValueFrom(ctx.refresh());
     expect(refreshed.phone).toBe('+48 999 999 999');
     expect(ctx.patient()?.phone).toBe('+48 999 999 999');
+  });
+
+  it('refresh throws without a patient in context', () => {
+    expect(() => ctx.refresh()).toThrow();
+  });
+
+  it('restores the patient stored in the session and drops it when loading fails', () => {
+    sessionStorage.setItem('his.currentPatientId', 'pat-001');
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({ providers: [patientServiceStub, wardServiceStub] });
+    expect(TestBed.inject(PatientContextService).patientId()).toBe('pat-001');
+
+    sessionStorage.setItem('his.currentPatientId', 'missing');
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({ providers: [patientServiceStub, wardServiceStub] });
+    TestBed.inject(PatientContextService);
+    expect(sessionStorage.getItem('his.currentPatientId')).toBeNull();
   });
 });

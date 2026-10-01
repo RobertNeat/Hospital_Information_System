@@ -24,9 +24,15 @@
       <span id="e-prescription-dialog-erx-dialog-key-label" class="his-erx-dialog__key-label"
         >Klucz e-recepty</span
       >
-      <code id="e-prescription-dialog-erx-dialog-key-value" class="his-erx-dialog__key-value">{{
-        prescription().eRxKey
-      }}</code>
+      @if (prescription().eRxKey; as key) {
+        <code id="e-prescription-dialog-erx-dialog-key-value" class="his-erx-dialog__key-value">{{
+          key
+        }}</code>
+      } @else {
+        <span id="e-prescription-dialog-erx-dialog-key-pending" class="his-muted"
+          >Klucz zostanie nadany po zarejestrowaniu w systemie e-recept.</span
+        >
+      }
     </div>
 
     <div id="e-prescription-dialog-erx-print" class="his-erx-print">
@@ -46,9 +52,11 @@
       <p id="e-prescription-dialog-erx-print-code" class="his-erx-print__code">
         Kod dostępu: {{ prescription().accessCode }}
       </p>
-      <p id="e-prescription-dialog-erx-print-key" class="his-erx-print__key">
-        Klucz e-recepty: {{ prescription().eRxKey }}
-      </p>
+      @if (prescription().eRxKey; as key) {
+        <p id="e-prescription-dialog-erx-print-key" class="his-erx-print__key">
+          Klucz e-recepty: {{ key }}
+        </p>
+      }
       <p id="e-prescription-dialog-p-4">
         Ważna od {{ prescription().validFrom | date: 'dd.MM.yyyy' }} do
         {{ prescription().validUntil | date: 'dd.MM.yyyy' }}.

@@ -1,7 +1,9 @@
+import { wardServiceStub } from '../../testing/ward-service.stub';
 import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import { of } from 'rxjs';
+import { PATIENTS } from '../../mock-data/patients.mock';
 import { PatientPickerPage } from './patient-picker-page';
 import { PatientService } from '../../services/patient.service';
 import { PatientContextService } from '../../services/patient-context.service';
@@ -24,6 +26,7 @@ describe('PatientPickerPage', () => {
     sessionStorage.clear();
     TestBed.configureTestingModule({
       providers: [
+        wardServiceStub,
         provideRouter([]),
         { provide: PatientService, useValue: { search: () => of([SUMMARY]) } },
       ],
@@ -53,9 +56,7 @@ describe('PatientPickerPage', () => {
   it('shows recent patients from PatientContextService', async () => {
     const fixture = TestBed.createComponent(PatientPickerPage);
     const ctx = TestBed.inject(PatientContextService);
-    (ctx as unknown as { _recentPatients: { set: (v: PatientSummary[]) => void } })[
-      '_recentPatients'
-    ].set([SUMMARY]);
+    ctx.setPatient(PATIENTS.find((p) => p.lastName === 'Kowalski') ?? PATIENTS[0]);
     await fixture.whenStable();
     const el = fixture.nativeElement as HTMLElement;
     expect(el.textContent).toContain('Kowalski');

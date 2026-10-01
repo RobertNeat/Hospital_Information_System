@@ -122,6 +122,11 @@
             placeholder="Wybierz"
             [fluid]="true"
           />
+          @if (wardsError()) {
+            <small id="register-ward-error" class="his-auth__error" role="alert">
+              Nie udało się pobrać listy oddziałów. Spróbuj ponownie później.
+            </small>
+          }
         </app-form-field>
         <app-form-field
           id="register-phone-field"

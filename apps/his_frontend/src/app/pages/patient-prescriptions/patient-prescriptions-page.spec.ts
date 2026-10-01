@@ -1,3 +1,4 @@
+import { prescriptionServiceStub } from '../../testing/prescription-service.stub';
 import { describe, expect, it, beforeEach } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
@@ -9,6 +10,7 @@ describe('PatientPrescriptionsPage', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       providers: [
+        prescriptionServiceStub,
         provideRouter([]),
         MessageService,
         ConfirmationService,

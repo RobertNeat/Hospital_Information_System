@@ -76,6 +76,14 @@ services:
       HIS_SNOWSTORM_READ_TIMEOUT: ${HIS_SNOWSTORM_READ_TIMEOUT:-5s}
       HIS_SNOWSTORM_DISPLAY_LANGUAGE: ${HIS_SNOWSTORM_DISPLAY_LANGUAGE:-pl,en}
       HIS_SNOWSTORM_MAX_PAGE_SIZE: ${HIS_SNOWSTORM_MAX_PAGE_SIZE:-100}
+      # FHIR do/z e-receipt: klucz usługowy (X-Service-Key) autoryzuje wywołania e-* na /fhir/**
+      # (pusty = odrzucane; docelowo mTLS). Klient e-receipt domyślnie wyłączony; brak depends_on
+      # na e-receipt (jego niedostępność nie blokuje wystawiania recept).
+      HIS_FHIR_SERVICE_KEY: ${HIS_FHIR_SERVICE_KEY:-}
+      HIS_ERECEIPT_URL: http://e-receipt:10421/fhir
+      HIS_ERECEIPT_ENABLED: ${HIS_ERECEIPT_ENABLED:-false}
+      HIS_ERECEIPT_CONNECT_TIMEOUT: ${HIS_ERECEIPT_CONNECT_TIMEOUT:-1s}
+      HIS_ERECEIPT_READ_TIMEOUT: ${HIS_ERECEIPT_READ_TIMEOUT:-3s}
     depends_on:
       postgres:
         condition: service_healthy
@@ -101,6 +109,13 @@ services:
   e-receipt:
     image: ${REGISTRY:-local}/${E_RECEIPT_IMAGE:-hospital-information-system/e-receipt}:${IMAGE_TAG:-dev}
     restart: unless-stopped
+    environment:
+      # Wywołanie zwrotne FHIR do his_backend (zmiana stanu recepty); ten sam klucz co HIS_FHIR_SERVICE_KEY.
+      ERECEIPT_HIS_URL: http://his-backend:10420/fhir
+      ERECEIPT_HIS_ENABLED: ${ERECEIPT_HIS_ENABLED:-false}
+      ERECEIPT_HIS_SERVICE_KEY: ${HIS_FHIR_SERVICE_KEY:-}
+      ERECEIPT_HIS_CONNECT_TIMEOUT: ${ERECEIPT_HIS_CONNECT_TIMEOUT:-1s}
+      ERECEIPT_HIS_READ_TIMEOUT: ${ERECEIPT_HIS_READ_TIMEOUT:-3s}
     networks:
       - his-internal
     healthcheck:

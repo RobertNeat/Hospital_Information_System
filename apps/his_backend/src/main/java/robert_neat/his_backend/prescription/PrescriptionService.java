@@ -40,7 +40,7 @@ import robert_neat.his_backend.prescription.events.PrescriptionIssued;
  * sciezka (422). Nazwa, substancja, moc i postac leku sa kopiowane z katalogu (snapshot); `accessCode` i `eRxKey`
  * generuje serwer ({@link PrescriptionCodeGenerator}). Ostrzezenia bezpieczenstwa sa doradcze - wystawienie ich nie
  * blokuje. Anulowanie recepty "dispensed"/"cancelled"/"expired" (takze wygaslej wg terminu) lub przy niezgodnej
- * `version` to 409. Zdarzenia domenowe publikowane w transakcji, brak konsumenta. DTO mapowane w transakcji.
+ * `version` to 409. Zdarzenia domenowe publikowane w transakcji (konsument: `EReceiptIntegration` po commicie). DTO mapowane w transakcji.
  */
 @Service
 @Transactional(readOnly = true)

@@ -1,6 +1,7 @@
 package robert_neat.his_backend.ehr;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -11,4 +12,6 @@ public interface ClinicalNoteRepository extends JpaRepository<ClinicalNote, UUID
     List<ClinicalNote> findByPatientIdOrderByCreatedAtDescIdAsc(UUID patientId);
 
     boolean existsByIdAndPatientId(UUID id, UUID patientId);
+
+    Optional<ClinicalNote> findByIdAndPatientId(UUID id, UUID patientId);
 }

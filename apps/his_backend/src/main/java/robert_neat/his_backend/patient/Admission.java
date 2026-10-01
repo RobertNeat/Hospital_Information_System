@@ -44,7 +44,7 @@ public class Admission {
     @Column(name = "admitted_at", nullable = false)
     private Instant admittedAt;
 
-    @Column(name = "ward_id", nullable = false)
+    @Column(name = "ward_id")
     private UUID wardId;
 
     @Column(name = "room", length = 20)
@@ -53,7 +53,7 @@ public class Admission {
     @Column(name = "bed", length = 20)
     private String bed;
 
-    @Column(name = "attending_physician_id", nullable = false)
+    @Column(name = "attending_physician_id")
     private UUID attendingPhysicianId;
 
     @Column(name = "triage_level", length = 10)
@@ -78,7 +78,7 @@ public class Admission {
     @Column(name = "version", nullable = false)
     private long version;
 
-    public static Admission open(UUID patientId, UUID encounterId, AdmitPatientRequest r) {
+    public static Admission open(UUID patientId, UUID encounterId, AdmitPatientRequest r, String reason) {
         Admission a = new Admission();
         a.patientId = patientId;
         a.encounterId = encounterId;
@@ -90,7 +90,7 @@ public class Admission {
         a.bed = r.bed();
         a.attendingPhysicianId = r.attendingPhysicianId();
         a.triageLevel = r.triageLevel();
-        a.reason = r.reason();
+        a.reason = reason;
         a.referralNumber = r.referralNumber();
         return a;
     }

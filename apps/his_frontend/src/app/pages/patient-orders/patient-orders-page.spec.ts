@@ -1,3 +1,4 @@
+import { labOrderServiceStub } from '../../testing/lab-order-service.stub';
 import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
@@ -20,6 +21,7 @@ describe('PatientOrdersPage', () => {
         provideRouter([]),
         MessageService,
         ConfirmationService,
+        labOrderServiceStub,
         { provide: MOCK_LATENCY_MS, useValue: 0 },
       ],
     });

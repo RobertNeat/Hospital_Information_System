@@ -9,7 +9,7 @@ import {
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { FormBuilder } from '@angular/forms';
-import { EMPTY, of, switchMap } from 'rxjs';
+import { EMPTY, catchError, of, switchMap, throwError } from 'rxjs';
 import { MessageService } from 'primeng/api';
 import { StepperModule } from 'primeng/stepper';
 
@@ -25,6 +25,7 @@ import { StaffService } from '../../services/staff.service';
 import { parsePesel } from '../../validators/pesel.validator';
 import { rawValueSignal } from '../../utils/form-signals';
 import { tryAdvance } from '../../utils/wizard';
+import { toApiError } from '../../utils/api-error';
 import { ageFromBirthDate } from '../../utils/date-utils';
 
 import type { HasUnsavedChanges } from '../../guards/unsaved-changes.guard';
@@ -48,8 +49,28 @@ import {
 import {
   buildAdmission,
   buildPatientDraft,
+  buildPatientUpdate,
   buildSummarySections,
 } from './patient-registration.mappers';
+
+/** Registration succeeded but the follow-up admission was rejected. */
+class AdmissionFailed {
+  constructor(
+    readonly patient: Patient,
+    readonly cause: unknown,
+  ) {}
+}
+
+/** User-facing text for 409/422 (ProblemDetail `detail` plus field messages); other errors get none. */
+function problemMessage(err: unknown): string | undefined {
+  const e = toApiError(err);
+  if (e.status === 409) return e.message;
+  if (e.status === 422) {
+    const fields = e.fieldErrors.map((f) => f.message);
+    return fields.length ? fields.join('; ') : e.message;
+  }
+  return undefined;
+}
 
 @Component({
   selector: 'app-patient-registration-page',
@@ -163,13 +184,17 @@ export class PatientRegistrationPage implements HasUnsavedChanges {
       this.step1.controls.gender.setValue(parsed.gender);
     }
 
-    this.patientService.findByPesel(value).subscribe((match) => {
-      if (match && match.id !== this.patientId()) {
-        this.duplicatePatient.set({
-          id: match.id,
-          label: `${match.lastName} ${match.firstName}`,
-        });
-      }
+    // Advisory check only: the backend still rejects a duplicate PESEL with 409 on save.
+    this.patientService.findByPesel(value).subscribe({
+      next: (match) => {
+        if (match && match.id !== this.patientId()) {
+          this.duplicatePatient.set({
+            id: match.id,
+            label: `${match.lastName} ${match.firstName}`,
+          });
+        }
+      },
+      error: () => undefined,
     });
   }
 
@@ -226,19 +251,22 @@ export class PatientRegistrationPage implements HasUnsavedChanges {
     this.submitting.set(true);
 
     const s4 = this.step4.getRawValue();
-    const draft = buildPatientDraft({
+    const input = {
       s1: this.step1.getRawValue(),
       s2: this.step2.getRawValue(),
       s3: this.step3.getRawValue(),
       s4,
       mode: this.mode(),
       original: this.originalPatient,
-    });
+    };
 
     if (this.mode() === 'edit') {
       const id = this.patientId();
-      if (!id) return;
-      this.patientService.updatePatient(id, draft).subscribe({
+      if (!id) {
+        this.submitting.set(false);
+        return;
+      }
+      this.patientService.updatePatient(id, buildPatientUpdate(input)).subscribe({
         next: () => {
           this.submitted.set(true);
           this.submitting.set(false);
@@ -246,7 +274,7 @@ export class PatientRegistrationPage implements HasUnsavedChanges {
           this.messageService.add({ severity: 'success', summary: 'Dane pacjenta zaktualizowane' });
           this.router.navigate(['/patients', id, 'overview']);
         },
-        error: () => this.fail('Nie udało się zapisać zmian'),
+        error: (err: unknown) => this.fail('Nie udało się zapisać zmian', err),
       });
       return;
     }
@@ -254,11 +282,14 @@ export class PatientRegistrationPage implements HasUnsavedChanges {
     const needsAdmission = s4.admissionType !== 'outpatient';
 
     this.patientService
-      .createPatient(draft)
+      .createPatient(buildPatientDraft(input))
       .pipe(
         switchMap((patient) =>
           needsAdmission
-            ? this.patientService.admitPatient(patient.id, buildAdmission(s4))
+            ? this.patientService.admitPatient(patient.id, buildAdmission(s4)).pipe(
+                // The patient already exists; a retry would only hit the duplicate-PESEL check.
+                catchError((err: unknown) => throwError(() => new AdmissionFailed(patient, err))),
+              )
             : of(patient),
         ),
       )
@@ -273,13 +304,27 @@ export class PatientRegistrationPage implements HasUnsavedChanges {
           });
           this.router.navigate(['/patients', patient.id, 'overview']);
         },
-        error: () => this.fail('Nie udało się zarejestrować pacjenta'),
+        error: (err: unknown) => {
+          if (err instanceof AdmissionFailed) {
+            this.submitted.set(true);
+            this.submitting.set(false);
+            this.ctx.setPatient(err.patient);
+            this.messageService.add({
+              severity: 'warn',
+              summary: `Pacjent zarejestrowany (${err.patient.mrn}), ale przyjęcie nie powiodło się`,
+              detail: problemMessage(err.cause),
+            });
+            this.router.navigate(['/patients', err.patient.id, 'overview']);
+            return;
+          }
+          this.fail('Nie udało się zarejestrować pacjenta', err);
+        },
       });
   }
 
-  private fail(summary: string): void {
+  private fail(summary: string, err: unknown): void {
     this.submitting.set(false);
-    this.messageService.add({ severity: 'error', summary });
+    this.messageService.add({ severity: 'error', summary, detail: problemMessage(err) });
   }
 
   protected cancel(): void {

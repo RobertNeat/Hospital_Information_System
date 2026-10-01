@@ -1,6 +1,7 @@
 package robert_neat.his_backend.ehr;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -14,4 +15,6 @@ public interface DiagnosisRepository extends JpaRepository<Diagnosis, UUID> {
 
     /** Schorzenia przewlekle (EhrSummary.chronicConditions). */
     List<Diagnosis> findByPatientIdAndTypeOrderByDiagnosedAtDescIdAsc(UUID patientId, DiagnosisType type);
+
+    Optional<Diagnosis> findByIdAndPatientId(UUID id, UUID patientId);
 }

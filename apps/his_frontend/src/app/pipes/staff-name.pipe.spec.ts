@@ -1,3 +1,4 @@
+import { staffServiceStub } from '../testing/staff-service.stub';
 import { describe, expect, it, beforeEach } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { MOCK_LATENCY_MS } from '../config/mock-api.config';
@@ -7,7 +8,9 @@ describe('StaffNamePipe', () => {
   let pipe: StaffNamePipe;
 
   beforeEach(() => {
-    TestBed.configureTestingModule({ providers: [{ provide: MOCK_LATENCY_MS, useValue: 0 }] });
+    TestBed.configureTestingModule({
+      providers: [staffServiceStub, { provide: MOCK_LATENCY_MS, useValue: 0 }],
+    });
     pipe = TestBed.runInInjectionContext(() => new StaffNamePipe());
   });
 

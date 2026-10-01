@@ -94,9 +94,9 @@ Pola `version` (long) w odpowiedziach dotyczą optymistycznego blokowania ([conv
 
 | DTO (ts) | Pola |
 | --- | --- |
-| `AdmitPatientRequest` (`AdmitPatientRequest`) | `admissionType` `AdmissionType` T, `admittedAt` Instant T, `wardId` UUID T, `room` N (<= 20), `bed` N (<= 20), `attendingPhysicianId` UUID T (rola `doctor`), `triageLevel` `TriageLevel` N, `reason` string T (niepusty), `referralNumber` N (<= 50) |
+| `AdmitPatientRequest` (`AdmitPatientRequest`) | `admissionType` `AdmissionType` T, `admittedAt` Instant T, `wardId` UUID T (N dla `outpatient`), `room` N (<= 20), `bed` N (<= 20), `attendingPhysicianId` UUID T (rola `doctor`; N dla `outpatient`), `triageLevel` `TriageLevel` N, `reason` string T (niepusty; N dla `outpatient`), `referralNumber` N (<= 50) |
 | `DischargePatientRequest` (`DischargePatientRequest`) | `dischargedAt` Instant T, `disposition` `DischargeDisposition` N, `summaryNoteId` UUID N, `version` long N (wersja aktywnego przyjęcia) |
-| `AdmissionResponse` (`Admission`) | `id`, `patientId`, `encounterId`, `status` `AdmissionRecordStatus`, `admissionType`, `admittedAt`, `wardId`, `room`, `bed`, `attendingPhysicianId`, `triageLevel`, `reason`, `referralNumber`, `dischargedAt`, `dischargeDisposition`, `dischargeSummaryNoteId`, `version` |
+| `AdmissionResponse` (`Admission`) | `id`, `patientId`, `encounterId`, `status` `AdmissionRecordStatus`, `admissionType`, `admittedAt`, `wardId` (opc. dla `outpatient`), `room`, `bed`, `attendingPhysicianId` (opc. dla `outpatient`), `triageLevel`, `reason`, `referralNumber`, `dischargedAt`, `dischargeDisposition`, `dischargeSummaryNoteId`, `version` |
 
 ## EHR
 
@@ -110,7 +110,7 @@ Pola `version` (long) w odpowiedziach dotyczą optymistycznego blokowania ([conv
 | `AllergyResponse` (`Allergy`) | `id`, `patientId`, `substance`, `category`, `reaction`, `severity`, `status`, `recordedAt`, `recordedById`, `atcCodes` (alfabetycznie, pomijane gdy puste), audyt, `version` |
 | `ContraindicationResponse` (`Contraindication`) | `id`, `patientId`, `description`, `reason`, `recordedAt` |
 | `TreatmentResponse` (`Treatment`) | `id`, `patientId`, `encounterId`, `name`, `type` `TreatmentType`, `startAt`, `endAt`, `status` `TreatmentStatus`, `description`, `practitionerId` |
-| `EncounterResponse` (`Encounter`) | `id`, `patientId`, `type` `EncounterType`, `status` `EncounterStatus`, `startAt`, `endAt`, `wardId`, `practitionerId`, `reason`, `summary`, `episodeId` (bez audytu) |
+| `EncounterResponse` (`Encounter`) | `id`, `patientId`, `type` `EncounterType`, `status` `EncounterStatus`, `startAt`, `endAt`, `wardId`, `practitionerId` (opc. dla wizyt `outpatient`), `reason`, `summary`, `episodeId` (bez audytu) |
 | `TreatmentEpisodeResponse` (`TreatmentEpisode`) | `id`, `patientId`, `title`, `startAt`, `endAt`, `status` `EpisodeStatus`, `diagnosisIds` UUID[] (zawsze, może być `[]`) |
 | `EhrSummaryResponse` (`EhrSummary`) | `recentDiagnoses` `DiagnosisResponse[]`, `chronicConditions` `DiagnosisResponse[]`, `activeMedications` `ActiveMedicationResponse[]`, `recentEncounters` `EncounterResponse[]`, `allergies` `AllergyResponse[]` |
 
@@ -164,7 +164,7 @@ Pola `version` (long) w odpowiedziach dotyczą optymistycznego blokowania ([conv
 | `PrescriptionItemRequest` (`PrescriptionItem`) | `drugId` UUID T, `dosage` `DosageRequest` T, `quantityPackages` int T (> 0), `reimbursement` `ReimbursementLevel` T, `substitutionAllowed` boolean T; snapshot (`drugName` itd.) ignorowany |
 | `DosageRequest` (`DosageInstruction`) | `dose` T (> 0, do 7+3 cyfr), `doseUnit` T (niepusty, <= 30), `route` `AdministrationRoute` T, `frequency` `DoseFrequency` T, `timesOfDay` `TimeOfDay[]` N, `durationDays` int T (> 0), `asNeeded` boolean T, `maxPerDay` int N (> 0), `instructions` N |
 | `PrescriptionCancelRequest` (`PrescriptionCancelRequest`) | `reason` N, `version` N |
-| `PrescriptionResponse` (`Prescription`) | `id`, `patientId`, `encounterId`, `prescriberId`, `issuedAt`, `validFrom`, `validUntil`, `kind`, `items` `PrescriptionItemResponse[]` (po `drugName`), `status` `PrescriptionStatus` (efektywny), `accessCode` (4 cyfry), `eRxKey` (44 znaki), `notes`, `cancelledAt`, `cancelReason`, audyt, `version` |
+| `PrescriptionResponse` (`Prescription`) | `id`, `patientId`, `encounterId`, `prescriberId`, `issuedAt`, `validFrom`, `validUntil`, `kind`, `items` `PrescriptionItemResponse[]` (po `drugName`), `status` `PrescriptionStatus` (efektywny), `accessCode` (4 cyfry), `eRxKey` (44 znaki; lokalny, dla `e_prescription` podmieniany kluczem e-receipt, patrz [rest-api-fhir.md](rest-api-fhir.md)), `notes`, `cancelledAt`, `cancelReason`, audyt, `version` |
 | `PrescriptionItemResponse` (`PrescriptionItem`) | `id`, `drugId`, `drugName`, `activeSubstance`, `strength`, `form` (snapshot), `dosage` `DosageResponse`, `quantityPackages`, `reimbursement`, `substitutionAllowed` |
 | `DosageResponse` (`DosageInstruction`) | `dose`, `doseUnit`, `route`, `frequency`, `timesOfDay` (kolejność enuma, opc.), `durationDays`, `asNeeded`, `maxPerDay` (opc.), `instructions` (opc.) |
 | `ActiveMedicationResponse` (`ActiveMedication`) | pola `PrescriptionItemResponse` (płasko: `dosage`, ...) + `prescriptionId`, `date` (LocalDate = `validFrom` recepty) |

@@ -1,3 +1,4 @@
+import { labResultServiceStub } from '../../testing/lab-result-service.stub';
 import { describe, expect, it, beforeEach } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
@@ -10,7 +11,12 @@ import { LabResultService } from '../../services/lab-result.service';
 describe('ResultDetailPage', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [provideRouter([]), MessageService, { provide: MOCK_LATENCY_MS, useValue: 0 }],
+      providers: [
+        provideRouter([]),
+        MessageService,
+        labResultServiceStub,
+        { provide: MOCK_LATENCY_MS, useValue: 0 },
+      ],
     });
   });
 

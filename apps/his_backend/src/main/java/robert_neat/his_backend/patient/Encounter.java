@@ -51,7 +51,7 @@ public class Encounter {
     @Column(name = "ward_id")
     private UUID wardId;
 
-    @Column(name = "practitioner_id", nullable = false)
+    @Column(name = "practitioner_id")
     private UUID practitionerId;
 
     @Column(name = "reason", nullable = false, columnDefinition = "text")

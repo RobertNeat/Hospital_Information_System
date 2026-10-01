@@ -1,5 +1,7 @@
 package robert_neat.his_backend.auth;
 
+import java.util.List;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -11,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
 import robert_neat.his_backend.security.HisUserPrincipal;
+import robert_neat.his_backend.staff.WardService;
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -18,10 +21,18 @@ public class AuthController {
 
     private final AuthService auth;
     private final RegistrationService registration;
+    private final WardService wards;
 
-    AuthController(AuthService auth, RegistrationService registration) {
+    AuthController(AuthService auth, RegistrationService registration, WardService wards) {
         this.auth = auth;
         this.registration = registration;
+        this.wards = wards;
+    }
+
+    /** Publiczna (bez JWT) lista oddzialow do formularza rejestracji: tylko `id`, `name`, `shortName`. */
+    @GetMapping("/register/wards")
+    public List<PublicWardResponse> registrationWards() {
+        return wards.list().stream().map(w -> new PublicWardResponse(w.id(), w.name(), w.shortName())).toList();
     }
 
     @PostMapping("/login")

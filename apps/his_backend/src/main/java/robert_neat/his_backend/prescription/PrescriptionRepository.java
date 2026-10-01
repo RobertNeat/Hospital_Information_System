@@ -7,6 +7,7 @@ import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -21,4 +22,12 @@ public interface PrescriptionRepository extends JpaRepository<Prescription, UUID
             """)
     List<Prescription> findActive(@Param("patientId") UUID patientId,
             @Param("statuses") Collection<PrescriptionStatus> statuses, @Param("today") LocalDate today);
+
+    /**
+     * Zapis klucza z e-receipt zbiorczym JPQL (omija `@Version`): wersja zwrocona klientowi przy wystawieniu
+     * pozostaje aktualna, wiec kolejne `cancel` z `version` nie dostaje 409.
+     */
+    @Modifying
+    @Query("update Prescription p set p.eRxKey = :key where p.id = :id")
+    int updateERxKey(@Param("id") UUID id, @Param("key") String key);
 }

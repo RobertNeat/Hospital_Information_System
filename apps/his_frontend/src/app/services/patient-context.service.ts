@@ -1,10 +1,10 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { tap } from 'rxjs';
 import type { Observable } from 'rxjs';
-import { WARDS } from '../mock-data/wards.mock';
 import type { Patient, PatientSummary } from '../models';
 import { toPatientSummary } from '../utils/patient-summary';
 import { PatientService } from './patient.service';
+import { WardService } from './ward.service';
 
 const SESSION_KEY = 'his.currentPatientId';
 const MAX_RECENT = 5;
@@ -18,14 +18,18 @@ const MAX_RECENT = 5;
 @Injectable({ providedIn: 'root' })
 export class PatientContextService {
   private readonly patientService = inject(PatientService);
+  private readonly wardService = inject(WardService);
 
   private readonly _patient = signal<Patient | null>(null);
   readonly patient = this._patient.asReadonly();
   readonly patientId = computed(() => this._patient()?.id ?? null);
   readonly hasPatient = computed(() => !!this._patient());
 
-  private readonly _recentPatients = signal<PatientSummary[]>([]);
-  readonly recentPatients = this._recentPatients.asReadonly();
+  private readonly recent = signal<Patient[]>([]);
+  /** Recently opened patients; ward names follow the ward dictionary as it loads. */
+  readonly recentPatients = computed<PatientSummary[]>(() =>
+    this.recent().map((p) => toPatientSummary(p, this.wardService.wards())),
+  );
 
   constructor() {
     const storedId = this.readSessionId();
@@ -39,11 +43,8 @@ export class PatientContextService {
 
   setPatient(p: Patient): void {
     this._patient.set(p);
-    const summary = toPatientSummary(p, WARDS);
-    this._recentPatients.update((list) => {
-      const withoutCurrent = list.filter((r) => r.id !== p.id);
-      return [summary, ...withoutCurrent].slice(0, MAX_RECENT);
-    });
+    this.recent.update((list) => [p, ...list.filter((r) => r.id !== p.id)].slice(0, MAX_RECENT));
+    if (p.status === 'admitted') this.wardService.load().subscribe({ error: () => undefined });
     this.writeSessionId(p.id);
   }
 

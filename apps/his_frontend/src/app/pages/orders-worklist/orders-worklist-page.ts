@@ -15,6 +15,7 @@ import {
   URGENCY_OPTIONS,
 } from '../../constants/labels';
 import type { ID, OrderStatus, OrderUrgency, PatientSummary, TableColumn } from '../../models';
+import { toApiError } from '../../utils/api-error';
 import { LabOrderService } from '../../services/lab-order.service';
 import { ImagingOrderService } from '../../services/imaging-order.service';
 import { PatientService } from '../../services/patient.service';
@@ -30,6 +31,7 @@ interface WorklistRow extends Record<string, unknown> {
   orderedAt: string;
   urgency: OrderUrgency;
   status: OrderStatus;
+  version?: number;
 }
 
 const TYPE_OPTIONS = [
@@ -41,7 +43,17 @@ const TYPE_OPTIONS = [
 const STATUS_OPTIONS = [{ label: 'Wszystkie', value: '' }, ...ORDER_STATUS_OPTIONS];
 const URGENCY_FILTER_OPTIONS = [{ label: 'Wszystkie', value: '' }, ...URGENCY_OPTIONS];
 
-/** Valid forward status transitions for the demo "Zmień status" action. */
+/** Lab transitions allowed by the backend state machine; cancelling goes through `/cancel` with a reason. */
+const LAB_NEXT_STATUSES: Record<OrderStatus, OrderStatus[]> = {
+  ordered: ['scheduled', 'specimen_collected'],
+  scheduled: ['specimen_collected'],
+  specimen_collected: ['in_progress', 'completed'],
+  in_progress: ['completed'],
+  completed: [],
+  cancelled: [],
+};
+
+/** Imaging status transitions offered by the "Zmień status" action. */
 const NEXT_STATUSES: Record<OrderStatus, OrderStatus[]> = {
   ordered: ['scheduled', 'specimen_collected', 'in_progress', 'cancelled'],
   scheduled: ['specimen_collected', 'in_progress', 'cancelled'],
@@ -101,6 +113,7 @@ export class OrdersWorklistPage {
             orderedAt: o.orderedAt,
             urgency: o.urgency,
             status: o.status,
+            version: o.version,
           }));
           const imagingRows: WorklistRow[] = imaging.map((o) => ({
             id: o.id,
@@ -157,7 +170,7 @@ export class OrdersWorklistPage {
   ];
 
   protected nextStatusOptions(row: WorklistRow) {
-    return NEXT_STATUSES[row.status].map((s) => ({
+    return (row.type === 'lab' ? LAB_NEXT_STATUSES : NEXT_STATUSES)[row.status].map((s) => ({
       label: ORDER_STATUS_OPTIONS.find((o) => o.value === s)?.label ?? s,
       value: s,
     }));
@@ -188,8 +201,19 @@ export class OrdersWorklistPage {
       });
       this.ordersResource.reload();
     };
+    // Reload after a failure too: a 409 means the loaded status/version is stale.
+    const onFailed = (error: unknown) => {
+      this.toast.add({
+        severity: 'error',
+        summary: 'Nie udało się zmienić statusu',
+        detail: toApiError(error).problem.detail,
+      });
+      this.ordersResource.reload();
+    };
     if (row.type === 'lab') {
-      this.labOrderService.updateStatus(row.id, newStatus).subscribe(onUpdated);
+      this.labOrderService
+        .updateStatus(row.id, newStatus, undefined, row.version)
+        .subscribe({ next: onUpdated, error: onFailed });
     } else {
       this.imagingOrderService.updateStatus(row.id, newStatus).subscribe(onUpdated);
     }

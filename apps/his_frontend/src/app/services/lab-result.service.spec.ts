@@ -1,62 +1,121 @@
-import { describe, expect, it, beforeEach } from 'vitest';
+import { describe, expect, it, beforeEach, afterEach } from 'vitest';
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { firstValueFrom } from 'rxjs';
-import { MOCK_LATENCY_MS } from '../config/mock-api.config';
+import {
+  LAB_RESULTS_URL,
+  labResultAcknowledgeUrl,
+  labResultUrl,
+  patientLabAnalytesUrl,
+  patientLabResultsUrl,
+  patientLabTrendUrl,
+} from '../config/api.config';
+import { LAB_RESULTS } from '../mock-data/lab-results.mock';
+import type { AnalyteTrend, LabResult, PatientSummary, ResultWithPatient } from '../models';
+import type { Page } from '../models/api';
 import { LabResultService } from './lab-result.service';
+
+type Row = ResultWithPatient<LabResult>;
+
+const row = (result: LabResult): Row => ({ ...result, patient: {} as PatientSummary });
+
+const page = (items: Row[], n: number, totalPages: number): Page<Row> => ({
+  items,
+  page: n,
+  size: 100,
+  totalElements: items.length,
+  totalPages,
+});
 
 describe('LabResultService', () => {
   let service: LabResultService;
+  let http: HttpTestingController;
 
   beforeEach(() => {
-    TestBed.configureTestingModule({ providers: [{ provide: MOCK_LATENCY_MS, useValue: 0 }] });
+    TestBed.configureTestingModule({
+      providers: [provideHttpClient(), provideHttpClientTesting()],
+    });
     service = TestBed.inject(LabResultService);
+    http = TestBed.inject(HttpTestingController);
   });
 
-  it('getResults filters by patientId', async () => {
-    const result = await firstValueFrom(service.getResults('pat-001'));
-    expect(result.every((r) => r.patientId === 'pat-001')).toBe(true);
-    expect(result.length).toBeGreaterThan(0);
+  afterEach(() => http.verify());
+
+  it('getResults GETs the patient list without a filter by default', async () => {
+    const result = firstValueFrom(service.getResults('pat-001'));
+    const req = http.expectOne((r) => r.url === patientLabResultsUrl('pat-001'));
+    expect(req.request.method).toBe('GET');
+    expect(req.request.params.keys()).toEqual([]);
+    req.flush([LAB_RESULTS[0]]);
+    expect(await result).toEqual([LAB_RESULTS[0]]);
   });
 
-  it('getResultById errors for an unknown id', async () => {
-    await expect(firstValueFrom(service.getResultById('lres-999'))).rejects.toThrow();
+  it('getResults sends the abnormality filter', () => {
+    service.getResults('pat-001', 'critical').subscribe();
+    const req = http.expectOne((r) => r.url === patientLabResultsUrl('pat-001'));
+    expect(req.request.params.get('filter')).toBe('critical');
+    req.flush([]);
   });
 
-  it('getAnalyteTrend builds an ascending points series for HGB', async () => {
-    const trend = await firstValueFrom(service.getAnalyteTrend('pat-001', 'HGB'));
-    expect(trend.points.length).toBeGreaterThan(1);
-    const times = trend.points.map((p) => new Date(p.at).getTime());
-    expect([...times].sort((a, b) => a - b)).toEqual(times);
+  it('getResultById GETs /lab-results/{id} and surfaces 404', async () => {
+    const result = firstValueFrom(service.getResultById('lres-999'));
+    http
+      .expectOne({ method: 'GET', url: labResultUrl('lres-999') })
+      .flush(null, { status: 404, statusText: 'Not Found' });
+    await expect(result).rejects.toMatchObject({ status: 404 });
   });
 
-  it('getTrendableAnalytes lists distinct numeric analyte codes for the patient', async () => {
-    const options = await firstValueFrom(service.getTrendableAnalytes('pat-001'));
-    expect(options.some((o) => o.value === 'HGB')).toBe(true);
+  it('acknowledgeResult POSTs without a version and returns the reviewed result', async () => {
+    const reviewed = { ...LAB_RESULTS[0], reviewedAt: '2026-01-01T00:00:00Z', reviewedById: 'u1' };
+    const result = firstValueFrom(service.acknowledgeResult('lres-001'));
+    const req = http.expectOne({ method: 'POST', url: labResultAcknowledgeUrl('lres-001') });
+    expect(req.request.body).toEqual({});
+    req.flush(reviewed);
+    expect(await result).toEqual(reviewed);
   });
 
-  it('getRecent("critical") only returns results with HH/LL flags', async () => {
-    const results = await firstValueFrom(service.getRecent('critical'));
-    expect(results.length).toBeGreaterThan(0);
-    expect(
-      results.every((r) => r.observations.some((o) => o.flag === 'HH' || o.flag === 'LL')),
-    ).toBe(true);
+  it('getAnalyteTrend GETs the trend of one analyte', async () => {
+    const trend: AnalyteTrend = {
+      analyteCode: 'HGB',
+      analyteName: 'Hemoglobina',
+      unit: 'g/dL',
+      points: [{ at: '2026-01-01T00:00:00Z', value: 13.2, flag: 'N' }],
+    };
+    const result = firstValueFrom(service.getAnalyteTrend('pat-001', 'HGB'));
+    http.expectOne({ method: 'GET', url: patientLabTrendUrl('pat-001', 'HGB') }).flush(trend);
+    expect(await result).toEqual(trend);
   });
 
-  it('acknowledgeResult sets reviewedAt and reviewedById', async () => {
-    const first = (await firstValueFrom(service.getResults('pat-001')))[0];
-    const updated = await firstValueFrom(service.acknowledgeResult(first.id));
-    expect(updated.reviewedAt).toBeTruthy();
-    expect(updated.reviewedById).toBe('stf-001');
-    const stored = await firstValueFrom(service.getResultById(first.id));
-    expect(stored.reviewedAt).toBe(updated.reviewedAt);
+  it('getTrendableAnalytes maps { code, name } to select options', async () => {
+    const result = firstValueFrom(service.getTrendableAnalytes('pat-001'));
+    http
+      .expectOne({ method: 'GET', url: patientLabAnalytesUrl('pat-001') })
+      .flush([{ code: 'HGB', name: 'Hemoglobina' }]);
+    expect(await result).toEqual([{ value: 'HGB', label: 'Hemoglobina' }]);
   });
 
-  it('acknowledgeResult errors for an unknown id', async () => {
-    await expect(firstValueFrom(service.acknowledgeResult('lres-999'))).rejects.toThrow();
+  it('getRecent sends filter and paging to the inbox endpoint', async () => {
+    const a = row(LAB_RESULTS[0]);
+    const result = firstValueFrom(service.getRecent('abnormal'));
+    const req = http.expectOne((r) => r.url === LAB_RESULTS_URL);
+    expect(req.request.params.get('filter')).toBe('abnormal');
+    expect(req.request.params.get('page')).toBe('0');
+    expect(req.request.params.get('size')).toBe('100');
+    req.flush(page([a], 0, 1));
+    expect(await result).toEqual([a]);
   });
 
-  it('getRecent includes the patient summary', async () => {
-    const results = await firstValueFrom(service.getRecent('all'));
-    expect(results[0].patient).toHaveProperty('lastName');
+  it('getRecent reads every page', async () => {
+    const a = row(LAB_RESULTS[0]);
+    const b = row(LAB_RESULTS[1]);
+    const result = firstValueFrom(service.getRecent('all'));
+    http
+      .expectOne((r) => r.url === LAB_RESULTS_URL && r.params.get('page') === '0')
+      .flush(page([a], 0, 2));
+    http
+      .expectOne((r) => r.url === LAB_RESULTS_URL && r.params.get('page') === '1')
+      .flush(page([b], 1, 2));
+    expect(await result).toEqual([a, b]);
   });
 });

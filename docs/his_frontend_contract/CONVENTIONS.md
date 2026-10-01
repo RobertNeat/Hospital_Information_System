@@ -74,7 +74,7 @@ Błędy mają postać `ProblemDetail` (RFC 9457, zgodny ze Springowym `ProblemDe
 
 ## Listy
 
-Backend zwraca `Page<T>` i przyjmuje `PageQuery` (`sort` w formacie `field,asc`, zgodnie ze Spring Pageable). Serwisy frontendu zostają przy `T[]`; mock zwraca `items`.
+Backend zwraca `Page<T>` i przyjmuje `PageQuery` (`sort` w formacie `field,asc`, zgodnie ze Spring Pageable; tablica = powtórzony parametr `sort`). Query budujemy helperem `utils/http-params.ts` (`toHttpParams`: pomija undefined/null/pusty string, tablice jako powtórzone parametry, `Date` jako ISO UTC); URL-e w `config/api.config.ts`. Serwisy frontendu zostają przy `T[]` i rozpakowują `items`.
 
 ## Logika po stronie serwera
 

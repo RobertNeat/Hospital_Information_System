@@ -1,6 +1,7 @@
 import type { WritableSignal } from '@angular/core';
 import type { Router } from '@angular/router';
 import type { MessageService } from 'primeng/api';
+import { toApiError } from './api-error';
 
 export interface OrderSubmitContext {
   submitting: WritableSignal<boolean>;
@@ -12,6 +13,8 @@ export interface OrderSubmitContext {
   orderType: 'lab' | 'imaging';
   isCito: boolean;
   successDetail: string;
+  /** Receives the failure first; return true when it was fully handled (default toast skipped). */
+  onError?: (error: unknown) => boolean | void;
 }
 
 /** Shared subscribe-observer for order wizards: toasts + redirect to the patient's orders list. */
@@ -29,9 +32,14 @@ export function orderSubmitObserver(ctx: OrderSubmitContext) {
         queryParams: { type: ctx.orderType },
       });
     },
-    error: () => {
+    error: (error: unknown) => {
       ctx.submitting.set(false);
-      ctx.toast.add({ severity: 'error', summary: 'Nie udało się wysłać zlecenia' });
+      if (ctx.onError?.(error) === true) return;
+      ctx.toast.add({
+        severity: 'error',
+        summary: 'Nie udało się wysłać zlecenia',
+        detail: toApiError(error).problem.detail,
+      });
     },
   };
 }

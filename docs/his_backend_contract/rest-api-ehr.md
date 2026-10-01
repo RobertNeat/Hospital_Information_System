@@ -17,16 +17,19 @@ Endpointy `EhrController` (`/api/v1/patients/{patientId}`) i `DictionaryControll
 | GET | `/encounters` | `ehr:read` | - | `EncounterResponse[]` (`startAt` malejąco, `id`) | 200; 404 |
 | GET | `/episodes` | `ehr:read` | - | `TreatmentEpisodeResponse[]` (`startAt` malejąco) | 200; 404 |
 | GET | `/clinical-notes` | `ehr:read` | - | `ClinicalNoteResponse[]` (`createdAt` malejąco) | 200; 404 |
+| GET | `/clinical-notes/{noteId}` | `ehr:read` | - | `ClinicalNoteResponse` | 200; 404 pacjent/notatka (także notatka innego pacjenta lub zły format id) |
 | POST | `/clinical-notes` | któreś z `ehr:note:write`, `ehr:note:write-nursing`, `ehr:note:write-consultation` | `ClinicalNoteCreateRequest` | `ClinicalNoteResponse` + `Location` | 201; 403 kategoria niedozwolona dla roli; 404; 422 |
 | GET | `/diagnoses` | `ehr:read` lub `ehr:read-limited` | - | `DiagnosisResponse[]` (`diagnosedAt` malejąco) | 200; 404 |
+| GET | `/diagnoses/{diagnosisId}` | `ehr:read` lub `ehr:read-limited` | - | `DiagnosisResponse` | 200; 404 |
 | POST | `/diagnoses` | `ehr:diagnosis:write` | `DiagnosisCreateRequest` | `DiagnosisResponse` + `Location` | 201; 404; 422 |
 | GET | `/allergies` | `ehr:read` lub `ehr:read-limited` | - | `AllergyResponse[]` (`recordedAt` malejąco) | 200; 404 |
+| GET | `/allergies/{allergyId}` | `ehr:read` lub `ehr:read-limited` | - | `AllergyResponse` | 200; 404 |
 | POST | `/allergies` | `ehr:allergy:write` | `AllergyCreateRequest` | `AllergyResponse` + `Location` | 201; 404; 422 |
 | GET | `/contraindications` | `ehr:read` lub `ehr:read-limited` | - | `ContraindicationResponse[]` (`recordedAt` malejąco) | 200; 404 |
 | GET | `/treatments` | `ehr:read` lub `ehr:read-limited` | - | `TreatmentResponse[]` (`startAt` malejąco) | 200; 404 |
 | GET | `/dictionaries/icd-10` | uwierz. | query: `term`, `size` | `Coding[]` (`system="ICD-10"`, kod rosnąco) | 200; 422 `size` < 1 |
 
-Ścieżki powyżej (poza słownikiem) są względem `/patients/{patientId}`. Nagłówek `Location` wskazuje `/api/v1/patients/{id}/<zasób>/{noweId}`, ale **nie istnieją** endpointy `GET` pojedynczej notatki/diagnozy/alergii pod tymi adresami.
+Ścieżki powyżej (poza słownikiem) są względem `/patients/{patientId}`. Nagłówek `Location` wskazuje `/api/v1/patients/{id}/<zasób>/{noweId}`, czyli na endpointy `GET` pojedynczego zasobu powyżej.
 
 ## `GET /ehr-summary` - skład projekcji
 

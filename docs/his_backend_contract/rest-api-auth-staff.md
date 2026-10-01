@@ -10,6 +10,7 @@ Endpointy `/auth/*`, `/staff`, `/wards`, `/dashboard/stats`. Powrót: [README.md
 | POST | `/auth/logout` | uwierz. | - | puste | 204 (bezstanowy; nic nie unieważnia) |
 | GET | `/auth/me` | uwierz. | - | `CurrentUserResponse` (`CurrentUser`) | 200; 404 gdy pracownik z tokenu już nie istnieje |
 | POST | `/auth/register` | publiczny | `StaffRegistrationRequest` | `StaffRegistrationResponse` | 201 (`accountStatus="pending"`); 409 duplikat `employeeId`/`pwz`/`email`; 422 (m.in. nieistniejący `wardId`, hasło > 72 bajty) |
+| GET | `/auth/register/wards` | publiczny | - | `PublicWardResponse[]` (`id`, `name`, `shortName`; sort: `name`, `id`) | 200; lista oddziałów dla formularza rejestracji (bez `floor`/`beds`) |
 
 `GET /auth/me` zwraca świeże dane pracownika z bazy (`permissions` wyliczone z roli bieżącej w bazie, nie z tokenu).
 

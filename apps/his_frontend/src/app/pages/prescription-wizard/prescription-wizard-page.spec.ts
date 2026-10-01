@@ -1,3 +1,9 @@
+import { drugServiceStub } from '../../testing/drug-service.stub';
+import { prescriptionServiceStub } from '../../testing/prescription-service.stub';
+import { patientServiceStub } from '../../testing/patient-service.stub';
+import { ehrServiceStub } from '../../testing/ehr-service.stub';
+import { wardServiceStub } from '../../testing/ward-service.stub';
+import { staffServiceStub } from '../../testing/staff-service.stub';
 import { describe, expect, it, beforeEach } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
@@ -9,6 +15,12 @@ describe('PrescriptionWizardPage', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       providers: [
+        patientServiceStub,
+        ehrServiceStub,
+        wardServiceStub,
+        staffServiceStub,
+        drugServiceStub,
+        prescriptionServiceStub,
         provideRouter([]),
         MessageService,
         ConfirmationService,

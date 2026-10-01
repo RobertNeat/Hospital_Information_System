@@ -9,7 +9,8 @@ import org.springframework.stereotype.Component;
  * <ul>
  *   <li>`accessCode` - 4 cyfry `0000`-`9999` (kolumna `char(4)`, CHECK `^[0-9]{4}$`); kod dostepu nie jest unikalny.</li>
  *   <li>`eRxKey` - LOKALNY klucz 44 znakow `A-Z0-9` (kolumna `char(44)`; ten sam alfabet co dane mock i UI).
- *       To NIE jest klucz wydany przez system e-recepty: integracja z e-receipt (K19) ma go podmienic.</li>
+ *       To NIE jest klucz wydany przez system e-recepty: dla `e_prescription` podmienia go po commicie
+ *       `EReceiptIntegration` kluczem z e-receipt (gdy integracja wlaczona i e-receipt odpowiada).</li>
  * </ul>
  */
 @Component
