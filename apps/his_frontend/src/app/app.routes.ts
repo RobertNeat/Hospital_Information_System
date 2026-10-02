@@ -1,9 +1,10 @@
 import type { Routes } from '@angular/router';
 import { AppShell } from './layout/app-shell/app-shell';
 import { patientResolver } from './resolvers/patient.resolver';
-import { authGuard, guestGuard } from './guards/auth.guard';
+import { authGuard, guestGuard, permissionGuard } from './guards/auth.guard';
 import { unsavedChangesGuard } from './guards/unsaved-changes.guard';
 import { patientScopedRedirect } from './utils/patient-scoped-redirect';
+import { PERMISSIONS } from './constants/permissions';
 
 export const routes: Routes = [
   {
@@ -105,18 +106,23 @@ export const routes: Routes = [
           },
           {
             path: 'vitals',
+            canActivate: [permissionGuard(PERMISSIONS.VITALS_READ)],
             loadComponent: () =>
               import('./pages/patient-vitals/patient-vitals-page').then((m) => m.PatientVitalsPage),
             title: 'Parametry życiowe',
           },
           {
             path: 'orders',
+            canActivate: [
+              permissionGuard(PERMISSIONS.LAB_ORDER_READ, PERMISSIONS.IMAGING_ORDER_READ),
+            ],
             loadComponent: () =>
               import('./pages/patient-orders/patient-orders-page').then((m) => m.PatientOrdersPage),
             title: 'Zlecenia pacjenta',
           },
           {
             path: 'orders/lab/new',
+            canActivate: [permissionGuard(PERMISSIONS.LAB_ORDER_CREATE)],
             loadComponent: () =>
               import('./pages/lab-order-wizard/lab-order-wizard-page').then(
                 (m) => m.LabOrderWizardPage,
@@ -126,6 +132,7 @@ export const routes: Routes = [
           },
           {
             path: 'orders/imaging/new',
+            canActivate: [permissionGuard(PERMISSIONS.IMAGING_ORDER_CREATE)],
             loadComponent: () =>
               import('./pages/imaging-order-wizard/imaging-order-wizard-page').then(
                 (m) => m.ImagingOrderWizardPage,
@@ -135,6 +142,7 @@ export const routes: Routes = [
           },
           {
             path: 'prescriptions',
+            canActivate: [permissionGuard(PERMISSIONS.PRESCRIPTION_READ)],
             loadComponent: () =>
               import('./pages/patient-prescriptions/patient-prescriptions-page').then(
                 (m) => m.PatientPrescriptionsPage,
@@ -143,6 +151,7 @@ export const routes: Routes = [
           },
           {
             path: 'prescriptions/new',
+            canActivate: [permissionGuard(PERMISSIONS.PRESCRIPTION_CREATE)],
             loadComponent: () =>
               import('./pages/prescription-wizard/prescription-wizard-page').then(
                 (m) => m.PrescriptionWizardPage,
@@ -160,12 +169,16 @@ export const routes: Routes = [
       },
       {
         path: 'results',
+        canActivate: [
+          permissionGuard(PERMISSIONS.LAB_RESULT_READ, PERMISSIONS.IMAGING_RESULT_READ),
+        ],
         loadComponent: () =>
           import('./pages/results-inbox/results-inbox-page').then((m) => m.ResultsInboxPage),
         title: 'Wyniki badań',
       },
       {
         path: 'orders',
+        canActivate: [permissionGuard(PERMISSIONS.LAB_ORDER_READ, PERMISSIONS.IMAGING_ORDER_READ)],
         loadComponent: () =>
           import('./pages/orders-worklist/orders-worklist-page').then((m) => m.OrdersWorklistPage),
         title: 'Zlecenia',
@@ -182,6 +195,7 @@ export const routes: Routes = [
       },
       {
         path: 'prescriptions',
+        canActivate: [permissionGuard(PERMISSIONS.PRESCRIPTION_READ)],
         loadComponent: () =>
           import('./pages/prescriptions-list/prescriptions-list-page').then(
             (m) => m.PrescriptionsListPage,
@@ -195,6 +209,7 @@ export const routes: Routes = [
       },
       {
         path: 'vitals',
+        canActivate: [permissionGuard(PERMISSIONS.VITALS_READ)],
         loadComponent: () =>
           import('./pages/vitals-board/vitals-board-page').then((m) => m.VitalsBoardPage),
         title: 'Monitoring parametrów',

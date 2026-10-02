@@ -4,10 +4,12 @@ import { Tag } from 'primeng/tag';
 import { Button } from 'primeng/button';
 import { Tooltip } from 'primeng/tooltip';
 import { WardService } from '../../services/ward.service';
+import { AuthService } from '../../services/auth.service';
 import { StaffNamePipe } from '../../pipes/staff-name.pipe';
 import { AgePipe } from '../../pipes/age.pipe';
 import { GENDER_LABELS, PATIENT_FLAG_LABELS } from '../../constants/labels';
 import { ALLERGY_SEVERITY_SEVERITY, TRIAGE_SEVERITY } from '../../constants/tag-severity';
+import { PERMISSIONS } from '../../constants/permissions';
 import type { Allergy, Patient } from '../../models';
 
 export type PatientBarAction =
@@ -23,12 +25,27 @@ export type PatientBarAction =
 })
 export class PatientContextBar {
   private readonly wardService = inject(WardService);
+  private readonly auth = inject(AuthService);
 
   readonly patient = input.required<Patient>();
   readonly allergies = input<Allergy[]>([]);
   readonly activeAlerts = input(0);
 
   readonly action = output<PatientBarAction>();
+
+  /** Hides quick actions the current role has no permission for (not just disables them). */
+  protected readonly canLabOrder = computed(() =>
+    this.auth.hasPermission(PERMISSIONS.LAB_ORDER_CREATE),
+  );
+  protected readonly canImagingOrder = computed(() =>
+    this.auth.hasPermission(PERMISSIONS.IMAGING_ORDER_CREATE),
+  );
+  protected readonly canPrescribe = computed(() =>
+    this.auth.hasPermission(PERMISSIONS.PRESCRIPTION_CREATE),
+  );
+  protected readonly canViewVitals = computed(() =>
+    this.auth.hasPermission(PERMISSIONS.VITALS_READ),
+  );
 
   protected readonly genderLabel = computed(() => GENDER_LABELS[this.patient().gender]);
   protected readonly flagLabels = computed(() =>

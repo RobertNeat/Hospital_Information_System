@@ -32,7 +32,7 @@ class SpecializationEclResolverTest {
     @Test
     void matchesSpecializationIgnoringCaseAndDiacritics() {
         assertThat(resolver.resolve("Choroby wewnętrzne", TerminologyKind.PROCEDURE))
-                .isEqualTo("<< 103693007 OR << 387713003");
+                .isEqualTo("<< 386053000 OR << 387713003");
         assertThat(resolver.resolve("  CHIRURGIA   ogólna ", TerminologyKind.PROCEDURE)).isEqualTo("<< 387713003");
         assertThat(resolver.resolve("Kardiologia", TerminologyKind.DIAGNOSIS))
                 .isEqualTo("<< 404684003 : 363698007 = << 113257007");

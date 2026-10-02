@@ -27,7 +27,8 @@ import robert_neat.his_backend.prescription.events.PrescriptionIssued;
  * Do e-receipt trafiaja tylko recepty `e_prescription` (zlecenia szpitalne zostaja wewnetrzne).
  * <ul>
  *   <li>`PrescriptionIssued`: POST recepty, zapis zwroconego `eRxKey` w osobnej transakcji (`REQUIRES_NEW`, JPQL bez
- *       zmiany `version`). Odpowiedz REST wystawienia niesie jeszcze klucz lokalny - nowy klucz widac przy kolejnym odczycie.</li>
+ *       zmiany `version`). Listener dziala synchronicznie w watku requestu (po commicie, przed odpowiedzia HTTP),
+ *       wiec kontroler odczytuje recepte ponownie po `issue()` i odpowiedz REST niesie juz docelowy `eRxKey`.</li>
  *   <li>`PrescriptionCancelled` z aktorem (anulowanie w HIS): PUT stanu do e-receipt. Zdarzenie bez aktora (zmiana
  *       przyszla z e-receipt) nie jest odsylane - brak petli.</li>
  * </ul>

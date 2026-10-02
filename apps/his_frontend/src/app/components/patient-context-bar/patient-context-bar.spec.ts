@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, beforeEach } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { PatientContextBar } from './patient-context-bar';
+import { authServiceStub } from '../../testing/auth-service.stub';
 import type { Patient } from '../../models';
 
 const PATIENT: Patient = {
@@ -26,6 +27,10 @@ const PATIENT: Patient = {
 };
 
 describe('PatientContextBar', () => {
+  beforeEach(() => {
+    TestBed.configureTestingModule({ providers: [authServiceStub] });
+  });
+
   it('renders the patient name and PESEL', async () => {
     const fixture = TestBed.createComponent(PatientContextBar);
     fixture.componentRef.setInput('patient', PATIENT);

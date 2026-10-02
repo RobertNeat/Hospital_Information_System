@@ -53,8 +53,9 @@ export class PrescriptionService {
   }
 
   /**
-   * The prescriber comes from the token. The `eRxKey` in the response may still be a local one:
-   * for e-prescriptions the e-receipt key replaces it shortly after, so re-read to get it.
+   * The prescriber comes from the token. The backend re-reads the prescription after the
+   * e-receipt integration runs, so the response already carries the real `eRxKey` for
+   * e-prescriptions (falls back to the local key if e-receipt is disabled or unreachable).
    */
   issuePrescription(draft: PrescriptionCreateRequest): Observable<Prescription> {
     return this.http.post<Prescription>(patientPrescriptionsUrl(draft.patientId), draft);

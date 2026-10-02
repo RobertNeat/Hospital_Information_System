@@ -266,6 +266,17 @@ class AlertApiTest extends ApiIntegrationTest {
                 .andExpect(jsonPath("$[0].target.id").value(resultId.toString()));
     }
 
+    // P8: kod analitu rowny kodowi badania (np. jednoanalitowe TROP) nie moze sie dublowac w tresci alertu.
+    @Test
+    void criticalLabResultWithAnalyteCodeEqualToTestCodeDoesNotDuplicateCode() throws Exception {
+        UUID resultId = UUID.randomUUID();
+        publisher.publishEvent(new LabResultRecorded(resultId, uuid(KOWALSKI), null, uuid(NURSE_8), "TROP",
+                ResultStatus.FINAL, true, List.of("TROP"), Instant.now(), uuid(DOC_1)));
+        Map<String, Object> row = alertRow(resultId);
+        assertThat((String) row.get("message")).contains("laboratoryjnego TROP - ")
+                .doesNotContain("TROP (TROP)");
+    }
+
     @Test
     void nonCriticalLabAndImagingResultsCreateNoAlert() {
         publisher.publishEvent(new LabResultRecorded(UUID.randomUUID(), uuid(KOWALSKI), null, null, "MORF",
@@ -386,7 +397,7 @@ class AlertApiTest extends ApiIntegrationTest {
         Map<String, Object> row = alertRow(result.id());
         assertThat(row).containsEntry("type", "critical_result").containsEntry("target_kind", "lab_result")
                 .containsEntry("severity", "critical");
-        assertThat((String) row.get("message")).contains("CRP");
+        assertThat((String) row.get("message")).contains("CRP").doesNotContain("CRP (CRP)");
     }
 
     @Test

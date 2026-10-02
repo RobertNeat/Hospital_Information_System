@@ -1,3 +1,4 @@
+import { patientServiceStub } from '../../testing/patient-service.stub';
 import { prescriptionServiceStub } from '../../testing/prescription-service.stub';
 import { staffServiceStub } from '../../testing/staff-service.stub';
 import { describe, expect, it, beforeEach } from 'vitest';
@@ -8,7 +9,7 @@ import { PrescriptionsListPage } from './prescriptions-list-page';
 describe('PrescriptionsListPage', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [staffServiceStub, prescriptionServiceStub, provideRouter([])],
+      providers: [staffServiceStub, prescriptionServiceStub, patientServiceStub, provideRouter([])],
     });
   });
 
@@ -25,6 +26,40 @@ describe('PrescriptionsListPage', () => {
     expect(
       fixture.componentInstance['prescriptions']().every((p) => p.prescriberId === 'stf-001'),
     ).toBe(true);
+  });
+
+  it('resolves the patient column to a name instead of the raw UUID', async () => {
+    const fixture = TestBed.createComponent(PrescriptionsListPage);
+    await fixture.whenStable();
+    const row = fixture.componentInstance['filteredRows']().find(
+      (r: { patientId: string }) => r.patientId === 'pat-001',
+    );
+    expect(row?.patientName).toBe('Kowalski Jan');
+  });
+
+  it('falls back to the UUID when the patient cannot be resolved', async () => {
+    const fixture = TestBed.createComponent(PrescriptionsListPage);
+    await fixture.whenStable();
+    fixture.componentInstance['prescriptions'].set([
+      ...fixture.componentInstance['prescriptions'](),
+      {
+        id: 'test-rx-unknown',
+        patientId: 'unknown-patient',
+        prescriberId: 'stf-001',
+        issuedAt: '2026-01-01T00:00:00Z',
+        validFrom: '2026-01-01',
+        validUntil: '2026-02-01',
+        kind: 'hospital_order',
+        items: [],
+        status: 'issued',
+        accessCode: '0000',
+        version: 0,
+      },
+    ]);
+    const row = fixture.componentInstance['filteredRows']().find(
+      (r: { patientId: string }) => r.patientId === 'unknown-patient',
+    );
+    expect(row?.patientName).toBe('unknown-patient');
   });
 
   it('filters by status', async () => {

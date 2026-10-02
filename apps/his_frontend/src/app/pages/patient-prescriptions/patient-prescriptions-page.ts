@@ -20,7 +20,9 @@ import { SectionHeader } from '../../components/section-header/section-header';
 import { StatusTag } from '../../components/status-tag/status-tag';
 import { LabelPipe } from '../../pipes/label.pipe';
 import type { ActiveMedication, Prescription, PrescriptionItem } from '../../models';
+import { AuthService } from '../../services/auth.service';
 import { PrescriptionService } from '../../services/prescription.service';
+import { PERMISSIONS } from '../../constants/permissions';
 import { toApiError } from '../../utils/api-error';
 
 interface ActiveMedicationRow {
@@ -59,9 +61,20 @@ export class PatientPrescriptionsPage {
   private readonly prescriptionService = inject(PrescriptionService);
   private readonly confirmationService = inject(ConfirmationService);
   private readonly messageService = inject(MessageService);
+  private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
 
+  protected readonly canCreate = computed(() =>
+    this.auth.hasPermission(PERMISSIONS.PRESCRIPTION_CREATE),
+  );
+
   protected readonly loading = signal(true);
+  /**
+   * Naprawiony blad: brak obslugi bledu w forkJoin zostawial `loading` na `true` na zawsze przy
+   * 403/innym bledzie, a sekcja "Schemat leczenia" ignorowala `loading()` wiec od razu pokazywala
+   * "Brak aktywnych lekow" - wygladalo jak prawdziwy wynik, a nie jak nieudane zaladowanie danych.
+   */
+  protected readonly loadError = signal<string | null>(null);
   protected readonly prescriptions = signal<Prescription[]>([]);
   private readonly medications = signal<ActiveMedication[]>([]);
 
@@ -76,13 +89,22 @@ export class PatientPrescriptionsPage {
 
   private load(patientId: string): void {
     this.loading.set(true);
+    this.loadError.set(null);
     forkJoin({
       rows: this.prescriptionService.getPrescriptions({ patientId }),
       medications: this.prescriptionService.getActiveMedications(patientId),
-    }).subscribe(({ rows, medications }) => {
-      this.prescriptions.set(rows);
-      this.medications.set(medications);
-      this.loading.set(false);
+    }).subscribe({
+      next: ({ rows, medications }) => {
+        this.prescriptions.set(rows);
+        this.medications.set(medications);
+        this.loading.set(false);
+      },
+      error: (err: unknown) => {
+        this.loadError.set(
+          toApiError(err).problem.detail ?? 'Nie udało się wczytać leków i recept.',
+        );
+        this.loading.set(false);
+      },
     });
   }
 

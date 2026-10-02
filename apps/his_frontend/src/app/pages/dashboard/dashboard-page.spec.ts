@@ -8,6 +8,7 @@ import {
 } from '../../testing/dashboard-service.stub';
 import { teamMessageServiceStub } from '../../testing/team-message-service.stub';
 import { staffServiceStub } from '../../testing/staff-service.stub';
+import { authServiceStub } from '../../testing/auth-service.stub';
 import { afterEach, describe, expect, it, beforeEach, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
@@ -47,6 +48,7 @@ describe('DashboardPage', () => {
         labResultServiceStub,
         dashboardServiceStub,
         teamMessageServiceStub,
+        authServiceStub,
       ],
     });
   });

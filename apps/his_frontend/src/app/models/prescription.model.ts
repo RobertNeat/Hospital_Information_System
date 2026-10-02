@@ -72,8 +72,8 @@ export interface Prescription extends Versioned, Partial<Auditable> {
   accessCode: string;
   /**
    * 44-character key assigned by the backend; the client does not send it. For `e_prescription`
-   * the e-receipt key may replace the initial local one after issuing, so re-read the
-   * prescription instead of treating the key from the issue response as final.
+   * the issue response already carries the e-receipt key when available (falls back to a local
+   * key if e-receipt is disabled or unreachable).
    */
   eRxKey?: string;
   notes?: string;

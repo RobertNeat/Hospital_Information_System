@@ -25,7 +25,6 @@ Zasady utrzymania: po wdrożeniu pozycji usuwamy ją stąd; nie dopisujemy opis�
 
 - Brak ponawiania nieudanej wysyłki zleceń/recept (best effort, AFTER_COMMIT; błędy tylko logowane).
 - Zmiany stanu zleceń wykonane w HIS (poza anulowaniem) nie są przekazywane do e-laboratory ani e-imaging.
-- Odpowiedź `201` wystawienia recepty zawiera klucz lokalny; właściwy `eRxKey` z e-receipt zapisuje się po commicie (plan.md, P1).
 - Wygasanie recept wyliczane przy odczycie; brak schedulera i zdarzenia wygaśnięcia.
 
 ## Zdarzenia i alerty

@@ -18,7 +18,7 @@
         }
       </div>
     }
-    @for (group of navGroups; track group.label; let idx0 = $index) {
+    @for (group of navGroups(); track group.label; let idx0 = $index) {
       <div [id]="'app-sidebar-sidebar-group-' + idx0" class="his-sidebar__group">
         @if (!layout.collapsed()) {
           <div [id]="'app-sidebar-sidebar-group-label-' + idx0" class="his-sidebar__group-label">

@@ -1,13 +1,15 @@
 <div id="patient-prescriptions-page" class="his-page">
   <app-page-header id="patient-prescriptions-app-page-header" title="Leki i recepty">
-    <div id="patient-prescriptions-div" actions>
-      <p-button
-        id="patient-prescriptions-p-button"
-        label="Nowa recepta"
-        icon="pi pi-plus-circle"
-        (onClick)="goToNewPrescription()"
-      />
-    </div>
+    @if (canCreate()) {
+      <div id="patient-prescriptions-div" actions>
+        <p-button
+          id="patient-prescriptions-p-button"
+          label="Nowa recepta"
+          icon="pi pi-plus-circle"
+          (onClick)="goToNewPrescription()"
+        />
+      </div>
+    }
   </app-page-header>
 
   <div id="patient-prescriptions-section" class="his-section">
@@ -16,7 +18,21 @@
       title="Schemat leczenia (leki aktywne)"
       icon="pi pi-heart"
     />
-    @if (activeMedications().length === 0) {
+    @if (loading()) {
+      <app-empty-state
+        id="patient-prescriptions-app-empty-state-loading"
+        icon="pi pi-spin pi-spinner"
+        title="Wczytywanie..."
+        message="Ładowanie danych pacjenta."
+      />
+    } @else if (loadError()) {
+      <app-empty-state
+        id="patient-prescriptions-app-empty-state-error"
+        icon="pi pi-exclamation-triangle"
+        title="Nie udało się wczytać danych"
+        [message]="loadError()!"
+      />
+    } @else if (activeMedications().length === 0) {
       <app-empty-state
         id="patient-prescriptions-app-empty-state"
         icon="pi pi-inbox"
@@ -72,7 +88,14 @@
       title="Wystawione recepty"
       icon="pi pi-file-edit"
     />
-    @if (!loading() && prescriptions().length === 0) {
+    @if (!loading() && loadError()) {
+      <app-empty-state
+        id="patient-prescriptions-app-empty-state-error-2"
+        icon="pi pi-exclamation-triangle"
+        title="Nie udało się wczytać recept"
+        [message]="loadError()!"
+      />
+    } @else if (!loading() && prescriptions().length === 0) {
       <app-empty-state
         id="patient-prescriptions-app-empty-state-2"
         icon="pi pi-inbox"

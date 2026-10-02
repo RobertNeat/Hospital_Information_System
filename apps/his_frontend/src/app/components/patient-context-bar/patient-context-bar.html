@@ -71,38 +71,46 @@
   </div>
 
   <div id="patient-context-bar-patient-bar-actions" class="his-patient-bar__actions">
-    <p-button
-      id="patient-context-bar-p-button"
-      icon="pi pi-eye-dropper"
-      size="small"
-      ariaLabel="Zlecenie laboratoryjne"
-      pTooltip="Zlecenie laboratoryjne"
-      (onClick)="emit('lab-order')"
-    />
-    <p-button
-      id="patient-context-bar-p-button-2"
-      icon="pi pi-image"
-      size="small"
-      ariaLabel="Zlecenie obrazowe"
-      pTooltip="Zlecenie obrazowe"
-      (onClick)="emit('imaging-order')"
-    />
-    <p-button
-      id="patient-context-bar-p-button-3"
-      icon="pi pi-file-edit"
-      size="small"
-      ariaLabel="Nowa recepta"
-      pTooltip="Nowa recepta"
-      (onClick)="emit('prescription')"
-    />
-    <p-button
-      id="patient-context-bar-p-button-4"
-      icon="pi pi-heart"
-      size="small"
-      ariaLabel="Parametry życiowe"
-      pTooltip="Parametry życiowe"
-      (onClick)="emit('vitals')"
-    />
+    @if (canLabOrder()) {
+      <p-button
+        id="patient-context-bar-p-button"
+        icon="pi pi-eye-dropper"
+        size="small"
+        ariaLabel="Zlecenie laboratoryjne"
+        pTooltip="Zlecenie laboratoryjne"
+        (onClick)="emit('lab-order')"
+      />
+    }
+    @if (canImagingOrder()) {
+      <p-button
+        id="patient-context-bar-p-button-2"
+        icon="pi pi-image"
+        size="small"
+        ariaLabel="Zlecenie obrazowe"
+        pTooltip="Zlecenie obrazowe"
+        (onClick)="emit('imaging-order')"
+      />
+    }
+    @if (canPrescribe()) {
+      <p-button
+        id="patient-context-bar-p-button-3"
+        icon="pi pi-file-edit"
+        size="small"
+        ariaLabel="Nowa recepta"
+        pTooltip="Nowa recepta"
+        (onClick)="emit('prescription')"
+      />
+    }
+    @if (canViewVitals()) {
+      <p-button
+        id="patient-context-bar-p-button-4"
+        icon="pi pi-heart"
+        size="small"
+        ariaLabel="Parametry życiowe"
+        pTooltip="Parametry życiowe"
+        (onClick)="emit('vitals')"
+      />
+    }
     <p-button
       id="patient-context-bar-p-button-5"
       icon="pi pi-comments"

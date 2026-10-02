@@ -29,6 +29,8 @@ import { HandoffNoteDialog } from '../../components/handoff-note-dialog/handoff-
 import { StaffService } from '../../services/staff.service';
 import { WardService } from '../../services/ward.service';
 import { PatientService } from '../../services/patient.service';
+import { AuthService } from '../../services/auth.service';
+import { PERMISSIONS } from '../../constants/permissions';
 import type { StaffMember, Ward } from '../../models';
 import { createAlertsState, createHandoffState } from './messages-board.state';
 import { createInboxState } from './messages-inbox.state';
@@ -85,12 +87,18 @@ export class MessagesPage {
   private readonly staffService = inject(StaffService);
   private readonly wardService = inject(WardService);
   private readonly router = inject(Router);
+  private readonly auth = inject(AuthService);
 
   readonly tab = input<MessagesTab>('inbox');
   readonly thread = input<string>();
   readonly patientId = input<string>();
 
   protected readonly currentUser = this.staffService.currentUser;
+
+  // `message:read`/`message:write` are granted to every role; "Zadania" and "Alerty" are not
+  // (see RolePermissions.java), so those tabs/calls must be gated individually.
+  protected readonly canSeeTasks = computed(() => this.auth.hasPermission(PERMISSIONS.TASK_READ));
+  protected readonly canSeeAlerts = computed(() => this.auth.hasPermission(PERMISSIONS.ALERT_READ));
 
   // ---- shared reference data ----
   protected readonly messagingStaff = signal<StaffMember[]>([]);
@@ -122,9 +130,16 @@ export class MessagesPage {
     });
     this.wardService.getWards().subscribe((wards) => this.wards.set(wards));
     this.inbox.load();
-    this.taskTab.load();
-    this.handoff.load();
-    this.alertTab.load();
+    // "Zadania" and "Przekazanie dyżuru" both require `task:read` on the backend; "Alerty"
+    // requires `alert:read`. Skip the call entirely for a role without it (pharmacist) instead
+    // of firing a request the backend will 403.
+    if (this.canSeeTasks()) {
+      this.taskTab.load();
+      this.handoff.load();
+    }
+    if (this.canSeeAlerts()) {
+      this.alertTab.load();
+    }
 
     const initialPatientId = this.patientId();
     if (initialPatientId) {
@@ -132,7 +147,17 @@ export class MessagesPage {
     }
   }
 
-  protected readonly activeTab = computed(() => TAB_VALUES[this.tab()]);
+  /** Falls back to "inbox" for a deep link into a tab the current role cannot see. */
+  protected readonly activeTab = computed(() => {
+    const requested = this.tab();
+    if ((requested === 'tasks' || requested === 'handoff') && !this.canSeeTasks()) {
+      return TAB_VALUES.inbox;
+    }
+    if (requested === 'alerts' && !this.canSeeAlerts()) {
+      return TAB_VALUES.inbox;
+    }
+    return TAB_VALUES[requested];
+  });
 
   protected onTabChange(value: string | number | undefined): void {
     if (value === undefined) return;

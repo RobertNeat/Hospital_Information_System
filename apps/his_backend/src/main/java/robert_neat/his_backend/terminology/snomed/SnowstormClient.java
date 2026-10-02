@@ -118,6 +118,12 @@ public class SnowstormClient {
         return new SnomedConceptPage(expansion.path("total").asInt(concepts.size()), offset, List.copyOf(concepts));
     }
 
+    // Snowstorm Lite 2.7.0 dla nieznanego SCTID na $lookup rzuca NPE w HAPI i odpowiada HTTP 500
+    // (OperationOutcome, diagnostics zawiera "HAPI-0389" i "FHIRConcept.toHapi" - "concept" is null),
+    // zamiast poprawnego 404. Rozpoznajemy ten konkretny, stabilny sygnal bledu i mapujemy go na 404,
+    // zeby nie przykryc innych bledow 5xx (realna awaria/timeout Snowstorma) falszywym "not found".
+    private static final String LOOKUP_UNKNOWN_CODE_SIGNATURE = "FHIRConcept.toHapi";
+
     public SnomedConcept lookup(String code) {
         if (code == null || !code.matches("\\d{6,18}")) {
             throw new TerminologyException.InvalidRequest("SCTID musi miec 6-18 cyfr", null);
@@ -138,6 +144,11 @@ public class SnowstormClient {
         } catch (TerminologyException.InvalidRequest e) {
             // 400/404/422 na lookup oznacza nieznany kod
             throw new TerminologyException.NotFound("Nie znaleziono pojecia SNOMED CT " + code);
+        } catch (TerminologyException.Unavailable e) {
+            if (isUnknownCodeServerError(e)) {
+                throw new TerminologyException.NotFound("Nie znaleziono pojecia SNOMED CT " + code);
+            }
+            throw e;
         }
         String display = null;
         for (JsonNode p : parse(body).path("parameter")) {
@@ -161,6 +172,18 @@ public class SnowstormClient {
 
     private static MediaType fhirJson() {
         return MediaType.valueOf("application/fhir+json");
+    }
+
+    /** True tylko dla HTTP 500 z cialem odpowiedzi noszacym sygnature nieznanego SCTID (patrz wyzej). */
+    private static boolean isUnknownCodeServerError(TerminologyException.Unavailable e) {
+        if (!(e.getCause() instanceof HttpServerErrorException httpError)) {
+            return false;
+        }
+        if (httpError.getStatusCode().value() != 500) {
+            return false;
+        }
+        String responseBody = httpError.getResponseBodyAsString();
+        return responseBody != null && responseBody.contains(LOOKUP_UNKNOWN_CODE_SIGNATURE);
     }
 
     private String execute(String what, Supplier<String> call) {

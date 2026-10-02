@@ -18,12 +18,19 @@ export function createHandoffState(ctx: MessagesContext) {
 
   const load = (): void => {
     handoffLoading.set(true);
-    service.getHandoffNotes().subscribe((notes) => {
-      handoffNotes.set(notes);
-      handoffLoading.set(false);
-      for (const n of notes) {
-        for (const p of n.patientNotes) ctx.patients.resolve(p.patientId);
-      }
+    service.getHandoffNotes().subscribe({
+      next: (notes) => {
+        handoffNotes.set(notes);
+        handoffLoading.set(false);
+        for (const n of notes) {
+          for (const p of n.patientNotes) ctx.patients.resolve(p.patientId);
+        }
+      },
+      // Naprawiony blad: brak obslugi bledu zostawial `handoffLoading` na `true` na zawsze.
+      error: () => {
+        handoffLoading.set(false);
+        ctx.toast.add({ severity: 'error', summary: 'Nie udało się wczytać przekazań dyżuru' });
+      },
     });
   };
 
@@ -74,12 +81,19 @@ export function createAlertsState(ctx: MessagesContext) {
 
   const load = (silent = false): void => {
     if (!silent) alertsLoading.set(true);
-    service.getAlerts().subscribe((list) => {
-      alerts.set(list);
-      alertsLoading.set(false);
-      for (const a of list) {
-        if (a.patientId) ctx.patients.resolve(a.patientId);
-      }
+    service.getAlerts().subscribe({
+      next: (list) => {
+        alerts.set(list);
+        alertsLoading.set(false);
+        for (const a of list) {
+          if (a.patientId) ctx.patients.resolve(a.patientId);
+        }
+      },
+      // Naprawiony blad: brak obslugi bledu zostawial `alertsLoading` na `true` na zawsze.
+      error: () => {
+        alertsLoading.set(false);
+        ctx.toast.add({ severity: 'error', summary: 'Nie udało się wczytać alertów' });
+      },
     });
   };
 

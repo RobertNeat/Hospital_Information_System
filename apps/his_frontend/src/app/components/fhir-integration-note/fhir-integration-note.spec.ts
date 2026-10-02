@@ -9,6 +9,7 @@ describe('FhirIntegrationNote', () => {
     await fixture.whenStable();
     const el = fixture.nativeElement as HTMLElement;
     expect(el.textContent).toContain('ServiceRequest');
-    expect(el.textContent).toContain('tryb demonstracyjny');
+    expect(el.textContent).toContain('zewnętrznej usługi FHIR');
+    expect(el.textContent).toContain('lokalnie w HIS');
   });
 });

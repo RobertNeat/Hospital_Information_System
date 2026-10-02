@@ -21,6 +21,7 @@ import { toApiError } from '../../utils/api-error';
 import { AuthService } from '../../services/auth.service';
 import { LabOrderService } from '../../services/lab-order.service';
 import { ImagingOrderService } from '../../services/imaging-order.service';
+import { PERMISSIONS } from '../../constants/permissions';
 
 type OrdersTab = 'lab' | 'imaging';
 
@@ -62,6 +63,14 @@ export class PatientOrdersPage {
 
   readonly patientId = input.required<string>();
   readonly type = input<'lab' | 'imaging'>();
+
+  /** Hides "Nowe zlecenie..." buttons the current role has no permission for. */
+  protected readonly canCreateLabOrder = computed(() =>
+    this.auth.hasPermission(PERMISSIONS.LAB_ORDER_CREATE),
+  );
+  protected readonly canCreateImagingOrder = computed(() =>
+    this.auth.hasPermission(PERMISSIONS.IMAGING_ORDER_CREATE),
+  );
 
   protected readonly activeTab = computed<OrdersTab>(() =>
     this.type() === 'imaging' ? 'imaging' : 'lab',

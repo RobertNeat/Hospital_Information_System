@@ -21,6 +21,7 @@ import type {
   StaffRegistrationRequest,
   StaffRegistrationResponse,
 } from '../models/api';
+import { PatientContextService } from './patient-context.service';
 
 /** `setTimeout` overflows (fires immediately) above 2^31-1 ms. */
 const MAX_TIMEOUT_MS = 2_147_483_647;
@@ -51,6 +52,10 @@ export class AuthService {
    */
   private get http(): HttpClient {
     return this.injector.get(HttpClient);
+  }
+  /** Lazy to avoid a circular DI chain (`PatientContextService` -> ... -> `AuthService`). */
+  private get patientContext(): PatientContextService {
+    return this.injector.get(PatientContextService);
   }
 
   private readonly messages = inject(MessageService, { optional: true });
@@ -137,6 +142,9 @@ export class AuthService {
     this._user.set(null);
     this._expiresAt.set(null);
     this.writeStoredSession(null);
+    // Fix: stale patient context (sessionStorage `his.currentPatientId`) used to survive
+    // logout and leak into the next session/user on the same browser.
+    this.patientContext.clear();
   }
 
   /**

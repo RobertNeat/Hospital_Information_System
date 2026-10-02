@@ -151,6 +151,14 @@ describe('AuthService', () => {
     expect(navigate).not.toHaveBeenCalled();
   });
 
+  it('logout clears the stale patient context (sessionStorage) so it does not leak to the next session', () => {
+    doLogin();
+    sessionStorage.setItem('his.currentPatientId', 'pat-001');
+    auth.logout().subscribe();
+    http.expectOne(AUTH_LOGOUT_URL).flush(null, { status: 204, statusText: 'No Content' });
+    expect(sessionStorage.getItem('his.currentPatientId')).toBeNull();
+  });
+
   it('logoutAndRedirect clears the session and goes to /login', () => {
     doLogin();
     auth.logoutAndRedirect();

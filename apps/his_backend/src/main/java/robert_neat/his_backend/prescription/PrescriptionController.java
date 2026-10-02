@@ -57,7 +57,10 @@ public class PrescriptionController {
     public ResponseEntity<PrescriptionResponse> issue(@PathVariable String patientId,
             @Valid @RequestBody PrescriptionCreateRequest request) {
         PrescriptionResponse created = prescriptions.issue(patientId, request);
-        return ResponseEntity.created(URI.create("/api/v1/prescriptions/" + created.id())).body(created);
+        // Naprawiony blad: odpowiedz 201 niosla lokalny eRxKey, bo DTO mapowane przed commitem;
+        // ponowny odczyt po integracji AFTER_COMMIT (synchronicznej) daje docelowy klucz.
+        PrescriptionResponse current = prescriptions.get(created.id().toString());
+        return ResponseEntity.created(URI.create("/api/v1/prescriptions/" + created.id())).body(current);
     }
 
     /** Cialo opcjonalne (`reason?`, `version?`). */

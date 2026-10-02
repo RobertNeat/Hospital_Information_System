@@ -67,7 +67,7 @@
   <div id="dashboard-card-2" class="his-card">
     <app-icon-action-group
       id="dashboard-app-icon-action-group"
-      [actions]="quickActions"
+      [actions]="quickActions()"
       [showLabels]="true"
       (action)="onQuickAction($event)"
     />

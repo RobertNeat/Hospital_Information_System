@@ -133,6 +133,10 @@ class EReceiptFlowTest {
     }
 
     private String issue(String kind) throws Exception {
+        return issueAndGetResponse(kind, "$.id");
+    }
+
+    private String issueAndGetResponse(String kind, String jsonPath) throws Exception {
         LocalDate today = LocalDate.now(ZoneOffset.UTC);
         String body = "{\"validFrom\":\"" + today + "\",\"validUntil\":\"" + today.plusDays(30) + "\",\"kind\":\""
                 + kind + "\",\"items\":[{\"drugId\":\"" + POLPRIL + "\",\"dosage\":{\"dose\":5,\"doseUnit\":\"mg\","
@@ -141,7 +145,7 @@ class EReceiptFlowTest {
         String response = mvc.perform(post("/api/v1/patients/{id}/prescriptions", PATIENT)
                         .header(HttpHeaders.AUTHORIZATION, token()).contentType(JSON).content(body))
                 .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
-        return JsonPath.read(response, "$.id");
+        return JsonPath.read(response, jsonPath);
     }
 
     private String storedKey(String id) throws Exception {
@@ -167,6 +171,15 @@ class EReceiptFlowTest {
             assertThat(sent.getMedicationCodeableConcept().getText()).isNotBlank();
         });
         assertThat(storedKey(id)).isEqualTo(LAST_KEY.get()).matches("\\d{44}");
+    }
+
+    @Test
+    void issueResponseAlreadyCarriesTheRealEReceiptKeyNotTheLocalOne() throws Exception {
+        // Naprawiony blad: odpowiedz 201 niosla lokalny eRxKey (DTO mapowany przed commitem);
+        // kontroler odczytuje ponownie po AFTER_COMMIT, wiec odpowiedz ma juz klucz z e-receipt.
+        String erxKeyInResponse = issueAndGetResponse("e_prescription", "$.eRxKey");
+
+        assertThat(erxKeyInResponse).isEqualTo(LAST_KEY.get()).matches("\\d{44}");
     }
 
     @Test

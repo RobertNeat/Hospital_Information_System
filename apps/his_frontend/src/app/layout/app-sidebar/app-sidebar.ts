@@ -1,12 +1,13 @@
 import { NgTemplateOutlet } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { Drawer } from 'primeng/drawer';
 import { BadgeDirective } from 'primeng/badge';
 import { LayoutStateService } from '../layout-state.service';
-import { NAV_GROUPS, type NavItem } from '../nav-items';
+import { NAV_GROUPS, type NavGroup, type NavItem } from '../nav-items';
 import { PatientContextService } from '../../services/patient-context.service';
 import { TeamMessageService } from '../../services/team-message.service';
+import { AuthService } from '../../services/auth.service';
 import { FullNamePipe } from '../../pipes/full-name.pipe';
 
 @Component({
@@ -21,8 +22,17 @@ export class AppSidebar {
   protected readonly layout = inject(LayoutStateService);
   protected readonly ctx = inject(PatientContextService);
   protected readonly teamMessageService = inject(TeamMessageService);
+  private readonly auth = inject(AuthService);
 
-  protected readonly navGroups = NAV_GROUPS;
+  /** Items without `requiresAnyOf` are always visible; others need one matching permission. */
+  protected readonly navGroups = computed<NavGroup[]>(() =>
+    NAV_GROUPS.map((group) => ({
+      ...group,
+      items: group.items.filter(
+        (item) => !item.requiresAnyOf || item.requiresAnyOf.some((p) => this.auth.hasPermission(p)),
+      ),
+    })).filter((group) => group.items.length > 0),
+  );
   protected readonly unreadCount = this.teamMessageService.unreadCount;
 
   protected linkFor(item: NavItem): unknown[] {

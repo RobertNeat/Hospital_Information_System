@@ -30,9 +30,12 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
+
+import org.apache.catalina.connector.ClientAbortException;
 
 import jakarta.persistence.OptimisticLockException;
 import jakarta.validation.ConstraintViolation;
@@ -183,6 +186,12 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @Override
     protected ResponseEntity<Object> handleExceptionInternal(Exception ex, Object body, HttpHeaders headers,
             HttpStatusCode statusCode, WebRequest request) {
+        if (isClientDisconnect(ex)) {
+            // Klient zerwal polaczenie (np. zamknal karte) w trakcie zapisu odpowiedzi - to normalne
+            // zachowanie, a nie blad serwera. Logujemy na DEBUG, nie probujemy pisac ciala odpowiedzi.
+            log.debug("Polaczenie przerwane przez klienta przy zapisie odpowiedzi", ex);
+            return null;
+        }
         if (statusCode.is5xxServerError()) {
             log.error("Blad serwera przy obsludze zadania", ex);
         }
@@ -226,6 +235,12 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     ResponseEntity<ProblemDetail> internal(Exception e) {
+        if (isClientDisconnect(e)) {
+            // Np. ClientAbortException zgloszony bezposrednio (poza typowanym flow MVC), zanim
+            // dotrze do handleExceptionInternal - patrz komentarz tam.
+            log.debug("Polaczenie przerwane przez klienta", e);
+            return null;
+        }
         log.error("Nieobslugiwany wyjatek", e);
         return respond(HttpStatus.INTERNAL_SERVER_ERROR, ApiErrorCode.INTERNAL, "Wystapil nieoczekiwany blad");
     }
@@ -258,6 +273,11 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             }
         }
         return null;
+    }
+
+    private static boolean isClientDisconnect(Throwable t) {
+        return findCause(t, ClientAbortException.class) != null
+                || findCause(t, AsyncRequestNotUsableException.class) != null;
     }
 
     private static <T extends Throwable> Throwable findCause(Throwable t, Class<T> type) {

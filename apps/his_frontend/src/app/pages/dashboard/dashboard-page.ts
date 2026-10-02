@@ -1,8 +1,9 @@
 import { DatePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router, RouterLink } from '@angular/router';
-import { forkJoin } from 'rxjs';
+import { catchError, forkJoin, of } from 'rxjs';
+import type { Observable } from 'rxjs';
 import { DataTable } from '../../components/data-table/data-table';
 import {
   IconActionGroup,
@@ -14,12 +15,14 @@ import { StatCard } from '../../components/stat-card/stat-card';
 import { EmptyState } from '../../components/empty-state/empty-state';
 import { FullNamePipe } from '../../pipes/full-name.pipe';
 import { AgePipe } from '../../pipes/age.pipe';
+import { AuthService } from '../../services/auth.service';
 import { DashboardService } from '../../services/dashboard.service';
 import { LabResultService } from '../../services/lab-result.service';
 import { PatientContextService } from '../../services/patient-context.service';
 import { PatientService } from '../../services/patient.service';
 import { StaffService } from '../../services/staff.service';
 import { TeamMessageService } from '../../services/team-message.service';
+import { PERMISSIONS } from '../../constants/permissions';
 import { alertRoute, type AlertRoute } from '../../utils/alert-route';
 import type {
   ClinicalAlert,
@@ -30,12 +33,37 @@ import type {
   TeamTask,
 } from '../../models';
 
-const QUICK_ACTIONS: IconAction[] = [
+interface QuickActionDef extends IconAction {
+  /** Omitted = always visible (e.g. patient registration, messages). */
+  requiresAnyOf?: string[];
+}
+
+const QUICK_ACTIONS: QuickActionDef[] = [
   { id: 'register-patient', icon: 'pi pi-user-plus', label: 'Rejestracja pacjenta' },
-  { id: 'lab-order', icon: 'pi pi-eye-dropper', label: 'Zlecenie laboratoryjne' },
-  { id: 'imaging-order', icon: 'pi pi-image', label: 'Zlecenie obrazowe' },
-  { id: 'prescription', icon: 'pi pi-file-edit', label: 'Nowa recepta' },
-  { id: 'vitals', icon: 'pi pi-heart', label: 'Parametry życiowe' },
+  {
+    id: 'lab-order',
+    icon: 'pi pi-eye-dropper',
+    label: 'Zlecenie laboratoryjne',
+    requiresAnyOf: [PERMISSIONS.LAB_ORDER_CREATE],
+  },
+  {
+    id: 'imaging-order',
+    icon: 'pi pi-image',
+    label: 'Zlecenie obrazowe',
+    requiresAnyOf: [PERMISSIONS.IMAGING_ORDER_CREATE],
+  },
+  {
+    id: 'prescription',
+    icon: 'pi pi-file-edit',
+    label: 'Nowa recepta',
+    requiresAnyOf: [PERMISSIONS.PRESCRIPTION_CREATE],
+  },
+  {
+    id: 'vitals',
+    icon: 'pi pi-heart',
+    label: 'Parametry życiowe',
+    requiresAnyOf: [PERMISSIONS.VITALS_READ],
+  },
   { id: 'messages', icon: 'pi pi-comments', label: 'Wiadomości' },
 ];
 
@@ -64,11 +92,17 @@ export class DashboardPage {
   private readonly labResultService = inject(LabResultService);
   private readonly teamMessageService = inject(TeamMessageService);
   private readonly patientService = inject(PatientService);
+  private readonly auth = inject(AuthService);
   protected readonly staffService = inject(StaffService);
   protected readonly ctx = inject(PatientContextService);
 
   protected readonly today = new Date();
-  protected readonly quickActions = QUICK_ACTIONS;
+  /** Hides quick actions the current role has no permission for. */
+  protected readonly quickActions = computed<IconAction[]>(() =>
+    QUICK_ACTIONS.filter(
+      (a) => !a.requiresAnyOf || a.requiresAnyOf.some((p) => this.auth.hasPermission(p)),
+    ),
+  );
 
   protected readonly stats = signal<DashboardStats | null>(null);
   protected readonly criticalAlerts = signal<ClinicalAlert[]>([]);
@@ -88,26 +122,49 @@ export class DashboardPage {
 
   constructor() {
     const currentUserId = this.staffService.currentUser().id;
+    // Each widget's source may be forbidden for the current role (e.g. pharmacist lacks
+    // `task:read`/`alert:read`); fall back to an empty result instead of failing every
+    // widget on one 403 (naprawiony blad: dashboard szedl na pusto dla ról bez pelnych uprawnien).
+    const orEmpty = <T>(source: Observable<T>, fallback: T): Observable<T> =>
+      source.pipe(catchError(() => of(fallback)));
+    const permittedOrEmpty = <T>(
+      permission: string,
+      source: () => Observable<T>,
+      fallback: T,
+    ): Observable<T> =>
+      this.auth.hasPermission(permission) ? orEmpty(source(), fallback) : of(fallback);
 
     forkJoin({
-      stats: this.dashboardService.getStats(),
-      alerts: this.teamMessageService.getAlerts({ acknowledged: false }),
-      tasks: this.teamMessageService.getTasks({ assignedToId: currentUserId, status: 'open' }),
-      abnormalResults: this.labResultService.getRecent('abnormal'),
-      admitted: this.patientService.getPatients({ status: 'admitted' }),
+      stats: orEmpty(this.dashboardService.getStats(), null as DashboardStats | null),
+      alerts: permittedOrEmpty(
+        PERMISSIONS.ALERT_READ,
+        () => this.teamMessageService.getAlerts({ acknowledged: false }),
+        [] as ClinicalAlert[],
+      ),
+      tasks: permittedOrEmpty(
+        PERMISSIONS.TASK_READ,
+        () => this.teamMessageService.getTasks({ assignedToId: currentUserId, status: 'open' }),
+        [] as TeamTask[],
+      ),
+      abnormalResults: permittedOrEmpty(
+        PERMISSIONS.LAB_RESULT_READ,
+        () => this.labResultService.getRecent('abnormal'),
+        [] as ResultWithPatient<LabResult>[],
+      ),
+      admitted: orEmpty(
+        this.patientService.getPatients({ status: 'admitted' }),
+        [] as PatientSummary[],
+      ),
     })
       .pipe(takeUntilDestroyed())
-      .subscribe({
-        next: ({ stats, alerts, tasks, abnormalResults, admitted }) => {
-          this.stats.set(stats);
-          this.criticalAlerts.set(alerts.filter((a) => a.severity === 'critical'));
-          this.myTasks.set(tasks);
-          this.abnormalResults.set(abnormalResults);
-          this.fallbackAdmitted.set(admitted);
-          this.loading.set(false);
-          this.resolveMissingPatients(abnormalResults);
-        },
-        error: () => this.loading.set(false),
+      .subscribe(({ stats, alerts, tasks, abnormalResults, admitted }) => {
+        this.stats.set(stats);
+        this.criticalAlerts.set(alerts.filter((a) => a.severity === 'critical'));
+        this.myTasks.set(tasks);
+        this.abnormalResults.set(abnormalResults);
+        this.fallbackAdmitted.set(admitted);
+        this.loading.set(false);
+        this.resolveMissingPatients(abnormalResults);
       });
   }
 

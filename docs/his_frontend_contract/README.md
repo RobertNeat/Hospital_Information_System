@@ -11,9 +11,7 @@ Zasady: po wdrożeniu pozycji usuwamy ją stąd; zmiana modelu TS jest ewolucyjn
 | Diagnozy i alergie | backend ma `POST /patients/{id}/diagnoses` i `/allergies`; `EhrService` nie ma metod zapisu, UI ich nie woła |
 | Aktywacja/blokada kont | backend ma `POST /staff/{id}/activate` i `/lock`; brak typu TS, metody serwisu i widoku administratora |
 | Podpowiedzi terminologii | `GET /terminology/snomed/suggestions?kind=` niewykorzystane przez frontend |
-| Uprawnienia w UI | widoki i wywołania nie są w pełni bramkowane uprawnieniami z tokenu; role bez uprawnień dostają 403 i nieobsłużone `ApiError` (plan.md, P3) |
-| Klucz e-recepty | modal po wystawieniu pokazuje klucz lokalny z odpowiedzi 201 (plan.md, P1); kreator ma nieaktualną notkę o integracji FHIR (P2) |
-| Lista recept i kontekst pacjenta | kolumna "Pacjent" pokazuje UUID zamiast nazwiska; `his.currentPatientId` (sessionStorage) nie jest czyszczone przy wylogowaniu, tylko przyciskiem w nagłówku (P4) |
+| Kreator recepty | notka o integracji FHIR nieaktualna (plan.md, P2) |
 
 ## Oczekiwania bez pokrycia w backendzie
 

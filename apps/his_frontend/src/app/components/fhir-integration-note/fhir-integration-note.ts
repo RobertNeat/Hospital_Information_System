@@ -11,8 +11,9 @@ import { Message } from 'primeng/message';
 export class FhirIntegrationNote {
   readonly resource = input.required<'ServiceRequest' | 'MedicationRequest' | 'Observation'>();
 
+  /** Stan integracji (`his.integration.*.enabled`) nie jest znany frontendowi, więc tekst obejmuje oba przypadki. */
   protected readonly text = computed(
     () =>
-      `Integracja z serwisem FHIR (${this.resource()}) planowana — dane zapisywane lokalnie (tryb demonstracyjny).`,
+      `Dane (${this.resource()}) są przekazywane do zewnętrznej usługi FHIR po zapisie; jeśli integracja jest wyłączona lub niedostępna, pozostają zapisane tylko lokalnie w HIS.`,
   );
 }

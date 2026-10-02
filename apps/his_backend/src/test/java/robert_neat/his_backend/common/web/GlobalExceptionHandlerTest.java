@@ -10,11 +10,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
 
+import org.apache.catalina.connector.ClientAbortException;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -23,6 +28,11 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.MediaType;
+import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotWritableException;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
@@ -39,7 +49,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.context.request.ServletWebRequest;
 
+import ch.qos.logback.classic.Level;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -55,6 +67,7 @@ import robert_neat.his_backend.common.wire.WireSamples.OrderStatus;
         GlobalExceptionHandlerTest.FakeValidatedController.class})
 @Import({GlobalExceptionHandlerTest.FakeController.class, GlobalExceptionHandlerTest.FakeValidatedController.class})
 @WithMockUser
+@ExtendWith(OutputCaptureExtension.class)
 class GlobalExceptionHandlerTest {
 
     record Body(@NotBlank String name, @Min(1) int count, Blood blood) {
@@ -346,5 +359,51 @@ class GlobalExceptionHandlerTest {
         } finally {
             SecurityContextHolder.clearContext();
         }
+    }
+
+    private static void setDebugEnabled() {
+        ((ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger(GlobalExceptionHandler.class))
+                .setLevel(Level.DEBUG);
+    }
+
+    @Test
+    void clientAbortWrappedInNotWritableIsLoggedAtDebugAndNotWritten(CapturedOutput output) throws Exception {
+        setDebugEnabled();
+        GlobalExceptionHandler handler = new GlobalExceptionHandler();
+        HttpMessageNotWritableException ex = new HttpMessageNotWritableException("Could not write JSON",
+                new ClientAbortException(new IOException("Broken pipe")));
+        ServletWebRequest request = new ServletWebRequest(new MockHttpServletRequest(), new MockHttpServletResponse());
+
+        ResponseEntity<Object> response = handler.handleException(ex, request);
+
+        assertThat(response).isNull();
+        assertThat(output).contains("Polaczenie przerwane przez klienta");
+        assertThat(output).doesNotContain("Blad serwera przy obsludze zadania");
+    }
+
+    @Test
+    void genuineNotWritableWithoutClientAbortIsStill500AndLoggedAtError(CapturedOutput output) throws Exception {
+        GlobalExceptionHandler handler = new GlobalExceptionHandler();
+        HttpMessageNotWritableException ex = new HttpMessageNotWritableException("Could not write JSON",
+                new IllegalStateException("mapping jackson bug"));
+        ServletWebRequest request = new ServletWebRequest(new MockHttpServletRequest(), new MockHttpServletResponse());
+
+        ResponseEntity<Object> response = handler.handleException(ex, request);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getStatusCode().value()).isEqualTo(500);
+        assertThat(output).contains("Blad serwera przy obsludze zadania");
+    }
+
+    @Test
+    void clientAbortReachingCatchAllIsLoggedAtDebugAndNotWritten(CapturedOutput output) {
+        setDebugEnabled();
+        GlobalExceptionHandler handler = new GlobalExceptionHandler();
+
+        ResponseEntity<ProblemDetail> response = handler.internal(new ClientAbortException(new IOException("Broken pipe")));
+
+        assertThat(response).isNull();
+        assertThat(output).contains("Polaczenie przerwane przez klienta");
+        assertThat(output).doesNotContain("Nieobslugiwany wyjatek");
     }
 }

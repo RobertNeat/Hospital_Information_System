@@ -6,6 +6,7 @@ import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { MessageService } from 'primeng/api';
+import { authServiceStub } from '../../testing/auth-service.stub';
 import { MessagesPage } from './messages-page';
 
 // jsdom has no ResizeObserver; PrimeNG's p-tabs relies on it in ngAfterViewInit.
@@ -26,6 +27,9 @@ describe('MessagesPage', () => {
         wardServiceStub,
         patientServiceStub,
         teamMessageServiceStub,
+        // Doctor-like access: the "Zadania"/"Przekazanie dyżuru"/"Alerty" tabs need
+        // `task:read`/`alert:read` (not granted to every role, unlike `message:read`).
+        authServiceStub,
       ],
     });
   });

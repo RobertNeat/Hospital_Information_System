@@ -2,21 +2,25 @@
   <app-page-header id="patient-orders-app-page-header" title="Zlecenia pacjenta">
     <ng-container actions>
       <div id="patient-orders-actions" class="his-patient-orders__actions">
-        <p-button
-          id="patient-orders-new-lab-order"
-          size="small"
-          [routerLink]="['lab', 'new']"
-          label="Nowe zlecenie laboratoryjne"
-          icon="pi pi-plus"
-        />
-        <p-button
-          id="patient-orders-new-imaging-order"
-          size="small"
-          [outlined]="true"
-          [routerLink]="['imaging', 'new']"
-          label="Nowe zlecenie obrazowe"
-          icon="pi pi-plus"
-        />
+        @if (canCreateLabOrder()) {
+          <p-button
+            id="patient-orders-new-lab-order"
+            size="small"
+            [routerLink]="['lab', 'new']"
+            label="Nowe zlecenie laboratoryjne"
+            icon="pi pi-plus"
+          />
+        }
+        @if (canCreateImagingOrder()) {
+          <p-button
+            id="patient-orders-new-imaging-order"
+            size="small"
+            [outlined]="true"
+            [routerLink]="['imaging', 'new']"
+            label="Nowe zlecenie obrazowe"
+            icon="pi pi-plus"
+          />
+        }
       </div>
     </ng-container>
   </app-page-header>

@@ -43,8 +43,11 @@ class AlertEventListener {
         if (!e.critical()) {
             return;
         }
-        String codes = e.criticalAnalyteCodes() == null || e.criticalAnalyteCodes().isEmpty() ? ""
-                : " (" + String.join(", ", e.criticalAnalyteCodes()) + ")";
+        // Kody analitow rowne kodowi badania pomijamy w nawiasie - dla badan jednoanalitowych (np. TROP, CRP)
+        // kod analitu jest identyczny z kodem badania, co dawalo zdublowany tekst "TROP (TROP)".
+        List<String> distinctCodes = e.criticalAnalyteCodes() == null ? List.of()
+                : e.criticalAnalyteCodes().stream().filter(code -> !code.equals(e.testCode())).toList();
+        String codes = distinctCodes.isEmpty() ? "" : " (" + String.join(", ", distinctCodes) + ")";
         alerts.raise(AlertType.CRITICAL_RESULT, AlertSeverity.CRITICAL, e.patientId(),
                 "Krytyczny wynik badania laboratoryjnego " + e.testCode() + codes + " - " + patient(e.patientId())
                         + ".",

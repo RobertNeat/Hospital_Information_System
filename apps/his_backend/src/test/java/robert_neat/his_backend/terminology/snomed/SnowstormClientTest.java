@@ -166,4 +166,44 @@ class SnowstormClientTest {
         assertThatThrownBy(() -> client.lookup("999999999"))
                 .isInstanceOf(TerminologyException.NotFound.class);
     }
+
+    // Snowstorm Lite 2.7.0 (zweryfikowane na realnej instancji) odpowiada HTTP 500 z tym cialem
+    // dla nieznanego SCTID na $lookup, zamiast poprawnego 404.
+    private static final String UNKNOWN_CODE_500_BODY = """
+            {"resourceType":"OperationOutcome","issue":[{"severity":"error","code":"processing",
+            "diagnostics":"HAPI-0389: Failed to call access method: java.lang.NullPointerException: \
+            Cannot invoke \\"org.snomed.snowstormlite.domain.FHIRConcept.toHapi(org.snomed.snowstormlite.domain.\
+            FHIRCodeSystem, org.snomed.snowstormlite.service.TermProvider, java.util.List)\\" because \\"concept\\" is null"}]}
+            """;
+
+    @Test
+    void lookupUnknownCode500WithSnowstormLiteSignatureMapsToNotFound() {
+        server.expect(requestTo(org.hamcrest.Matchers.startsWith(BASE + "/CodeSystem/$lookup")))
+                .andRespond(withStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body(UNKNOWN_CODE_500_BODY)
+                        .contentType(FHIR_JSON));
+
+        assertThatThrownBy(() -> client.lookup("999999999"))
+                .isInstanceOf(TerminologyException.NotFound.class);
+    }
+
+    @Test
+    void lookup500WithoutKnownSignatureStaysUnavailable() {
+        server.expect(requestTo(org.hamcrest.Matchers.startsWith(BASE + "/CodeSystem/$lookup")))
+                .andRespond(withStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body("{\"resourceType\":\"OperationOutcome\",\"issue\":[{\"diagnostics\":\"boom\"}]}")
+                        .contentType(FHIR_JSON));
+
+        assertThatThrownBy(() -> client.lookup("12345678"))
+                .isInstanceOf(TerminologyException.Unavailable.class);
+    }
+
+    @Test
+    void lookup503StaysUnavailable() {
+        server.expect(requestTo(org.hamcrest.Matchers.startsWith(BASE + "/CodeSystem/$lookup")))
+                .andRespond(withStatus(HttpStatus.SERVICE_UNAVAILABLE));
+
+        assertThatThrownBy(() -> client.lookup("12345678"))
+                .isInstanceOf(TerminologyException.Unavailable.class);
+    }
 }

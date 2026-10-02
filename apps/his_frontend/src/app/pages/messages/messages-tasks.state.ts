@@ -76,12 +76,20 @@ export function createTasksState(
 
   const load = (silent = false): void => {
     if (!silent) tasksLoading.set(true);
-    service.getTasks().subscribe((list) => {
-      tasks.set(list);
-      tasksLoading.set(false);
-      for (const t of list) {
-        if (t.patientId) patients.resolve(t.patientId);
-      }
+    service.getTasks().subscribe({
+      next: (list) => {
+        tasks.set(list);
+        tasksLoading.set(false);
+        for (const t of list) {
+          if (t.patientId) patients.resolve(t.patientId);
+        }
+      },
+      // Naprawiony blad: brak obslugi bledu zostawial `tasksLoading` na `true` na zawsze (np. 403
+      // dla roli bez `task:read`), a zakladka "Zadania" wisiala na szkielecie ladowania.
+      error: () => {
+        tasksLoading.set(false);
+        ctx.toast.add({ severity: 'error', summary: 'Nie udało się wczytać zadań' });
+      },
     });
   };
 
