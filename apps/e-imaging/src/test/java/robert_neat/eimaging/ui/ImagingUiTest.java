@@ -2,6 +2,7 @@ package robert_neat.eimaging.ui;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -78,7 +79,10 @@ class ImagingUiTest {
                         .param("conclusion", "Wniosek UI.").param("critical", "true").param("radiologist", "Radiolog UI"))
                 .andExpect(redirectedUrl("/ui/orders")).andExpect(flash().attributeExists("message"));
 
-        mvc.perform(get("/ui/orders")).andExpect(content().string(containsString("Opis: Opis UI.")))
+        // zakonczone zlecenie znika z aktywnych i jest w historii
+        mvc.perform(get("/ui/orders")).andExpect(content().string(not(containsString(id))));
+        mvc.perform(get("/ui/orders").param("view", "history"))
+                .andExpect(content().string(containsString("Opis: Opis UI.")))
                 .andExpect(content().string(containsString("KRYTYCZNY")));
         mvc.perform(get("/fhir/ServiceRequest/" + id)).andExpect(content().string(containsString("\"completed\"")));
         // zlecenie zakonczone nie przyjmuje kolejnego wyniku

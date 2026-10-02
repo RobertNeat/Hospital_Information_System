@@ -46,8 +46,15 @@ class LabUiController {
     }
 
     @GetMapping("/ui/orders")
-    String list(Model model) {
-        model.addAttribute("orders", orders.list());
+    String list(@RequestParam(defaultValue = "active") String view, Model model) {
+        boolean history = "history".equals(view);
+        // Historia = zlecenia zakonczone lub anulowane; aktywne = pozostale.
+        model.addAttribute("orders",
+                orders.list().stream().filter(o -> o.getStatus().isTerminal() == history).toList());
+        model.addAttribute("view", history ? "history" : "active");
+        model.addAttribute("brand", "e-laboratory");
+        model.addAttribute("subtitle", "system zarządzania zleceniami laboratoryjnymi");
+        model.addAttribute("base", "/ui/orders");
         model.addAttribute("targets", LabOrderStatus.values());
         model.addAttribute("resultStatuses", ResultStatus.values());
         model.addAttribute("flags", List.of("N", "L", "H", "LL", "HH", "A"));

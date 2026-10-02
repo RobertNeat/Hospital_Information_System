@@ -21,7 +21,7 @@ class SecurityConfig {
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/health/**").permitAll()
-                        .requestMatchers("/", "/ui/**", "/fhir/**").permitAll()
+                        .requestMatchers("/", "/ui/**", "/css/**", "/js/**", "/fhir/**").permitAll()
                         .anyRequest().denyAll());
         return http.build();
     }

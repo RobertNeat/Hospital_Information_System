@@ -32,8 +32,15 @@ class ImagingUiController {
     }
 
     @GetMapping("/ui/orders")
-    String list(Model model) {
-        model.addAttribute("orders", orders.list());
+    String list(@RequestParam(defaultValue = "active") String view, Model model) {
+        boolean history = "history".equals(view);
+        // Historia = zlecenia zakonczone lub anulowane; aktywne = pozostale.
+        model.addAttribute("orders",
+                orders.list().stream().filter(o -> o.getStatus().isTerminal() == history).toList());
+        model.addAttribute("view", history ? "history" : "active");
+        model.addAttribute("brand", "e-imaging");
+        model.addAttribute("subtitle", "system obsługi badań obrazowych");
+        model.addAttribute("base", "/ui/orders");
         model.addAttribute("targets", ImagingOrderStatus.values());
         model.addAttribute("resultStatuses", ResultStatus.values());
         return "orders";

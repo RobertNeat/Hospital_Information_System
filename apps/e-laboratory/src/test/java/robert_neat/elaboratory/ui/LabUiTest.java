@@ -81,7 +81,9 @@ class LabUiTest {
                         .param("f_HGB", "H").param("performer", "Laborant UI"))
                 .andExpect(redirectedUrl("/ui/orders")).andExpect(flash().attributeExists("message"));
 
-        mvc.perform(get("/ui/orders")).andExpect(content().string(containsString("HGB: 14.2")))
+        // zakonczone zlecenie jest w historii
+        mvc.perform(get("/ui/orders").param("view", "history"))
+                .andExpect(content().string(containsString("HGB: 14.2")))
                 .andExpect(content().string(containsString("[H]")));
         mvc.perform(get("/fhir/ServiceRequest/" + id)).andExpect(content().string(containsString("\"completed\"")));
     }

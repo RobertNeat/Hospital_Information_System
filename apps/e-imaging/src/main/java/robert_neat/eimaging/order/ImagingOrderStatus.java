@@ -33,6 +33,10 @@ public enum ImagingOrderStatus {
         return fhir;
     }
 
+    public boolean isTerminal() {
+        return this == COMPLETED || this == CANCELLED;
+    }
+
     /** Wynik moze powstac, gdy badanie jest zaplanowane lub w toku (jak w HIS). */
     public boolean acceptsResults() {
         return this == SCHEDULED || this == IN_PROGRESS;

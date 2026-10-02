@@ -30,8 +30,15 @@ class ReceiptUiController {
     }
 
     @GetMapping("/ui/prescriptions")
-    String list(Model model) {
-        model.addAttribute("receipts", receipts.list());
+    String list(@RequestParam(defaultValue = "active") String view, Model model) {
+        boolean history = "history".equals(view);
+        // Historia = recepty zamkniete (zrealizowane, anulowane, wygasle); aktywne = nadal "zywe".
+        model.addAttribute("receipts",
+                receipts.list().stream().filter(r -> r.getStatus().isOpen() != history).toList());
+        model.addAttribute("view", history ? "history" : "active");
+        model.addAttribute("brand", "e-receipt");
+        model.addAttribute("subtitle", "system zarządzania receptami");
+        model.addAttribute("base", "/ui/prescriptions");
         model.addAttribute("targets", ReceiptStatus.values());
         return "prescriptions";
     }

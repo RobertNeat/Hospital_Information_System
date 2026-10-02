@@ -1,0 +1,44 @@
+/* Wspolny styl UI serwisow e-* (naglowek i tabela w stylu Bootstrap / Thymeleaf Layout Dialect). */
+* { box-sizing: border-box; }
+body { margin: 0; background: #f5f5f5; color: #333; font: 14px/1.5 "Helvetica Neue", Helvetica, Arial, sans-serif; }
+
+.navbar { display: flex; align-items: stretch; min-height: 50px; background: #222; border-bottom: 1px solid #080808; }
+.navbar__brand { display: flex; align-items: center; padding: 0 20px 0 32px; color: #9d9d9d; font-size: 18px; text-decoration: none; }
+.navbar__brand strong { font-weight: 500; color: #cfcfcf; }
+.navbar__brand small { margin-left: 12px; font-size: 14px; font-weight: 300; color: #9d9d9d; }
+.navbar__tabs { display: flex; margin: 0; padding: 0; list-style: none; }
+.navbar__tabs a { display: block; padding: 15px; color: #9d9d9d; text-decoration: none; }
+.navbar__tabs a:hover { color: #fff; }
+.navbar__tabs .active a { background: #080808; color: #fff; }
+
+.container { padding: 24px 32px; }
+h1 { margin: 0 0 12px; font-size: 32px; font-weight: 400; line-height: 1.2; }
+.lead { margin: 0 0 16px; color: #555; }
+
+.msg, .err { padding: 10px 14px; margin-bottom: 16px; border: 1px solid; border-radius: 4px; }
+.msg { background: #dff0d8; border-color: #d6e9c6; color: #3c763d; }
+.err { background: #f2dede; border-color: #ebccd1; color: #a94442; }
+
+.table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #ddd; }
+.table th, .table td { padding: 8px 12px; border: 1px solid #ddd; text-align: left; vertical-align: top; }
+.table thead th { font-weight: 400; font-size: 15px; border-bottom: 2px solid #ddd; }
+.table tbody tr:nth-child(odd) { background: #f9f9f9; }
+.table tbody tr.empty td { background: #fff; color: #555; }
+.table .key { font-family: monospace; font-size: 12px; word-break: break-all; }
+
+.btn { display: inline-block; padding: 6px 12px; margin: 0 4px 4px 0; border: 1px solid #ccc; border-radius: 4px; background: #fff; color: #333; font: inherit; cursor: pointer; }
+.btn:hover { background: #e6e6e6; }
+.btn-danger { background: #d9534f; border-color: #d43f3a; color: #fff; }
+.btn-danger:hover { background: #c9302c; }
+.btn-primary { background: #428bca; border-color: #357ebd; color: #fff; }
+.btn-primary:hover { background: #3071a9; }
+form { display: inline; }
+
+.badge { display: inline-block; padding: 2px 8px; border-radius: 10px; background: #777; color: #fff; font-size: 12px; }
+.critical { color: #b00020; font-weight: bold; }
+.result { margin: 4px 0; padding: 6px 8px; background: #f0f0f0; border-radius: 3px; }
+details { margin: 4px 0; }
+label { display: block; margin: 3px 0; }
+input[type=text], select, textarea { padding: 4px 6px; border: 1px solid #ccc; border-radius: 3px; font: inherit; }
+textarea { width: 24rem; max-width: 100%; }
+a { color: #428bca; }
