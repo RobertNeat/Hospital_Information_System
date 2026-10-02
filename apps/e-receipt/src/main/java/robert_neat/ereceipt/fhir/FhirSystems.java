@@ -2,7 +2,7 @@ package robert_neat.ereceipt.fhir;
 
 import org.springframework.http.MediaType;
 
-/** Identyfikatory i rozszerzenia FHIR wspolne z his_backend (kontrakt w docs/his_backend_contract). */
+/** Identyfikatory i rozszerzenia FHIR wspolne z his_backend (kontrakt: kod his_backend, pakiet fhir). */
 public final class FhirSystems {
 
     /** `MedicationRequest.identifier`: id recepty w HIS. */

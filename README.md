@@ -33,6 +33,44 @@ Serwis e-laboratory prosty serwis naśladujący pordstawowe zachowanie systemu z
 
 Serwis e-imaging prosty serwis naśladujący pordstawowe zachowanie systemu zleceń badań obrazowych pozwalający zarządzenie wystawionymi zleceniami i zmianie stanu tych zleceń. Serwis wystawia zintegrowany interfejs Thymeleaf, który umożliwia zmianę stanu zleceń badań (brak uwierzytelniania do interfejsu ui). Zmiana stanu wystawionych zleceń w serwisie e-imaging wpływa na późniejszy stan zleceń badań w systemie HIS. Serwis jest połączony z systemem HIS poprzez FHIR z zastosowaniem mTLS.
 
+### Używane porty
+
+Porty hosta (compose z nakładką `deploy/compose.dev.yml`, publikowane na `127.0.0.1`) i porty wewnątrz sieci kontenerów.
+
+**Porty z interfejsem (dostępne z przeglądarki / narzędzi na hoście):**
+
+| Serwis | Port | Protokół | Zawartość |
+| --- | --- | --- | --- |
+| his_frontend (nginx) | 10400 | HTTP | aplikacja Angular; proxy `/api/` i `/ws` do his_backend |
+| his_backend | 10420 | HTTP | REST `/api/v1`, STOMP `/ws` (też bezpośrednio, np. `curl`) |
+| e-receipt | 10431 | HTTP | interfejs Thymeleaf (bez uwierzytelniania) |
+| e-laboratory | 10432 | HTTP | interfejs Thymeleaf (bez uwierzytelniania) |
+| e-imaging | 10433 | HTTP | interfejs Thymeleaf (bez uwierzytelniania) |
+| Snowstorm Lite (profil `terminology`) | 8080 | HTTP | przeglądarka terminologii i import RF2 (`/fhir`, `/fhir-admin`) |
+| PostgreSQL | 5432 | TCP | baza danych HIS (klienci SQL na hoście) |
+
+**Porty komunikacji między serwisami:**
+
+| Z -> do | Port | Protokół | Zawartość |
+| --- | --- | --- | --- |
+| e-receipt, e-laboratory, e-imaging -> his_backend | 10424 | HTTPS + mTLS | FHIR `/fhir/**` (zmiana stanu zlecenia, wynik) |
+| his_backend -> e-receipt | 10421 | HTTPS + mTLS | FHIR `MedicationRequest` |
+| his_backend -> e-laboratory | 10422 | HTTPS + mTLS | FHIR `ServiceRequest` |
+| his_backend -> e-imaging | 10423 | HTTPS + mTLS | FHIR `ServiceRequest` |
+| his_frontend (nginx) -> his_backend | 10420 | HTTP | proxy `/api/` i `/ws` |
+| his_backend -> PostgreSQL | 5432 | TCP | JDBC |
+| his_backend -> Snowstorm Lite | 8080 | HTTP | FHIR terminologia (ECL, `$lookup`) |
+| healthcheck Dockera -> his_backend | 10440 | HTTP | Actuator `/actuator/health/**` |
+| healthcheck Dockera -> e-receipt, e-laboratory, e-imaging | 10441, 10442, 10443 | HTTP | Actuator `/actuator/health/**` |
+
+Porty FHIR (10421-10424) są dodatkowo publikowane na host w nakładce dev (`127.0.0.1`), np. do `curl` z certyfikatem klienta;
+porty zarządzania (10440-10443) nie są publikowane na host.
+
+Na produkcji (tylko `deploy/compose.yml`) na host publikowane są wyłącznie his_frontend (10400) i his_backend (10420);
+porty e-*, FHIR his_backend, PostgreSQL i Snowstorm pozostają w sieci kontenerów.
+Porty hosta można zmienić zmiennymi `HIS_*_HOST_PORT` / `E_*_HOST_PORT` (np. `HIS_DB_HOST_PORT`, `HIS_SNOWSTORM_HOST_PORT`).
+Tryb IDE: `pnpm start` (Angular, proxy `/api` i `/ws` do 10420) używa portu 10400, a backend z IntelliJ/Maven 10420, więc nie startuje się wtedy kontenerów `his-frontend` i `his-backend`.
+
 ---
 
 # Uruchomienie lokalne (Docker Compose)
@@ -66,6 +104,13 @@ Pełny stos (z poziomu root katalogu projektu; `pnpm stack:up` / `pnpm stack:dow
 ```powershell
 docker compose -f deploy/compose.yml -f deploy/compose.dev.yml --env-file deploy/local.env up -d --build
 docker compose -f deploy/compose.yml -f deploy/compose.dev.yml --env-file deploy/local.env down
+```
+
+Pełny stos ze Snowstorm Lite (profil `terminology`):
+
+```powershell
+docker compose -f deploy/compose.yml -f deploy/compose.dev.yml --env-file deploy/local.env --profile terminology up -d --build
+docker compose -f deploy/compose.yml -f deploy/compose.dev.yml --env-file deploy/local.env --profile terminology down
 ```
 
 Frontend: http://localhost:10400, backend (API): http://localhost:10420, Postgres: `127.0.0.1:5432`

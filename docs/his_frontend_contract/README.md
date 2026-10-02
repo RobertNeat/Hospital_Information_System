@@ -1,19 +1,36 @@
-# Kontrakt wystawiany przez his_frontend
+# Kontrakt his_frontend: elementy niezaimplementowane
 
-Ten katalog opisuje, **czego his_frontend oczekuje od backendu**: modele danych i operacje, które UI zna z typów TypeScript i serwisów HTTP. To kontrakt po stronie *konsumenta* (frontend). Kontrakt po stronie *dostawcy* (co backend faktycznie wystawia) jest w [`../his_backend_contract`](../his_backend_contract/README.md).
+Ten katalog zawiera wyłącznie oczekiwania frontendu wobec backendu (oraz luki po stronie UI), które nie zostały jeszcze zrealizowane. Zaimplementowane modele i operacje opisują typy TypeScript (`apps/his_frontend/src/app/models/`, `models/api/`) i serwisy (`services/*.service.ts`). Kontrakt po stronie backendu: [`../his_backend_contract`](../his_backend_contract/README.md).
 
-| Dokument | Zawartość |
+Zasady: po wdrożeniu pozycji usuwamy ją stąd; zmiana modelu TS jest ewolucyjna (bez zmiany nazw pól i wartości unii, nowe pola tylko opcjonalne).
+
+## Luki w UI względem backendu
+
+| Obszar | Stan |
 | --- | --- |
-| [CONVENTIONS.md](CONVENTIONS.md) | konwencje (ID, daty, enumy, optional vs null, audyt, wersjonowanie, błędy, paginacja) i ustalenia |
-| [ERD.md](ERD.md) | encje, pola (TS -> Java/SQL), klucze i unikalności, osadzenia, snapshoty/projekcje, typy UI i projekcje (nie-encje) |
-| [API.md](API.md) | endpointy REST dla każdej publicznej metody serwisów, STOMP, role, kolejność implementacji, zdarzenia przekrojowe, przyjęte rozstrzygnięcia |
+| Diagnozy i alergie | backend ma `POST /patients/{id}/diagnoses` i `/allergies`; `EhrService` nie ma metod zapisu, UI ich nie woła |
+| Aktywacja/blokada kont | backend ma `POST /staff/{id}/activate` i `/lock`; brak typu TS, metody serwisu i widoku administratora |
+| Podpowiedzi terminologii | `GET /terminology/snomed/suggestions?kind=` niewykorzystane przez frontend |
+| Uprawnienia w UI | widoki i wywołania nie są w pełni bramkowane uprawnieniami z tokenu; role bez uprawnień dostają 403 i nieobsłużone `ApiError` (plan.md, P3) |
+| Klucz e-recepty | modal po wystawieniu pokazuje klucz lokalny z odpowiedzi 201 (plan.md, P1); kreator ma nieaktualną notkę o integracji FHIR (P2) |
+| Lista recept i kontekst pacjenta | kolumna "Pacjent" pokazuje UUID zamiast nazwiska; `his.currentPatientId` (sessionStorage) nie jest czyszczone przy wylogowaniu, tylko przyciskiem w nagłówku (P4) |
 
-## Workflow
+## Oczekiwania bez pokrycia w backendzie
 
-1. **Źródłem kontraktu są typy TypeScript** w `apps/his_frontend/src/app/models/` (`*.model.ts`) i `models/api/` (żądania, zapytania, `Page`, `ProblemDetail`) oraz publiczne metody serwisów (`services/*.service.ts`; wszystkie serwisy domenowe używają `HttpClient`; dane z `mock-data/` służą wyłącznie stubom w `testing/` i testom).
-2. **Backend pisze encje, DTO i kontrolery z tych dokumentów** (ERD -> encje JPA i migracje, API -> kontrolery i DTO, CONVENTIONS -> serializacja Jacksona, enumy, błędy). Kolejność: [API.md, sekcja 13](API.md#13-rekomendowana-kolejność-implementacji-backendu).
-3. **Zmiana kontraktu = zmiana TS + dokumentów** w tym samym PR: najpierw typ w `models/` (ewolucyjnie: bez zmiany nazw pól i wartości unii, nowe pola tylko opcjonalne), potem odpowiednie wpisy w ERD.md / API.md / CONVENTIONS.md.
-4. Kod stubów w `testing/` (np. obliczanie anomalii, `EhrSummary`) nie jest specyfikacją; backend jest autorytatywny.
-5. Gdy backend świadomie odstępuje od tego kontraktu, odstępstwo opisujemy w [`../his_backend_contract`](../his_backend_contract/README.md) (sekcja [Odstępstwa od his_frontend_contract](../his_backend_contract/README.md#odstępstwa-od-his_frontend_contract)); tu pozostaje opis oczekiwań frontendu.
+Szczegóły: [`../his_backend_contract/README.md`](../his_backend_contract/README.md).
 
-Stan: dokumenty opisują modele i operacje oczekiwane przez frontend. Przyjęte rozstrzygnięcia: [API.md, sekcja 15](API.md#15-przyjęte-rozstrzygnięcia).
+- Zapis `staff`, `wards`, `vital-thresholds` przez admina; wprowadzanie wyników lab/obrazowych przez laboranta/radiologa (UI poza kontraktem).
+- `drug-safety-checks` dla `nurse`/`pharmacist`/`admin` (odczyt).
+- `409` przy niezgodnym `version` w `acknowledge` wyników.
+- Paginacja `getMessages` i `getAlerts`.
+
+## Świadomie niewdrażane / do decyzji
+
+- Załączniki DICOM, obrazy i pliki (brak `Attachment`, `studyInstanceUid`).
+- Serwerowy PDF raportów (obecnie generowanie w przeglądarce).
+- Automatyczny test zgodności TS <-> API; generowanie klienta z OpenAPI.
+
+## Porządki w modelach
+
+- Aliasy `*Draft` (`LabOrderDraft`, `ImagingOrderDraft`, `PrescriptionDraft`) są `@deprecated`; do usunięcia po przejściu na `*CreateRequest`.
+- Modele zleceń, recept i notatek (`orderedById`, `prescriberId`, `authorId`) niosą pole aktora ignorowane przez backend.

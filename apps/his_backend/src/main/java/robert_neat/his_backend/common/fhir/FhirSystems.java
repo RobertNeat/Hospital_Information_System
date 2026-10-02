@@ -2,7 +2,7 @@ package robert_neat.his_backend.common.fhir;
 
 import org.springframework.http.MediaType;
 
-/** Stale FHIR wspolne dla integracji z usługami e-* (kontrakt: docs/his_backend_contract/rest-api-fhir.md). */
+/** Stale FHIR wspolne dla integracji z usługami e-* (kontrakt: kontrolery w pakiecie fhir). */
 public final class FhirSystems {
 
     /** `MedicationRequest.identifier`: id recepty w HIS. */

@@ -20,7 +20,7 @@ import java.util.TreeSet;
 import robert_neat.his_backend.staff.StaffRole;
 
 /**
- * Macierz uprawnien z docs/his_frontend_contract/API.md §12 (R = `*:read`, W = akcje zapisu).
+ * Macierz uprawnien (R = `*:read`, W = akcje zapisu).
  * Uprawnienie to string `zasob:akcja`; dodatkowo kazda rola dostaje `ROLE_<ROLE>`.
  * Wartosci trafiaja do claima `authorities` tokenu i do `CurrentUser.permissions`.
  */

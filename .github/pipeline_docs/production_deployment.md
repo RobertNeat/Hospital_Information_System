@@ -102,7 +102,7 @@ produkcji te same certyfikaty; środowisko wewnętrzne). Certyfikat klienta zauf
 jedynym uwierzytelnieniem usług `e-*` na `/fhir/**` (plus lista dozwolonych CN `HIS_FHIR_ALLOWED_CLIENT_CNS`
 w `his-backend`). Porty: `his-backend` 10420 (API/`/ws`, HTTP), 10424 (FHIR, HTTPS+mTLS), 10440 (zarządzanie);
 `e-*` 10421-10423 (FHIR, HTTPS+mTLS), 10431-10433 (UI, HTTP, bez certyfikatu), 10441-10443 (zarządzanie).
-Szczegóły i zmienne: `docs/his_backend_contract/deployment-and-config.md`.
+Szczegóły i zmienne: `docs/deployment-and-config.md`.
 
 **Generowanie** (CA `HIS-CA`, 4 aplikacje, SAN = nazwa usługi compose + `localhost` + `127.0.0.1`, EKU
 `serverAuth`+`clientAuth`, losowe hasła): `scripts/gen-certs.sh [katalog]` (bash, `openssl` i `keytool`;
@@ -228,6 +228,7 @@ domyślnie 8h; brak serwerowej listy unieważnień, więc zablokowanie konta dzi
 Zmienne w zdalnym `config.env` (istniejący plik nie jest nadpisywany - dopisać ręcznie):
 
 - `HIS_JWT_SECRET` - WYMAGANE, min. 32 bajty (np. `openssl rand -base64 48`). Bez niego backend nie startuje.
+  Losowe klucze JWT generuje `python utilities/secret_generator.py`.
   Zmiana klucza unieważnia wszystkie wystawione tokeny.
 - `HIS_JWT_TTL` - opcjonalnie (domyślnie `8h`).
 

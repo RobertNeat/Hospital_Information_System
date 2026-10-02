@@ -1,6 +1,6 @@
 # Baza danych i dane
 
-Schemat PostgreSQL, Liquibase i jego konteksty, dane referencyjne/demo/mock, generator mocków. Powrót: [README.md](README.md).
+Schemat PostgreSQL, Liquibase i jego konteksty, dane referencyjne/demo/mock, generator mocków.
 
 Kod: `apps/his_backend/src/main/resources/db/changelog/*`, `application*.properties`, `apps/his_frontend/scripts/export-mocks`.
 
@@ -38,7 +38,7 @@ Cechy:
 - Historie statusów zleceń (`*_status_change`) są tylko dopisywane.
 - Stan potwierdzenia alertu jest per użytkownik (`alert_acknowledgement`); kursor odczytu wątku w `thread_participant.last_read_at`.
 - Wyniki lab/obrazowe są niezmienne poza `reviewed_at`/`reviewed_by_id`.
-- Brak tabel SNOMED CT (terminologia: [terminology-snomed.md](terminology-snomed.md)).
+- Brak tabel SNOMED CT (terminologia: Snowstorm Lite).
 - Zmiana schematu: **wyłącznie nowym changesetem**; changesetów `schema/` nie edytuje się (Liquibase zapisuje checksum - zmiana przerywa start `Validation Failed`).
 
 ## Liquibase: kontekst a katalog
@@ -62,7 +62,7 @@ Główny plik `db.changelog-master.yaml` załącza (`includeAll`, alfabetycznie 
 | `.env.example` (produkcja) | `reference` |
 | `deploy/local.env` (lokalnie) | `reference,mock` |
 
-Konsekwencja: konta demo z `demo/` (publiczne hasła; [auth-and-security.md](auth-and-security.md#konta-demo)) trafiają na każdą bazę z kontekstem `reference`, w tym produkcyjną. Changeset `mock` bez kontekstu jest niedozwolony.
+Konsekwencja: konta demo z `demo/` (publiczne hasła) trafiają na każdą bazę z kontekstem `reference`, w tym produkcyjną. Changeset `mock` bez kontekstu jest niedozwolony.
 
 ## Dane mock - generator
 

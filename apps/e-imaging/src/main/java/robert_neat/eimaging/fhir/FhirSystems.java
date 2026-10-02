@@ -2,7 +2,7 @@ package robert_neat.eimaging.fhir;
 
 import org.springframework.http.MediaType;
 
-/** Identyfikatory i rozszerzenia FHIR wspolne z his_backend (kontrakt w docs/his_backend_contract). */
+/** Identyfikatory i rozszerzenia FHIR wspolne z his_backend (kontrakt: kod his_backend, pakiet fhir). */
 public final class FhirSystems {
 
     /** `ServiceRequest.identifier`: id zlecenia obrazowego w HIS (to samo co `ServiceRequest.id` w e-imaging). */
