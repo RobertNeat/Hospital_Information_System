@@ -5,7 +5,7 @@ This project was generated using [Angular CLI](https://github.com/angular/angula
 ## Authentication (JWT)
 
 - Login: `POST /api/v1/auth/login` (`{ employeeId, password }`) via `AuthService` (`src/app/services/auth.service.ts`). State is exposed as signals: `currentUser`, `isAuthenticated`, `permissions`, `expiresAt`.
-- The access token is kept **in memory only** (no localStorage/sessionStorage). A page reload ends the session and the user logs in again; this is intentional (XSS-safe, stateless backend).
+- By default the token and expiry are persisted to `localStorage`, so a page reload restores the session (`restoreSession`, called from an app initializer, re-validates it against `GET /auth/me`) instead of ending it; another tab logging out ends this tab's session too (`storage` event). Build with `HIS_PERSIST_SESSION=false` (see `scripts/build.mjs`) to keep the token in memory only, ending the session on every reload.
 - `authInterceptor` adds `Authorization: Bearer <token>` to `/api/v1/*` requests (not to login/register). `errorInterceptor` maps HTTP errors to `ApiError` (RFC 9457 `ProblemDetail`) and, on 401, clears the session and redirects to `/login?returnUrl=...`.
 - The session also ends automatically at `expiresAt` (TTL 8 h). Logout (header menu) calls `POST /auth/logout` best-effort and clears the state.
 - Routes: `authGuard` protects the whole app shell, `guestGuard` protects `/login` and `/register`.
@@ -45,10 +45,10 @@ ng generate --help
 To build the project run:
 
 ```bash
-ng build
+pnpm build
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed. `pnpm build` wraps `ng build` to apply the `HIS_PERSIST_SESSION` environment variable (see the Authentication section above); calling `ng build` directly skips that and always persists the session.
 
 ## Running unit tests
 

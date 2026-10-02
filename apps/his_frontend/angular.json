@@ -26,7 +26,10 @@
                 "input": "public"
               }
             ],
-            "styles": ["src/styles.css"]
+            "styles": ["src/styles.css"],
+            "define": {
+              "HIS_PERSIST_SESSION": "'true'"
+            }
           },
           "configurations": {
             "production": {

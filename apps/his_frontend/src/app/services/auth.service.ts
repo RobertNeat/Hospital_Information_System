@@ -12,6 +12,7 @@ import {
   AUTH_REGISTER_URL,
   AUTH_REGISTER_WARDS_URL,
 } from '../config/api.config';
+import { PERSIST_SESSION } from '../config/session.config';
 import type {
   CurrentUser,
   LoginRequest,
@@ -24,14 +25,21 @@ import type {
 /** `setTimeout` overflows (fires immediately) above 2^31-1 ms. */
 const MAX_TIMEOUT_MS = 2_147_483_647;
 const EXPIRED_MESSAGE = 'Sesja wygasła. Zaloguj się ponownie.';
+const STORAGE_KEY = 'his.session';
+
+interface StoredSession {
+  accessToken: string;
+  expiresAt: string;
+}
 
 /**
  * Session state for the JWT-authenticated API.
  *
- * The access token lives ONLY in memory (a private signal): it is not written to
- * localStorage/sessionStorage, so a page reload ends the session (the user logs in
- * again). The session also ends when `expiresAt` passes (timer) or when the API
- * answers 401 (see `errorInterceptor`).
+ * The token/user live in a private signal; when `PERSIST_SESSION` is on (default), the
+ * token and expiry are mirrored to `localStorage` so a page reload can restore the
+ * session (see `restoreSession`, called from an app initializer) instead of ending it.
+ * The session ends when `expiresAt` passes (timer), when the API answers 401 (see
+ * `errorInterceptor`), on explicit logout, or (when persisted) when another tab logs out.
  */
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -58,6 +66,16 @@ export class AuthService {
     () => this._token() !== null && this._user() !== null,
   );
   readonly permissions: Signal<readonly string[]> = computed(() => this._user()?.permissions ?? []);
+
+  constructor() {
+    if (!PERSIST_SESSION) return;
+    window.addEventListener('storage', (event) => {
+      if (event.key === STORAGE_KEY && event.newValue === null && this.isAuthenticated()) {
+        this.clearSession();
+        void this.router.navigate(['/login']);
+      }
+    });
+  }
 
   /** Current bearer token (read by `authInterceptor`); `null` when signed out. */
   get token(): string | null {
@@ -118,6 +136,61 @@ export class AuthService {
     this._token.set(null);
     this._user.set(null);
     this._expiresAt.set(null);
+    this.writeStoredSession(null);
+  }
+
+  /**
+   * Restores a persisted session (if any) after a page reload: validates the stored
+   * token via `/auth/me` and, on success, resumes it; otherwise clears it quietly.
+   * No-op (and no request) when `PERSIST_SESSION` is off or nothing is stored.
+   * Never errors/rejects (used from an app initializer, which must not block startup).
+   */
+  restoreSession(): Observable<void> {
+    const stored = this.readStoredSession();
+    if (!stored) return of(undefined);
+    const expiresAt = new Date(stored.expiresAt);
+    if (Number.isNaN(expiresAt.getTime()) || expiresAt.getTime() <= Date.now()) {
+      this.writeStoredSession(null);
+      return of(undefined);
+    }
+    this._token.set(stored.accessToken);
+    this._expiresAt.set(expiresAt);
+    return this.http.get<CurrentUser>(AUTH_ME_URL).pipe(
+      tap((user) => {
+        this._user.set(user);
+        this.scheduleExpiry(expiresAt);
+      }),
+      map(() => undefined),
+      catchError(() => {
+        this.clearSession();
+        return of(undefined);
+      }),
+    );
+  }
+
+  private readStoredSession(): StoredSession | null {
+    if (!PERSIST_SESSION) return null;
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as Partial<StoredSession>;
+      if (typeof parsed.accessToken !== 'string' || typeof parsed.expiresAt !== 'string') {
+        return null;
+      }
+      return { accessToken: parsed.accessToken, expiresAt: parsed.expiresAt };
+    } catch {
+      return null;
+    }
+  }
+
+  private writeStoredSession(value: StoredSession | null): void {
+    if (!PERSIST_SESSION) return;
+    try {
+      if (value) localStorage.setItem(STORAGE_KEY, JSON.stringify(value));
+      else localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      /* ignore storage errors (private mode, quota, etc.) */
+    }
   }
 
   /** Session rejected/expired: clear it and go to `/login?returnUrl=...`. No-op when signed out. */
@@ -137,6 +210,7 @@ export class AuthService {
     this._token.set(res.accessToken);
     this._user.set(res.user);
     this._expiresAt.set(expiresAt);
+    this.writeStoredSession({ accessToken: res.accessToken, expiresAt: res.expiresAt });
     this.scheduleExpiry(expiresAt);
   }
 

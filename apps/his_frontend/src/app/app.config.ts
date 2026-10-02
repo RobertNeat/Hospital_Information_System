@@ -17,6 +17,7 @@ import {
   withRouterConfig,
 } from '@angular/router';
 import { ConfirmationService, MessageService } from 'primeng/api';
+import { firstValueFrom } from 'rxjs';
 import { providePrimeNG } from 'primeng/config';
 import { HisTitleStrategy } from './config/his-title-strategy';
 import { PRIMENG_PL } from './config/primeng-pl';
@@ -24,6 +25,7 @@ import { HisPreset } from './config/theme-preset';
 import { routes } from './app.routes';
 import { authInterceptor } from './interceptors/auth.interceptor';
 import { errorInterceptor } from './interceptors/error.interceptor';
+import { AuthService } from './services/auth.service';
 import { ThemeService } from './services/theme.service';
 
 registerLocaleData(localePl);
@@ -57,5 +59,8 @@ export const appConfig: ApplicationConfig = {
     provideAppInitializer(() => {
       inject(ThemeService);
     }),
+    // Restores a persisted session (if any) before the router's initial navigation,
+    // so the (synchronous) auth/guest guards see the right isAuthenticated() on reload.
+    provideAppInitializer(() => firstValueFrom(inject(AuthService).restoreSession())),
   ],
 };

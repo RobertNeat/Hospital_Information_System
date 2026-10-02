@@ -68,21 +68,24 @@ describe('AuthService', () => {
     expect(auth.token).toBeNull();
   });
 
-  it('login stores token, user, permissions and expiry in memory only', () => {
+  it('login stores token, user, permissions, expiry, and persists the session', () => {
     const body = { employeeId: 'admin', password: 'admin' };
+    const res = loginResponse();
     auth.login(body).subscribe();
     const req = http.expectOne(AUTH_LOGIN_URL);
     expect(req.request.method).toBe('POST');
     expect(req.request.body).toEqual(body);
     expect(req.request.headers.has('Authorization')).toBe(false);
-    req.flush(loginResponse());
+    req.flush(res);
     expect(auth.isAuthenticated()).toBe(true);
     expect(auth.currentUser()?.lastName).toBe('Admin');
     expect(auth.permissions()).toEqual(['staff:manage']);
     expect(auth.hasPermission('staff:manage')).toBe(true);
     expect(auth.expiresAt()).toBeInstanceOf(Date);
     expect(auth.token).toBe('tok-123');
-    expect(localStorage.length + sessionStorage.length).toBe(0);
+    expect(localStorage.getItem('his.session')).toBe(
+      JSON.stringify({ accessToken: 'tok-123', expiresAt: res.expiresAt }),
+    );
   });
 
   it.each([
@@ -124,11 +127,13 @@ describe('AuthService', () => {
     expect(auth.currentUser()?.firstName).toBe('Zmieniony');
   });
 
-  it('logout clears state immediately and calls POST /auth/logout with the old token', () => {
+  it('logout clears state immediately, drops the persisted session, and calls POST /auth/logout with the old token', () => {
     doLogin();
+    expect(localStorage.getItem('his.session')).not.toBeNull();
     let done = false;
     auth.logout().subscribe(() => (done = true));
     expect(auth.isAuthenticated()).toBe(false);
+    expect(localStorage.getItem('his.session')).toBeNull();
     const req = http.expectOne(AUTH_LOGOUT_URL);
     expect(req.request.method).toBe('POST');
     expect(req.request.headers.get('Authorization')).toBe('Bearer tok-123');
@@ -179,6 +184,89 @@ describe('AuthService', () => {
   it('does not keep a session whose expiresAt is already in the past', () => {
     doLogin(loginResponse(new Date(Date.now() - 1_000)));
     expect(auth.isAuthenticated()).toBe(false);
+  });
+
+  it('a storage event reporting removal of the session key in another tab signs this tab out', () => {
+    doLogin();
+    window.dispatchEvent(
+      new StorageEvent('storage', { key: 'his.session', newValue: null, oldValue: '{}' }),
+    );
+    expect(auth.isAuthenticated()).toBe(false);
+    expect(navigate).toHaveBeenCalledWith(['/login']);
+  });
+
+  describe('restoreSession', () => {
+    it('does nothing when nothing is stored', () => {
+      let done = false;
+      auth.restoreSession().subscribe(() => (done = true));
+      http.expectNone(AUTH_ME_URL);
+      expect(done).toBe(true);
+      expect(auth.isAuthenticated()).toBe(false);
+    });
+
+    it('validates a stored session via /auth/me and resumes it', () => {
+      const res = loginResponse();
+      localStorage.setItem(
+        'his.session',
+        JSON.stringify({ accessToken: res.accessToken, expiresAt: res.expiresAt }),
+      );
+      let done = false;
+      auth.restoreSession().subscribe(() => (done = true));
+      const req = http.expectOne(AUTH_ME_URL);
+      expect(req.request.headers.get('Authorization')).toBe('Bearer tok-123');
+      req.flush(USER);
+      expect(done).toBe(true);
+      expect(auth.isAuthenticated()).toBe(true);
+      expect(auth.currentUser()?.lastName).toBe('Admin');
+    });
+
+    it('drops an already-expired stored session without calling /auth/me', () => {
+      localStorage.setItem(
+        'his.session',
+        JSON.stringify({
+          accessToken: 'tok-123',
+          expiresAt: new Date(Date.now() - 1_000).toISOString(),
+        }),
+      );
+      let done = false;
+      auth.restoreSession().subscribe(() => (done = true));
+      http.expectNone(AUTH_ME_URL);
+      expect(done).toBe(true);
+      expect(auth.isAuthenticated()).toBe(false);
+      expect(localStorage.getItem('his.session')).toBeNull();
+    });
+
+    it('clears the session quietly (no toast/navigate) when /auth/me rejects the stored token', () => {
+      const res = loginResponse();
+      localStorage.setItem(
+        'his.session',
+        JSON.stringify({ accessToken: res.accessToken, expiresAt: res.expiresAt }),
+      );
+      let done = false;
+      auth.restoreSession().subscribe(() => (done = true));
+      http.expectOne(AUTH_ME_URL).flush(
+        { type: 'about:blank', title: 't', status: 401, code: 'UNAUTHENTICATED' },
+        {
+          status: 401,
+          statusText: 'err',
+          headers: { 'Content-Type': 'application/problem+json' },
+        },
+      );
+      expect(done).toBe(true);
+      expect(auth.isAuthenticated()).toBe(false);
+      expect(auth.token).toBeNull();
+      expect(localStorage.getItem('his.session')).toBeNull();
+      expect(navigate).not.toHaveBeenCalled();
+    });
+
+    it('ignores a malformed stored value', () => {
+      localStorage.setItem('his.session', 'not-json');
+      let done = false;
+      auth.restoreSession().subscribe(() => (done = true));
+      http.expectNone(AUTH_ME_URL);
+      expect(done).toBe(true);
+      expect(auth.isAuthenticated()).toBe(false);
+    });
   });
 
   const REGISTRATION = { employeeId: 'new-1', password: 'abcdefgh' } as StaffRegistrationRequest;

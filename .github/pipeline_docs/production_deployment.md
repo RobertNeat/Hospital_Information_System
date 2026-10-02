@@ -221,9 +221,11 @@ Dev: `docker compose -f deploy/compose.yml -f deploy/compose.dev.yml --env-file 
 
 ## Uwierzytelnianie i konta proste
 
-Backend używa tokenów JWT (HS256, bezstanowo): frontend loguje się przez `POST /api/v1/auth/login`, trzyma token w
-pamięci i wysyła `Authorization: Bearer ...`; wylogowanie = usunięcie tokenu (token wygasa po `HIS_JWT_TTL`,
-domyślnie 8h; brak serwerowej listy unieważnień, więc zablokowanie konta działa dopiero po wygaśnięciu tokenu).
+Backend używa tokenów JWT (HS256, bezstanowo): frontend loguje się przez `POST /api/v1/auth/login`, domyślnie trzyma
+token w `localStorage` (przeżywa przeładowanie strony; `AuthService.restoreSession()` weryfikuje go przy starcie
+przez `GET /auth/me`) i wysyła `Authorization: Bearer ...`; wylogowanie = usunięcie tokenu (token wygasa po
+`HIS_JWT_TTL`, domyślnie 8h; brak serwerowej listy unieważnień, więc zablokowanie konta działa dopiero po
+wygaśnięciu tokenu).
 
 Zmienne w zdalnym `config.env` (istniejący plik nie jest nadpisywany - dopisać ręcznie):
 
@@ -231,6 +233,9 @@ Zmienne w zdalnym `config.env` (istniejący plik nie jest nadpisywany - dopisać
   Losowe klucze JWT generuje `python utilities/secret_generator.py`.
   Zmiana klucza unieważnia wszystkie wystawione tokeny.
 - `HIS_JWT_TTL` - opcjonalnie (domyślnie `8h`).
+- `HIS_PERSIST_SESSION` - zmienna *build-time* frontendu (nie backendu; ustawiana przy `pnpm build`, nie w
+  `config.env`), domyślnie `true`. Ustawienie na `false` przebudowuje frontend tak, by trzymał token tylko w pamięci
+  (sesja kończy się przy każdym przeładowaniu strony).
 
 ### Konta proste (login = hasło) - ryzyko
 
