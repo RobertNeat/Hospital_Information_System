@@ -1,5 +1,6 @@
 package robert_neat.his_backend.staff;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -11,7 +12,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import robert_neat.his_backend.common.api.ConflictException;
+import robert_neat.his_backend.common.api.FieldError;
 import robert_neat.his_backend.common.api.NotFoundException;
+import robert_neat.his_backend.common.api.ValidationFailedException;
 import robert_neat.his_backend.common.security.CurrentActor;
 
 @Service
@@ -22,13 +25,15 @@ public class StaffService {
 
     private final StaffMemberRepository staff;
     private final UserAccountRepository accounts;
+    private final WardRepository wards;
     private final CurrentActor currentActor;
     private final PresenceRegistry presence;
 
-    StaffService(StaffMemberRepository staff, UserAccountRepository accounts, CurrentActor currentActor,
-            PresenceRegistry presence) {
+    StaffService(StaffMemberRepository staff, UserAccountRepository accounts, WardRepository wards,
+            CurrentActor currentActor, PresenceRegistry presence) {
         this.staff = staff;
         this.accounts = accounts;
+        this.wards = wards;
         this.currentActor = currentActor;
         this.presence = presence;
     }
@@ -50,6 +55,43 @@ public class StaffService {
         }
         return StaffMapper.toResponse(member, statusesOf(List.of(member)).get(member.getId()),
                 presence.isOnline(member.getId()));
+    }
+
+    /** 404 pracownik; 422 niepoprawny `wardId`; 409 zajety `pwz`/`email`, zmiana wlasnej roli. */
+    @Transactional
+    public StaffMemberResponse update(String id, StaffUpdateRequest request) {
+        UUID uuid = parse(id);
+        StaffMember member = uuid == null ? null : staff.findById(uuid).orElse(null);
+        if (member == null) {
+            throw NotFoundException.of("Pracownik", id);
+        }
+        if (!wards.existsById(request.wardId())) {
+            throw new ValidationFailedException(List.of(
+                    new FieldError("wardId", "Oddzial o podanym identyfikatorze nie istnieje", "notFound")));
+        }
+        if (currentActor.staffId().filter(member.getId()::equals).isPresent() && request.role() != member.getRole()) {
+            throw new ConflictException("Nie mozna zmienic wlasnej roli");
+        }
+        String pwz = blankToNull(request.pwz());
+        String email = blankToNull(request.email());
+        List<String> duplicates = new ArrayList<>();
+        if (pwz != null && staff.existsByPwzAndIdNot(pwz, member.getId())) {
+            duplicates.add("pwz");
+        }
+        if (email != null && staff.existsByEmailIgnoreCaseAndIdNot(email, member.getId())) {
+            duplicates.add("email");
+        }
+        if (!duplicates.isEmpty()) {
+            throw new ConflictException("Rekord o podanych danych juz istnieje: " + String.join(", ", duplicates));
+        }
+        member.update(request.title().trim(), request.firstName().trim(), request.lastName().trim(), request.role(),
+                blankToNull(request.specialization()), request.wardId(), blankToNull(request.phone()), pwz, email);
+        staff.saveAndFlush(member);
+        return get(id);
+    }
+
+    private static String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
     }
 
     @Transactional

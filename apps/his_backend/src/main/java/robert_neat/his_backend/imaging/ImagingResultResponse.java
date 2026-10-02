@@ -27,5 +27,6 @@ public record ImagingResultResponse(
         int imageCount,
         boolean critical,
         Instant reviewedAt,
-        UUID reviewedById) {
+        UUID reviewedById,
+        long version) {
 }

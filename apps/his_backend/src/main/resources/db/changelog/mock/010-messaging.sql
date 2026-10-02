@@ -47,9 +47,9 @@ INSERT INTO clinical_alert (id, type, severity, patient_id, message, created_at,
     ('fbdd048e-8b29-5846-9cb1-f66a2ae200da', 'critical_result', 'critical', '7466c824-06b6-57f2-8bae-2f20f77d64b6', 'Krytyczny wynik troponiny I hs (4520 ng/L) - pacjentka Maria Wiśniewska.', now() - interval '19 hours', 'lab_result', 'f581ba19-b12b-56a2-bc2d-f6f1b94b7bd2', '7466c824-06b6-57f2-8bae-2f20f77d64b6'),
     ('cfc4bcf6-b56a-5de8-8324-2151f2649eb0', 'critical_result', 'critical', '55cc6e9e-6413-58bc-88b6-6342579d8413', 'Krytyczne stężenie potasu (6.3 mmol/L) - pacjentka Irena Mazur.', now() - interval '20 hours', 'lab_result', 'cce215d2-6066-5197-933c-e37c30cbad1a', '55cc6e9e-6413-58bc-88b6-6342579d8413'),
     ('ac8c5aef-7b5e-527d-b890-46ba70d8a106', 'vital_anomaly', 'critical', '50c8f3fa-ea66-581a-9207-f9c4c7131d26', 'Krytyczny spadek SpO2 (89%) - pacjent Andrzej Szymański.', now() - interval '5 hours', 'patient_vitals', '50c8f3fa-ea66-581a-9207-f9c4c7131d26', NULL),
-    ('efe21816-c2cf-5367-9702-721e6552a976', 'vital_anomaly', 'warning', '55cc6e9e-6413-58bc-88b6-6342579d8413', 'Wysokie ciśnienie tętnicze (185/110 mmHg) - pacjentka Irena Mazur.', now() - interval '28 hours', NULL, NULL, NULL),
+    ('efe21816-c2cf-5367-9702-721e6552a976', 'vital_anomaly', 'warning', '55cc6e9e-6413-58bc-88b6-6342579d8413', 'Wysokie ciśnienie tętnicze (185/110 mmHg) - pacjentka Irena Mazur.', now() - interval '28 hours', 'patient_vitals', '55cc6e9e-6413-58bc-88b6-6342579d8413', NULL),
     ('2564e205-fb02-5231-9684-501e969496ca', 'order_status', 'info', '50c8f3fa-ea66-581a-9207-f9c4c7131d26', 'Zakończono badanie TK głowy - wynik dostępny.', now() - interval '4 hours', 'imaging_result', '46b4363a-51a4-5eae-9151-05948f291573', '50c8f3fa-ea66-581a-9207-f9c4c7131d26'),
-    ('42b4ded7-1fbe-534e-abf0-12c147e01d99', 'task', 'warning', '17a3dd05-d7d5-5211-ba70-0fc6e51cc476', 'Zaległe zadanie: podanie Clexane 40 mg sc.', now() - interval '1 hours', NULL, NULL, NULL);
+    ('42b4ded7-1fbe-534e-abf0-12c147e01d99', 'task', 'warning', '17a3dd05-d7d5-5211-ba70-0fc6e51cc476', 'Zaległe zadanie: podanie Clexane 40 mg sc.', now() - interval '1 hours', 'task', '94b29fa1-7c9e-5182-aab3-bdeceba70201', '17a3dd05-d7d5-5211-ba70-0fc6e51cc476');
 
 --changeset his-mock:010-alert-acknowledgement context:mock
 INSERT INTO alert_acknowledgement (alert_id, staff_id, acknowledged_at) VALUES

@@ -24,11 +24,12 @@ public record LabResultWithPatientResponse(
         String comment,
         Instant reviewedAt,
         UUID reviewedById,
+        long version,
         PatientSummaryResponse patient) {
 
     static LabResultWithPatientResponse of(LabResultResponse r, PatientSummaryResponse patient) {
         return new LabResultWithPatientResponse(r.id(), r.patientId(), r.orderId(), r.orderItemId(), r.testCode(),
                 r.testName(), r.category(), r.collectedAt(), r.resultedAt(), r.status(), r.observations(),
-                r.performerName(), r.comment(), r.reviewedAt(), r.reviewedById(), patient);
+                r.performerName(), r.comment(), r.reviewedAt(), r.reviewedById(), r.version(), patient);
     }
 }

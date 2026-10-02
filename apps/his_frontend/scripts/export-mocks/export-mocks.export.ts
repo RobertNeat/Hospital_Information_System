@@ -81,7 +81,6 @@ async function loadMocks(): Promise<Mocks> {
     ENCOUNTERS: encounters.ENCOUNTERS,
     CLINICAL_NOTES: notes.CLINICAL_NOTES,
     DIAGNOSES: diagnoses.DIAGNOSES,
-    ICD10_DICTIONARY: diagnoses.ICD10_DICTIONARY,
     ALLERGIES: allergies.ALLERGIES,
     CONTRAINDICATIONS: contraindications.CONTRAINDICATIONS,
     TREATMENTS: treatments.TREATMENTS,

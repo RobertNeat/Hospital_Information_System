@@ -177,6 +177,7 @@ public class EhrService {
         List<FieldError> errors = new ArrayList<>();
         checkPatientMatches(id, request.patientId(), errors);
         checkEncounter(id, request.encounterId(), errors);
+        CodingValidation.requireSnomedIfPresent("code", request.code(), errors);
         if (!errors.isEmpty()) {
             throw new ValidationFailedException(errors);
         }

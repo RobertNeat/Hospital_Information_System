@@ -9,3 +9,4 @@ export * from './imaging.api';
 export * from './prescription.api';
 export * from './vitals.api';
 export * from './messaging.api';
+export * from './terminology.api';

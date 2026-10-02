@@ -1,4 +1,4 @@
-import type { StaffRole } from '../models';
+import type { StaffAccountStatus, StaffRole } from '../models';
 import { toOptions } from './labels.utils';
 
 // ---- Messaging ----
@@ -56,3 +56,9 @@ export const STAFF_ROLE_LABELS: Record<StaffRole, string> = {
 export const STAFF_ROLE_OPTIONS = toOptions(STAFF_ROLE_LABELS).filter(
   (o) => o.value === 'doctor' || o.value === 'nurse',
 );
+
+export const ACCOUNT_STATUS_LABELS: Record<StaffAccountStatus, string> = {
+  pending: 'Oczekujące',
+  active: 'Aktywne',
+  locked: 'Zablokowane',
+};

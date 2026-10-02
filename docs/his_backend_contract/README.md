@@ -4,15 +4,6 @@ Ten katalog zawiera wyłącznie to, czego `apps/his_backend` jeszcze nie wystawi
 
 Zasady utrzymania: po wdrożeniu pozycji usuwamy ją stąd; nie dopisujemy opisów istniejącej funkcjonalności. Bieżące prace i usterki: [`../currentwork/plan.md`](../currentwork/plan.md).
 
-## Brakujące endpointy i egzekwowanie uprawnień
-
-| Obszar | Oczekiwanie / stan | Brak |
-| --- | --- | --- |
-| Zapis słowników | admin "W" dla `staff`, `wards`, `vital-thresholds` | brak endpointów zapisu; `staff:write`, `ward:write`, `vital-threshold:write` są w tokenie, ale żaden kontroler ich nie sprawdza |
-| Wprowadzanie wyników | laborant/radiolog "W" wyników | brak `POST` wyniku w REST; zapis tylko przez `POST /fhir/DiagnosticReport` (e-laboratory, e-imaging); `lab-result:write`, `imaging-result:write` nieegzekwowane |
-| `drug-safety-checks` | nurse, pharmacist, admin "R" | `drug-safety-check:run` ma tylko `doctor` |
-| `acknowledge` wyniku lab/imaging | 409 przy niezgodnym `version` | `version` ignorowane (brak kolumny) |
-
 ## Sesja i bezpieczeństwo
 
 - Brak odwoływania i odświeżania tokenów JWT; blokada konta lub zmiana roli nie działa na wydane tokeny do `exp`.
@@ -23,9 +14,20 @@ Zasady utrzymania: po wdrożeniu pozycji usuwamy ją stąd; nie dopisujemy opis�
 
 ## Integracje FHIR (e-receipt, e-laboratory, e-imaging)
 
-- Brak ponawiania nieudanej wysyłki zleceń/recept (best effort, AFTER_COMMIT; błędy tylko logowane).
-- Zmiany stanu zleceń wykonane w HIS (poza anulowaniem) nie są przekazywane do e-laboratory ani e-imaging.
-- Wygasanie recept wyliczane przy odczycie; brak schedulera i zdarzenia wygaśnięcia.
+- Brak ponawiania nieudanej wysyłki zleceń/recept (best effort, AFTER_COMMIT; błędy tylko logowane). Wymagałoby to
+  nowej tabeli (outbox wysyłek) i schedulera, którego obecnie w ogóle nie ma w `his_backend` (brak `@Scheduled`/
+  `@EnableScheduling`). e-receipt/e-laboratory/e-imaging są idempotentne względem identyfikatora zlecenia/recepty z HIS
+  przy `POST` (powtórne wywołanie zwraca istniejący rekord, ten sam `eRxKey`), więc retry samego `POST` jest
+  bezpieczny; pozostaje do rozstrzygnięcia kolejność ponowień względem późniejszych `PUT` zmiany statusu (odrzucone
+  404, dopóki `POST` się nie powiedzie) oraz to, że `onIssued` (e-receipt) podmienia `erx_key` w tym samym żądaniu
+  HTTP (osobna transakcja `REQUIRES_NEW`, ale przed odpowiedzią do klienta) - opóźniony retry podmieniłby klucz już
+  po tym, jak klient zobaczył lokalny.
+  Zakres większy niż punktowa poprawka; do zaplanowania osobno.
+- Wygasanie recept wyliczane przy odczycie (`Prescription#effectiveStatus`); brak schedulera i zdarzenia wygaśnięcia.
+  Pozostawione świadomie: wymagałoby tego samego schedulera co ponawianie wysyłki (patrz wyżej), e-receipt jest już
+  w stanie wymusić `expired` na recepcie przez `PUT /fhir/MedicationRequest/{id}` (`PrescriptionExternalService`,
+  `applyExternalStatus`), a zdarzenie wygaśnięcia nie miałoby obecnie żadnego konsumenta (brak alertów dla recept,
+  patrz "Zdarzenia i alerty").
 
 ## Zdarzenia i alerty
 
@@ -35,9 +37,4 @@ Zasady utrzymania: po wdrożeniu pozycji usuwamy ją stąd; nie dopisujemy opis�
 
 ## Terminologia SNOMED
 
-- Składnia ECL profili `his.terminology.suggestions.*` niesprawdzona na lokalnym Snowstorm Lite (plan.md, P5, P6).
-- Relacja `GET /dictionaries/icd-10` (~40 kodów w SQL) do SNOMED/SCTID otwarta; walidacja zapisywanych kodów sprawdza tylko format SCTID, nie zgodność ze specjalizacją.
-
-## Paginacja
-
-- `GET /message-threads/{id}/messages` i `GET /alerts` zwracają `T[]` bez paginacji (kandydaci do paginacji/kursora `before=sentAt`).
+- Walidacja zapisywanych kodów sprawdza tylko format SCTID, nie zgodność ze specjalizacją.

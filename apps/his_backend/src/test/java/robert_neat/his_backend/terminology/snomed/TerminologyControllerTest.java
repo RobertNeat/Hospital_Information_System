@@ -27,6 +27,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
+import robert_neat.his_backend.ehr.Coding;
+import robert_neat.his_backend.ehr.CodingSystem;
 import robert_neat.his_backend.security.HisUserPrincipal;
 import robert_neat.his_backend.security.SecurityConfig;
 import robert_neat.his_backend.staff.StaffRole;
@@ -136,6 +138,56 @@ class TerminologyControllerTest {
 
         mvc.perform(get("/api/v1/terminology/snomed/concepts/73211009").with(jwt()))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    @WithMockUser
+    void translateToIcd10ReturnsCodings() throws Exception {
+        when(client.translateToIcd10("38341003")).thenReturn(
+                List.of(new Coding(CodingSystem.ICD_10, "I10", "Essential (primary) hypertension")));
+
+        mvc.perform(get("/api/v1/terminology/snomed/38341003/icd-10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].system").value("ICD-10"))
+                .andExpect(jsonPath("$[0].code").value("I10"))
+                .andExpect(jsonPath("$[0].display").value("Essential (primary) hypertension"));
+    }
+
+    @Test
+    @WithMockUser
+    void translateToIcd10NoMappingReturnsEmptyList() throws Exception {
+        when(client.translateToIcd10("138875005")).thenReturn(List.of());
+
+        mvc.perform(get("/api/v1/terminology/snomed/138875005/icd-10"))
+                .andExpect(status().isOk())
+                .andExpect(content().json("[]"));
+    }
+
+    @Test
+    @WithMockUser
+    void translateToIcd10InvalidSctidIs400() throws Exception {
+        when(client.translateToIcd10("abc")).thenThrow(new TerminologyException.InvalidRequest("SCTID", null));
+
+        mvc.perform(get("/api/v1/terminology/snomed/abc/icd-10"))
+                .andExpect(status().isBadRequest());
+    }
+
+    // SnowstormClient.translateToIcd10 nie rzuca dzis NotFound (Snowstorm Lite nie rozroznia
+    // nieznanego SCTID od braku mapowania - oba zwracaja puste), ale kontroler musi to wspierac
+    // na wypadek zmiany klienta/serwera terminologii.
+    @Test
+    @WithMockUser
+    void translateToIcd10NotFoundFromClientIs404() throws Exception {
+        when(client.translateToIcd10("999999999")).thenThrow(new TerminologyException.NotFound("brak"));
+
+        mvc.perform(get("/api/v1/terminology/snomed/999999999/icd-10"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void translateToIcd10AnonymousIsUnauthorized() throws Exception {
+        mvc.perform(get("/api/v1/terminology/snomed/38341003/icd-10"))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test

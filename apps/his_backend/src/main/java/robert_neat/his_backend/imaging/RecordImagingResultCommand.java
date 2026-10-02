@@ -6,8 +6,9 @@ import java.util.UUID;
 import robert_neat.his_backend.catalog.ImagingModality;
 
 /**
- * Wewnetrzne polecenie zapisu wyniku badania obrazowego (budowane z `DiagnosticReport` z `e-imaging`; brak
- * endpointu REST). Wynik zewnetrzny (`orderId` = null) wymaga `modality`, `examName` i `bodyRegion`; dla wyniku zlecenia
+ * Wewnetrzne polecenie zapisu wyniku badania obrazowego (budowane z `DiagnosticReport` z `e-imaging` albo z
+ * `POST /api/v1/imaging-orders/{orderId}/results`). Wynik zewnetrzny (`orderId` = null) wymaga `modality`, `examName`
+ * i `bodyRegion`; dla wyniku zlecenia
  * brakujace pola snapshotu pochodza ze zlecenia (podane musza byc zgodne - modalnosc). `radiologistName` pusty = nazwa
  * pracownika (`radiologistId`, a gdy brak - zalogowanego); `radiologistId` pusty przy podanej nazwie = bez FK.
  * `imageCount` pusty = 0. `critical` ustawia radiolog (nie jest wyliczane z opisu).

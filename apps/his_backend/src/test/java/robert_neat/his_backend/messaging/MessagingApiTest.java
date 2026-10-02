@@ -243,24 +243,49 @@ class MessagingApiTest extends ApiIntegrationTest {
     // --- wiadomosci watku ---
 
     @Test
-    void messagesAreAscendingWithReadByIdsDerivedFromCursors() throws Exception {
+    void messagesAreDescendingWithReadByIdsDerivedFromCursors() throws Exception {
         as("EMP-0001", get("/api/v1/message-threads/{id}/messages", THREAD_FUROSEMIDE))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(3)))
-                .andExpect(jsonPath("$[0].id").value("1ad95bbc-cfed-5dc0-bf58-4ac6587e14d0"))
-                .andExpect(jsonPath("$[0].threadId").value(THREAD_FUROSEMIDE))
-                .andExpect(jsonPath("$[0].senderId").value(NURSE_6))
-                .andExpect(jsonPath("$[0].priority").value("high"))
-                .andExpect(jsonPath("$[0].sentAt").isString())
-                .andExpect(jsonPath("$[0].body").value(
+                .andExpect(jsonPath("$.items", hasSize(3)))
+                .andExpect(jsonPath("$.nextBefore").doesNotExist())
+                // wiadomosc -1h (najnowsza): kursor EMP-0001 (-3h) starszy -> tylko nadawca
+                .andExpect(jsonPath("$.items[0].id").value("f6aeb5c1-4a3b-5db2-b42e-b2c860674261"))
+                .andExpect(jsonPath("$.items[0].readByIds", contains(NURSE_6)))
+                .andExpect(jsonPath("$.items[1].senderId").value(DOC_1))
+                .andExpect(jsonPath("$.items[1].priority").value("normal"))
+                .andExpect(jsonPath("$.items[2].id").value("1ad95bbc-cfed-5dc0-bf58-4ac6587e14d0"))
+                .andExpect(jsonPath("$.items[2].threadId").value(THREAD_FUROSEMIDE))
+                .andExpect(jsonPath("$.items[2].senderId").value(NURSE_6))
+                .andExpect(jsonPath("$.items[2].priority").value("high"))
+                .andExpect(jsonPath("$.items[2].sentAt").isString())
+                .andExpect(jsonPath("$.items[2].body").value(
                         "Panie doktorze, pacjent Kowalski zgłasza duszność przy zmianie pozycji. Bilans płynów za dobę dodatni."))
                 // kursor EMP-0001 (-3h) >= sentAt (-4h): przeczytana przez obu
-                .andExpect(jsonPath("$[0].readByIds", containsInAnyOrder(NURSE_6, DOC_1)))
-                .andExpect(jsonPath("$[1].senderId").value(DOC_1))
-                .andExpect(jsonPath("$[1].priority").value("normal"))
-                // wiadomosc -1h: kursor EMP-0001 (-3h) starszy -> tylko nadawca
-                .andExpect(jsonPath("$[2].id").value("f6aeb5c1-4a3b-5db2-b42e-b2c860674261"))
-                .andExpect(jsonPath("$[2].readByIds", contains(NURSE_6)));
+                .andExpect(jsonPath("$.items[2].readByIds", containsInAnyOrder(NURSE_6, DOC_1)));
+    }
+
+    @Test
+    void messagesCursorPaginatesWithBeforeAndSize() throws Exception {
+        // 3 wiadomosci w watku; size=1 zwraca najnowsza i nextBefore do kolejnej strony
+        String first = as("EMP-0001", get("/api/v1/message-threads/{id}/messages?size=1", THREAD_FUROSEMIDE))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.items", hasSize(1)))
+                .andExpect(jsonPath("$.items[0].id").value("f6aeb5c1-4a3b-5db2-b42e-b2c860674261"))
+                .andExpect(jsonPath("$.nextBefore").isString())
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        String nextBefore = JsonPath.read(first, "$.nextBefore");
+        as("EMP-0001",
+                get("/api/v1/message-threads/{id}/messages?size=1&before=" + nextBefore, THREAD_FUROSEMIDE))
+                .andExpect(jsonPath("$.items", hasSize(1))).andExpect(jsonPath("$.items[0].senderId").value(DOC_1));
+    }
+
+    @Test
+    void messagesSizeIsClampedAndEmptyBeforeYieldsEmptyPage() throws Exception {
+        as("EMP-0001", get("/api/v1/message-threads/{id}/messages?size=0", THREAD_FUROSEMIDE))
+                .andExpect(jsonPath("$.items", hasSize(3))); // size<=0 -> domyslny rozmiar
+        as("EMP-0001", get("/api/v1/message-threads/{id}/messages?size=500", THREAD_FUROSEMIDE))
+                .andExpect(jsonPath("$.items", hasSize(3))); // size>max -> przyciecie do maks. (wciaz > 3)
+        as("EMP-0001", get("/api/v1/message-threads/{id}/messages?before=2000-01-01T00:00:00Z", THREAD_FUROSEMIDE))
+                .andExpect(jsonPath("$.items", hasSize(0))).andExpect(jsonPath("$.nextBefore").doesNotExist());
     }
 
     @Test
@@ -299,11 +324,11 @@ class MessagingApiTest extends ApiIntegrationTest {
         as("EMP-0001", get("/api/v1/message-threads/{id}", threadId)).andExpect(jsonPath("$.unreadCount").value(0));
         as("EMP-0007", get("/api/v1/message-threads/{id}", threadId)).andExpect(jsonPath("$.unreadCount").value(1));
         as("EMP-0007", get("/api/v1/message-threads/{id}/messages", threadId))
-                .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].senderId").value(DOC_1))
-                .andExpect(jsonPath("$[0].priority").value("high"))
-                .andExpect(jsonPath("$[0].body").value("Pierwsza wiadomość"))
-                .andExpect(jsonPath("$[0].readByIds", contains(DOC_1)));
+                .andExpect(jsonPath("$.items", hasSize(1)))
+                .andExpect(jsonPath("$.items[0].senderId").value(DOC_1))
+                .andExpect(jsonPath("$.items[0].priority").value("high"))
+                .andExpect(jsonPath("$.items[0].body").value("Pierwsza wiadomość"))
+                .andExpect(jsonPath("$.items[0].readByIds", contains(DOC_1)));
         as("EMP-0002", get("/api/v1/message-threads/{id}", threadId)).andExpect(status().isForbidden());
 
         assertThat(events.stream(MessageSent.class)).singleElement().satisfies(e -> {
@@ -385,7 +410,8 @@ class MessagingApiTest extends ApiIntegrationTest {
                 .getContentAsString(StandardCharsets.UTF_8);
         assertThat(Instant.parse(JsonPath.read(thread, "$.lastMessageAt"))).isEqualTo(sentAt);
         as("EMP-0001", get("/api/v1/message-threads/{id}/messages", THREAD_FUROSEMIDE))
-                .andExpect(jsonPath("$", hasSize(4))).andExpect(jsonPath("$[3].body").value("Dawka podana."));
+                .andExpect(jsonPath("$.items", hasSize(4)))
+                .andExpect(jsonPath("$.items[0].body").value("Dawka podana."));
 
         assertThat(events.stream(MessageSent.class)).singleElement().satisfies(e -> {
             assertThat(e.messageId()).isEqualTo(UUID.fromString(JsonPath.read(response, "$.id")));
@@ -447,7 +473,7 @@ class MessagingApiTest extends ApiIntegrationTest {
         assertThat(other).isBefore(before.minusSeconds(60));
         // readByIds odzwierciedla nowy kursor: ostatnia wiadomosc przeczytana takze przez EMP-0001
         as("EMP-0006", get("/api/v1/message-threads/{id}/messages", THREAD_FUROSEMIDE))
-                .andExpect(jsonPath("$[2].readByIds", containsInAnyOrder(NURSE_6, DOC_1)));
+                .andExpect(jsonPath("$.items[0].readByIds", containsInAnyOrder(NURSE_6, DOC_1)));
     }
 
     @Test

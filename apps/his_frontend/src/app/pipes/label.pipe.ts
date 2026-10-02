@@ -48,6 +48,7 @@ const LABEL_MAPS = {
   alertType: labels.ALERT_TYPE_LABELS,
   alertSeverity: labels.ALERT_SEVERITY_LABELS,
   staffRole: labels.STAFF_ROLE_LABELS,
+  accountStatus: labels.ACCOUNT_STATUS_LABELS,
 } satisfies Record<string, Record<string, string>>;
 
 /** Valid second arguments to `| label:'...'`, e.g. 'urgency', 'admissionStatus'. */

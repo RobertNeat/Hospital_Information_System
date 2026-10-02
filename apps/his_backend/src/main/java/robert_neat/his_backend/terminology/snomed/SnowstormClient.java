@@ -19,6 +19,9 @@ import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
+import robert_neat.his_backend.ehr.Coding;
+import robert_neat.his_backend.ehr.CodingSystem;
+
 /**
  * Klient FHIR terminology servera (Snowstorm Lite). Polaczenie jest nawiazywane dopiero przy
  * pierwszym wywolaniu, wiec backend startuje takze bez dzialajacego Snowstorma.
@@ -29,6 +32,9 @@ public class SnowstormClient {
     static final String SNOMED_SYSTEM = "http://snomed.info/sct";
     static final int MAX_ECL_LENGTH = 2000;
     static final int MAX_FILTER_LENGTH = 200;
+
+    /** Refset "SNOMED CT to ICD-10 extended map" (zweryfikowany na lokalnym Snowstorm Lite 20261001). */
+    static final String ICD10_MAP_FHIR_CM = "447562003";
 
     private final SnowstormProperties properties;
     private final RestClient restClient;
@@ -160,6 +166,53 @@ public class SnowstormClient {
             throw new TerminologyException.NotFound("Nie znaleziono pojecia SNOMED CT " + code);
         }
         return new SnomedConcept(code, display);
+    }
+
+    /**
+     * Dynamiczne tlumaczenie SCTID -> ICD-10 przez Snowstorm Lite (FHIR {@code ConceptMap/$translate}, refset
+     * {@value #ICD10_MAP_FHIR_CM}). HIS nie przechowuje mapowan lokalnie - wynik jest liczony na zadanie,
+     * przy eksporcie. Zweryfikowano na zywym Snowstorm Lite 2.7.0 (20261001): w przeciwienstwie do
+     * {@code $lookup}, {@code $translate} zawsze odpowiada HTTP 200 (tez dla nieznanego SCTID) z
+     * {@code {"name":"result","valueBoolean":false}} gdy brak mapowania - bez rozroznienia miedzy
+     * "nieznany kod" a "znany kod bez mapowania ICD-10". Dlatego zwracamy po prostu puste, nie 404.
+     */
+    public List<Coding> translateToIcd10(String code) {
+        if (code == null || !code.matches("\\d{6,18}")) {
+            throw new TerminologyException.InvalidRequest("SCTID musi miec 6-18 cyfr", null);
+        }
+        ensureEnabled();
+        String conceptMapUrl = SNOMED_SYSTEM + "?fhir_cm=" + ICD10_MAP_FHIR_CM;
+        String body = execute("translate", () -> restClient.get()
+                .uri(b -> b.path("/ConceptMap/$translate")
+                        .queryParam("url", "{url}")
+                        .queryParam("system", "{system}")
+                        .queryParam("code", "{code}")
+                        .build(Map.of("url", conceptMapUrl, "system", SNOMED_SYSTEM, "code", code)))
+                .accept(fhirJson())
+                .retrieve()
+                .body(String.class));
+        List<Coding> result = new ArrayList<>();
+        for (JsonNode p : parse(body).path("parameter")) {
+            if (!"match".equals(p.path("name").asString())) {
+                continue;
+            }
+            for (JsonNode part : p.path("part")) {
+                if (!"concept".equals(part.path("name").asString())) {
+                    continue;
+                }
+                JsonNode coding = part.path("valueCoding");
+                String icdCode = coding.path("code").asString(null);
+                if (icdCode == null || icdCode.isBlank()) {
+                    continue;
+                }
+                String display = coding.path("display").asString(icdCode);
+                Coding translated = new Coding(CodingSystem.ICD_10, icdCode, display);
+                if (!result.contains(translated)) {
+                    result.add(translated);
+                }
+            }
+        }
+        return List.copyOf(result);
     }
 
     private void ensureEnabled() {

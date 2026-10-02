@@ -22,7 +22,8 @@ import robert_neat.his_backend.patient.PatientRepository;
 import robert_neat.his_backend.staff.StaffMemberRepository;
 
 /**
- * Wewnetrzny zapis wynikow badan obrazowych (wywolywany przez `POST /fhir/DiagnosticReport` z `e-imaging`; bez endpointu REST).
+ * Wewnetrzny zapis wynikow badan obrazowych; wspolny dla `POST /fhir/DiagnosticReport` (`e-imaging`) i natywnego
+ * `POST /api/v1/imaging-orders/{orderId}/results` (radiolog, {@code imaging-result:write}).
  * <ul>
  *   <li>422: brakujace/niespojne pola, nieznany pacjent/zlecenie/radiolog, niezgodnosc pacjenta lub modalnosci ze
  *       zleceniem, brak snapshotu dla wyniku zewnetrznego;</li>

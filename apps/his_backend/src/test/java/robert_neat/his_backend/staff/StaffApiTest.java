@@ -4,15 +4,28 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.is;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
+
+import com.jayway.jsonpath.JsonPath;
 
 import robert_neat.his_backend.ApiIntegrationTest;
 import robert_neat.his_backend.DemoAccounts;
@@ -25,8 +38,13 @@ class StaffApiTest extends ApiIntegrationTest {
     private static final String AMBULATORIUM = "9062e817-70be-578e-b07e-136085e8e294";
     private static final String ANNA_NOWAK = "16259545-f97c-531d-b9cd-6ba115379372";
 
+    private static final MediaType JSON = MediaType.APPLICATION_JSON;
+    private static final Map<String, String> TOKENS = new HashMap<>();
+
     @Autowired
     private MockMvc mvc;
+    @Autowired
+    private JdbcTemplate jdbc;
 
     @Test
     void wardsReturnsMockWardsAndDemoWardInContractShape() throws Exception {
@@ -158,5 +176,122 @@ class StaffApiTest extends ApiIntegrationTest {
         mvc.perform(get("/api/v1/wards").with(org.springframework.security.test.web.servlet.request
                         .SecurityMockMvcRequestPostProcessors.anonymous()))
                 .andExpect(status().isUnauthorized());
+    }
+
+    // --- zapis oddzialow (ward:write) ---
+
+    @Test
+    void adminCanCreateAndUpdateWard() throws Exception {
+        String created = as("admin", post("/api/v1/wards"),
+                "{\"name\":\"Testowy\",\"shortName\":\"TST\",\"floor\":\"3\",\"beds\":10}")
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.name").value("Testowy"))
+                .andExpect(jsonPath("$.shortName").value("TST"))
+                .andExpect(jsonPath("$.beds").value(10))
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        String id = JsonPath.read(created, "$.id");
+
+        as("admin", put("/api/v1/wards/{id}", id),
+                "{\"name\":\"Testowy Zmieniony\",\"shortName\":\"TST\",\"floor\":\"4\",\"beds\":12}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Testowy Zmieniony"))
+                .andExpect(jsonPath("$.floor").value("4"))
+                .andExpect(jsonPath("$.beds").value(12));
+    }
+
+    @Test
+    void wardWithDuplicateShortNameIs409() throws Exception {
+        as("admin", post("/api/v1/wards"), "{\"name\":\"Inny\",\"shortName\":\"CHG\",\"floor\":\"1\",\"beds\":5}")
+                .andExpect(status().isConflict());
+    }
+
+    @Test
+    void wardCreateValidatesBedsAndRequiredFields() throws Exception {
+        as("admin", post("/api/v1/wards"), "{\"name\":\"\",\"shortName\":\"ZZZ\",\"floor\":\"1\",\"beds\":-1}")
+                .andExpect(status().isUnprocessableContent());
+    }
+
+    @Test
+    void unknownWardOnUpdateIs404() throws Exception {
+        as("admin", put("/api/v1/wards/{id}", "00000000-0000-0000-0000-000000000000"),
+                "{\"name\":\"X\",\"shortName\":\"ZZZ\",\"floor\":\"1\",\"beds\":1}")
+                .andExpect(status().isNotFound());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"doctor", "nurse", "lab-tech", "radiologist", "pharmacist", "registrar"})
+    void onlyAdminCanWriteWards(String login) throws Exception {
+        as(login, post("/api/v1/wards"), "{\"name\":\"X\",\"shortName\":\"ZZZ\",\"floor\":\"1\",\"beds\":1}")
+                .andExpect(status().isForbidden());
+    }
+
+    // --- zapis pracownikow (staff:write) ---
+
+    @Test
+    void adminCanUpdateStaffMember() throws Exception {
+        as("admin", put("/api/v1/staff/{id}", ANNA_NOWAK),
+                "{\"title\":\"dr\",\"firstName\":\"Anna\",\"lastName\":\"Nowak-Kowalska\",\"role\":\"doctor\","
+                        + "\"specialization\":\"Kardiologia\",\"wardId\":\"" + KARDIOLOGIA + "\",\"phone\":\"123456789\"}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.title").value("dr"))
+                .andExpect(jsonPath("$.lastName").value("Nowak-Kowalska"))
+                .andExpect(jsonPath("$.specialization").value("Kardiologia"))
+                .andExpect(jsonPath("$.wardId").value(KARDIOLOGIA));
+    }
+
+    @Test
+    void staffUpdateWithUnknownWardIs422() throws Exception {
+        as("admin", put("/api/v1/staff/{id}", ANNA_NOWAK),
+                "{\"title\":\"dr\",\"firstName\":\"Anna\",\"lastName\":\"Nowak\",\"role\":\"doctor\","
+                        + "\"wardId\":\"00000000-0000-0000-0000-000000000000\"}")
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.errors[0].field").value("wardId"));
+    }
+
+    @Test
+    void unknownStaffOnUpdateIs404() throws Exception {
+        as("admin", put("/api/v1/staff/{id}", "00000000-0000-0000-0000-000000000000"),
+                "{\"title\":\"dr\",\"firstName\":\"X\",\"lastName\":\"Y\",\"role\":\"doctor\",\"wardId\":\""
+                        + KARDIOLOGIA + "\"}")
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void adminCannotChangeOwnRole() throws Exception {
+        String adminId = jdbc.queryForObject("SELECT staff_id FROM user_account WHERE employee_id = 'admin'",
+                String.class);
+        as("admin", put("/api/v1/staff/{id}", adminId),
+                "{\"title\":\"mgr\",\"firstName\":\"Admin\",\"lastName\":\"Admin\",\"role\":\"nurse\",\"wardId\":\""
+                        + DemoAccounts.WARD_ID + "\"}")
+                .andExpect(status().isConflict());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"doctor", "nurse", "lab-tech", "radiologist", "pharmacist", "registrar"})
+    void onlyAdminCanWriteStaff(String login) throws Exception {
+        as(login, put("/api/v1/staff/{id}", ANNA_NOWAK),
+                "{\"title\":\"dr\",\"firstName\":\"Anna\",\"lastName\":\"Nowak\",\"role\":\"doctor\",\"wardId\":\""
+                        + KARDIOLOGIA + "\"}")
+                .andExpect(status().isForbidden());
+    }
+
+    // --- pomocnicze ---
+
+    private ResultActions as(String login,
+            org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder request, String body)
+            throws Exception {
+        return mvc.perform(request.header(HttpHeaders.AUTHORIZATION, bearer(login)).contentType(JSON).content(body));
+    }
+
+    private String bearer(String login) throws Exception {
+        String token = TOKENS.get(login);
+        if (token == null) {
+            String response = mvc.perform(post("/api/v1/auth/login").contentType(JSON)
+                    .content("{\"employeeId\":\"" + login + "\",\"password\":\"" + login + "\"}"))
+                    .andExpect(status().isOk()).andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+            token = JsonPath.read(response, "$.accessToken");
+            TOKENS.put(login, token);
+        }
+        return "Bearer " + token;
     }
 }

@@ -27,4 +27,10 @@ export const PERMISSIONS = {
   TASK_READ: 'task:read',
   TASK_WRITE: 'task:write',
   ALERT_READ: 'alert:read',
+
+  STAFF_READ: 'staff:read',
+  ACCOUNT_MANAGE: 'account:manage',
+
+  EHR_DIAGNOSIS_WRITE: 'ehr:diagnosis:write',
+  EHR_ALLERGY_WRITE: 'ehr:allergy:write',
 } as const;

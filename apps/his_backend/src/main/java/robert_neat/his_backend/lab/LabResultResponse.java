@@ -26,7 +26,8 @@ public record LabResultResponse(
         String performerName,
         String comment,
         Instant reviewedAt,
-        UUID reviewedById) {
+        UUID reviewedById,
+        long version) {
 
     /** `LabObservation`; `value` to liczba (`BigDecimal`) albo string - zaleznie od wypelnionej kolumny. */
     public record Observation(

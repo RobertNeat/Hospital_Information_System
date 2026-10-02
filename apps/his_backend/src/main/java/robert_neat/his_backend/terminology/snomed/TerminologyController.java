@@ -1,5 +1,6 @@
 package robert_neat.his_backend.terminology.snomed;
 
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -9,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import robert_neat.his_backend.ehr.Coding;
 import robert_neat.his_backend.security.HisUserPrincipal;
 
 @RestController
@@ -55,5 +57,11 @@ public class TerminologyController {
     @GetMapping("/concepts/{sctid}")
     public SnomedConcept get(@PathVariable String sctid) {
         return client.lookup(sctid);
+    }
+
+    /** Dynamiczne tlumaczenie SCTID -> ICD-10 (eksport); pusta lista gdy brak mapowania dla danego kodu. */
+    @GetMapping("/{sctid}/icd-10")
+    public List<Coding> translateToIcd10(@PathVariable String sctid) {
+        return client.translateToIcd10(sctid);
     }
 }

@@ -7,8 +7,14 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 /**
- * `Coding` z kontraktu (kolumny `code_system`, `code_value`, `code_display`); jednoczesnie osadzenie w `Diagnosis`,
- * DTO zadania i odpowiedzi oraz element slownika ICD-10. `display` jest snapshotem (nie zmienia sie ze slownikiem).
+ * `Coding` z kontraktu (kolumny `code_system`, `code_value`, `code_display`); jednoczesnie osadzenie w `Diagnosis`
+ * oraz DTO zadania i odpowiedzi. Brak lokalnego slownika ICD-10 (usuniety - `icd10_code`); `CodingSystem.ICD_10`
+ * jako wynik eksportu/zapisu nadal wystepuje, ale tlumaczenie SCTID -> ICD-10 jest liczone dynamicznie przez
+ * Snowstorm Lite (`SnowstormClient#translateToIcd10`), nie odczytywane ze slownika. `display` jest snapshotem
+ * (nie zmienia sie wraz ze zrodlem kodu). Zapis diagnoz (`POST /patients/{id}/diagnoses`) i wskazan klinicznych
+ * zlecen lab/obrazowych wymaga `system=SNOMED` z poprawnym SCTID (format, bez sprawdzania istnienia pojecia w
+ * Snowstorm) - zob. {@link CodingValidation}. Inne wartosci `CodingSystem` sa nadal poprawnym typem na drucie
+ * (odczyt starszych danych), ale nie sa akceptowane przy nowym zapisie.
  */
 @Embeddable
 public record Coding(

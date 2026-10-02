@@ -1,7 +1,7 @@
 # export-mocks
 
 Generator danych referencyjnych i demonstracyjnych Liquibase z mocków TypeScript frontendu
-(`src/app/mock-data/*.mock.ts`, `mock-utils.ts`, `constants/vitals-thresholds.ts`, `ICD10_DICTIONARY`).
+(`src/app/mock-data/*.mock.ts`, `mock-utils.ts`, `constants/vitals-thresholds.ts`).
 Mocki pozostają jedynym źródłem prawdy; pliki SQL są **generowane i zacommitowane** (nie edytuj ich ręcznie).
 
 ## Uruchomienie
@@ -17,7 +17,7 @@ Wyjście:
 
 | Plik                                                                   | Zawartość                                                        |
 | ---------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| `apps/his_backend/src/main/resources/db/changelog/reference/NNN-*.sql` | progi parametrów życiowych, słownik ICD-10 (`context:reference`) |
+| `apps/his_backend/src/main/resources/db/changelog/reference/NNN-*.sql` | progi parametrów życiowych (`context:reference`) |
 | `apps/his_backend/src/main/resources/db/changelog/mock/NNN-*.sql`      | dane demonstracyjne (`context:mock`)                             |
 | `apps/his_backend/src/test/resources/db/mock-manifest.json`            | liczności wierszy per tabela (używane przez testy backendu)      |
 
@@ -46,7 +46,8 @@ Dwa uruchomienia generatora muszą dać identyczne bajty (sprawdź np. `sha256su
 ## Decyzje mapowania
 
 - Katalogi (`lab_test`, `lab_analyte_definition`, `lab_panel`, `imaging_exam`, `drug`, `schedule_slot`) to **mock**, nie reference.
-  Reference: `vital_threshold` (6) i `icd10_code` (40).
+  Reference: `vital_threshold` (6). HIS przechowuje wyłącznie SCTID (SNOMED CT); nie ma lokalnego słownika terminologii
+  (`icd10_code` usunięty - zob. `cleanup/001-drop-icd10-code.sql`), treść serwuje Snowstorm Lite.
 - Brak konta administratora bootstrap (decyzja otwarta).
 - Konta: każdy `StaffMember` z `employeeId` dostaje `user_account` (login = `employeeId`, np. `EMP-0001`),
   wspólne hasło demo: **`HisDemo2026!`** (BCrypt cost 10, stała `DEMO_PASSWORD_HASH` w `build.ts`; wygenerowana jednorazowo

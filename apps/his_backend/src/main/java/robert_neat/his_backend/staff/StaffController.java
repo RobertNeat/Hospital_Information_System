@@ -7,9 +7,13 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/v1/staff")
@@ -32,6 +36,13 @@ public class StaffController {
     @PreAuthorize("hasAuthority('staff:read')")
     public StaffMemberResponse get(@PathVariable String staffId) {
         return service.get(staffId);
+    }
+
+    /** Edycja danych pracownika (bez zmiany `employeeId`/konta) - tylko administrator. */
+    @PutMapping("/{staffId}")
+    @PreAuthorize("hasAuthority('staff:write')")
+    public StaffMemberResponse update(@PathVariable String staffId, @Valid @RequestBody StaffUpdateRequest request) {
+        return service.update(staffId, request);
     }
 
     /** Aktywacja konta (takze odblokowanie) - tylko administrator. */

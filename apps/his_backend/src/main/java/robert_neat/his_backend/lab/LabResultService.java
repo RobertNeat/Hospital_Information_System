@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import robert_neat.his_backend.catalog.LabAnalyteDefinition;
 import robert_neat.his_backend.catalog.LabAnalyteDefinitionRepository;
+import robert_neat.his_backend.common.api.ConflictException;
 import robert_neat.his_backend.common.api.ForbiddenException;
 import robert_neat.his_backend.common.api.NotFoundException;
 import robert_neat.his_backend.common.api.PageResponse;
@@ -25,10 +26,11 @@ import robert_neat.his_backend.patient.PatientService;
 import robert_neat.his_backend.patient.PatientSummaryResponse;
 
 /**
- * Wyniki laboratoryjne (odczyt, potwierdzenie, trendy, inbox). Lista pacjenta nie jest stronicowana (kontrakt:
- * `LabResult[]`, malejaco po `resultedAt`); inbox jest stronicowany (sort wg whitelisty, 422 dla nieznanego pola).
- * Potwierdzenie (`acknowledge`) jest idempotentne: kto/kiedy zapisuje pierwsze potwierdzenie, kolejne zwracaja wynik bez
- * zmian. Aktor z sesji. DTO mapowane w transakcji. Zapis wynikow: {@link LabResultRecordingService}.
+ * Wyniki laboratoryjne (odczyt, potwierdzenie, trendy, inbox, zapis REST). Lista pacjenta nie jest stronicowana
+ * (kontrakt: `LabResult[]`, malejaco po `resultedAt`); inbox jest stronicowany (sort wg whitelisty, 422 dla
+ * nieznanego pola). Potwierdzenie (`acknowledge`) jest idempotentne: kto/kiedy zapisuje pierwsze potwierdzenie,
+ * kolejne zwracaja wynik bez zmian. Aktor z sesji. DTO mapowane w transakcji. Zapis wynikow deleguje do
+ * {@link LabResultRecordingService} (ta sama sciezka co `POST /fhir/DiagnosticReport`).
  */
 @Service
 @Transactional(readOnly = true)
@@ -40,18 +42,32 @@ public class LabResultService {
             "resultedAt", "collectedAt", "testCode", "testName", "category", "status");
 
     private final LabResultRepository results;
+    private final LabOrderRepository orders;
     private final PatientRepository patients;
     private final PatientService patientService;
     private final LabAnalyteDefinitionRepository analyteDefinitions;
     private final CurrentActor currentActor;
+    private final LabResultRecordingService recording;
 
-    LabResultService(LabResultRepository results, PatientRepository patients, PatientService patientService,
-            LabAnalyteDefinitionRepository analyteDefinitions, CurrentActor currentActor) {
+    LabResultService(LabResultRepository results, LabOrderRepository orders, PatientRepository patients,
+            PatientService patientService, LabAnalyteDefinitionRepository analyteDefinitions,
+            CurrentActor currentActor, LabResultRecordingService recording) {
         this.results = results;
+        this.orders = orders;
         this.patients = patients;
         this.patientService = patientService;
         this.analyteDefinitions = analyteDefinitions;
         this.currentActor = currentActor;
+        this.recording = recording;
+    }
+
+    /** 404 zlecenie (niepoprawny UUID = "nie istnieje"); reszta walidacji (422/409) w {@link LabResultRecordingService}. */
+    @Transactional
+    public LabResultResponse recordForOrder(String orderId, LabResultCreateRequest request) {
+        UUID id = parse(orderId);
+        LabOrder order = (id == null ? Optional.<LabOrder>empty() : orders.findById(id))
+                .orElseThrow(() -> NotFoundException.of("Zlecenie laboratoryjne", orderId));
+        return recording.recordResult(LabResultMapper.toCommand(request, order.getPatientId(), order.getId()));
     }
 
     /** 404 pacjent. Wyniki pacjenta (opcjonalny filtr nieprawidlowosci), od najnowszego wg `resultedAt`. */
@@ -83,12 +99,19 @@ public class LabResultService {
         return LabResultMapper.toResponse(require(resultId));
     }
 
-    /** 404 wynik; 403 brak powiazania sesji z pracownikiem. Ponowne potwierdzenie nie zmienia `reviewed*`. */
+    /**
+     * 404 wynik; 403 brak powiazania sesji z pracownikiem; 409 gdy podana `version` nie zgadza sie z biezaca.
+     * Ponowne potwierdzenie nie zmienia `reviewed*`.
+     */
     @Transactional
-    public LabResultResponse acknowledge(String resultId) {
+    public LabResultResponse acknowledge(String resultId, Long expectedVersion) {
         UUID actor = currentActor.staffId()
                 .orElseThrow(() -> new ForbiddenException("Brak powiazania sesji z pracownikiem"));
         LabResult result = require(resultId);
+        if (expectedVersion != null && expectedVersion != result.getVersion()) {
+            throw new ConflictException("Wynik laboratoryjny zostal zmodyfikowany przez inna osobe (wersja "
+                    + result.getVersion() + "); odswiez dane i sprobuj ponownie");
+        }
         if (result.acknowledge(actor, Instant.now())) {
             results.saveAndFlush(result);
         }

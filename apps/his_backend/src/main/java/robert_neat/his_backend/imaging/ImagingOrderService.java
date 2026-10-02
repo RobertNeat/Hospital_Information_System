@@ -33,6 +33,7 @@ import robert_neat.his_backend.common.order.OrderStatusUpdateRequest;
 import robert_neat.his_backend.common.order.Urgency;
 import robert_neat.his_backend.common.security.CurrentActor;
 import robert_neat.his_backend.ehr.Coding;
+import robert_neat.his_backend.ehr.CodingValidation;
 import robert_neat.his_backend.imaging.events.ImagingOrderPlaced;
 import robert_neat.his_backend.imaging.events.ImagingOrderStatusChanged;
 import robert_neat.his_backend.patient.EncounterRepository;
@@ -132,6 +133,7 @@ public class ImagingOrderService {
             errors.add(new FieldError("safety.confirmed",
                     "Lista kontrolna bezpieczenstwa musi byc potwierdzona", "required"));
         }
+        CodingValidation.requireSnomedIfPresent("diagnosisCode", request.diagnosisCode(), errors);
         ScheduleSlot slot = null;
         if (request.slotId() != null) {
             slot = slots.findByIdForUpdate(request.slotId()).orElse(null);

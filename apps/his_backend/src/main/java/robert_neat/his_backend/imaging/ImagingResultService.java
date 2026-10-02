@@ -13,6 +13,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import robert_neat.his_backend.common.api.ConflictException;
 import robert_neat.his_backend.common.api.ForbiddenException;
 import robert_neat.his_backend.common.api.NotFoundException;
 import robert_neat.his_backend.common.api.PageResponse;
@@ -24,10 +25,11 @@ import robert_neat.his_backend.patient.PatientService;
 import robert_neat.his_backend.patient.PatientSummaryResponse;
 
 /**
- * Wyniki badan obrazowych (odczyt, potwierdzenie, inbox). Lista pacjenta nie jest stronicowana (kontrakt:
+ * Wyniki badan obrazowych (odczyt, potwierdzenie, inbox, zapis REST). Lista pacjenta nie jest stronicowana (kontrakt:
  * `ImagingResult[]`, malejaco po `reportedAt`); inbox jest stronicowany (sort wg whitelisty, 422 dla nieznanego pola).
- * Potwierdzenie (`acknowledge`) jest idempotentne: kto/kiedy zapisuje pierwsze potwierdzenie, kolejne zwracaja wynik bez
- * zmian. Aktor z sesji. Zapis wynikow: {@link ImagingResultRecordingService}.
+ * Potwierdzenie (`acknowledge`) jest idempotentne: kto/kiedy zapisuje pierwsze potwierdzenie, kolejne zwracaja wynik
+ * bez zmian. Aktor z sesji. Zapis wynikow deleguje do {@link ImagingResultRecordingService} (ta sama sciezka co
+ * `POST /fhir/DiagnosticReport`).
  */
 @Service
 @Transactional(readOnly = true)
@@ -39,16 +41,30 @@ public class ImagingResultService {
             "reportedAt", "performedAt", "modality", "examName", "status", "critical");
 
     private final ImagingResultRepository results;
+    private final ImagingOrderRepository orders;
     private final PatientRepository patients;
     private final PatientService patientService;
     private final CurrentActor currentActor;
+    private final ImagingResultRecordingService recording;
 
-    ImagingResultService(ImagingResultRepository results, PatientRepository patients, PatientService patientService,
-            CurrentActor currentActor) {
+    ImagingResultService(ImagingResultRepository results, ImagingOrderRepository orders, PatientRepository patients,
+            PatientService patientService, CurrentActor currentActor, ImagingResultRecordingService recording) {
         this.results = results;
+        this.orders = orders;
         this.patients = patients;
         this.patientService = patientService;
         this.currentActor = currentActor;
+        this.recording = recording;
+    }
+
+    /** 404 zlecenie (niepoprawny UUID = "nie istnieje"); reszta walidacji (422/409) w {@link ImagingResultRecordingService}. */
+    @Transactional
+    public ImagingResultResponse recordForOrder(String orderId, ImagingResultCreateRequest request) {
+        UUID id = parse(orderId);
+        ImagingOrder order = (id == null ? Optional.<ImagingOrder>empty() : orders.findById(id))
+                .orElseThrow(() -> NotFoundException.of("Zlecenie obrazowe", orderId));
+        return recording.recordResult(
+                ImagingResultMapper.toCommand(request, order.getPatientId(), order.getId(), order.getModality()));
     }
 
     /** 404 pacjent. Wyniki pacjenta (opcjonalny filtr nieprawidlowosci), od najnowszego wg `reportedAt`. */
@@ -80,12 +96,19 @@ public class ImagingResultService {
         return ImagingResultMapper.toResponse(require(resultId));
     }
 
-    /** 404 wynik; 403 brak powiazania sesji z pracownikiem. Ponowne potwierdzenie nie zmienia `reviewed*`. */
+    /**
+     * 404 wynik; 403 brak powiazania sesji z pracownikiem; 409 gdy podana `version` nie zgadza sie z biezaca.
+     * Ponowne potwierdzenie nie zmienia `reviewed*`.
+     */
     @Transactional
-    public ImagingResultResponse acknowledge(String resultId) {
+    public ImagingResultResponse acknowledge(String resultId, Long expectedVersion) {
         UUID actor = currentActor.staffId()
                 .orElseThrow(() -> new ForbiddenException("Brak powiazania sesji z pracownikiem"));
         ImagingResult result = require(resultId);
+        if (expectedVersion != null && expectedVersion != result.getVersion()) {
+            throw new ConflictException("Wynik obrazowy zostal zmodyfikowany przez inna osobe (wersja "
+                    + result.getVersion() + "); odswiez dane i sprobuj ponownie");
+        }
         if (result.acknowledge(actor, Instant.now())) {
             results.saveAndFlush(result);
         }

@@ -2,8 +2,6 @@ package robert_neat.his_backend.catalog;
 
 import java.math.BigDecimal;
 
-import org.hibernate.annotations.Immutable;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -13,9 +11,11 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import robert_neat.his_backend.common.wire.WireEnums;
 
-/** Progi parametru zyciowego (`vital_threshold`, dane referencyjne): normy, progi krytyczne i granice wprowadzania. */
+/**
+ * Progi parametru zyciowego (`vital_threshold`, dane referencyjne): normy, progi krytyczne i granice wprowadzania.
+ * Edytowalne przez administratora ({@code vital-threshold:write}); wiersze (jeden na {@link VitalType}) sa stale.
+ */
 @Entity
-@Immutable
 @Table(name = "vital_threshold")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -52,5 +52,18 @@ public class VitalThreshold {
 
     public VitalType getType() {
         return WireEnums.fromWire(VitalType.class, typeCode);
+    }
+
+    /** Nadpisuje progi (walidacja kolejnosci `min &lt;= criticalLow &lt;= low &lt;= high &lt;= criticalHigh &lt;= max` w serwisie). */
+    public void update(String label, String unit, BigDecimal low, BigDecimal high, BigDecimal criticalLow,
+            BigDecimal criticalHigh, BigDecimal min, BigDecimal max) {
+        this.label = label;
+        this.unit = unit;
+        this.low = low;
+        this.high = high;
+        this.criticalLow = criticalLow;
+        this.criticalHigh = criticalHigh;
+        this.min = min;
+        this.max = max;
     }
 }

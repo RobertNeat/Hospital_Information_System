@@ -1,6 +1,6 @@
 import { computed, inject, type Signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
-import { forkJoin } from 'rxjs';
+import { catchError, forkJoin, of } from 'rxjs';
 import type { SummaryItem } from '../../components/summary-list/summary-list';
 import {
   IMAGING_MODALITY_OPTIONS,
@@ -162,7 +162,10 @@ export function injectImagingPatientData(patientId: Signal<string>) {
     stream: ({ params: pid }) =>
       forkJoin({
         diagnoses: ehrService.getDiagnoses(pid),
-        icd10: ehrService.getIcd10Dictionary(),
+        // Snowstorm może być wyłączony/niedostępny - nie może blokować allergies/labResults (bezpieczeństwo badania).
+        suggestions: ehrService
+          .getSnomedSuggestions('diagnosis')
+          .pipe(catchError(() => of({ total: 0, offset: 0, concepts: [] }))),
         allergies: ehrService.getAllergies(pid),
         labResults: labResultService.getResults(pid),
       }),
@@ -170,7 +173,7 @@ export function injectImagingPatientData(patientId: Signal<string>) {
   return {
     diagnosisOptions: computed<DiagnosisOption[]>(() => {
       const data = resource.value();
-      return data ? buildDiagnosisOptions(data.diagnoses, data.icd10) : [];
+      return data ? buildDiagnosisOptions(data.diagnoses, data.suggestions.concepts) : [];
     }),
     hasContrastAllergy: computed(() => {
       const data = resource.value();

@@ -10,6 +10,7 @@ import type {
   Priority,
   PrescriptionStatus,
   ResultFlag,
+  StaffAccountStatus,
   TagSeverity,
   TaskStatus,
   TriageLevel,
@@ -34,7 +35,8 @@ export type TagKind =
   | 'alertSeverity'
   | 'diagnosisStatus'
   | 'encounterStatus'
-  | 'allergyStatus';
+  | 'allergyStatus'
+  | 'accountStatus';
 
 /**
  * Semantic severity mapping (ADDENDUM B.1). PrimeNG's Aura preset maps its
@@ -145,6 +147,12 @@ export const ALLERGY_STATUS_SEVERITY: Record<Allergy['status'] | 'resolved', Tag
   inactive: 'secondary',
 };
 
+export const ACCOUNT_STATUS_SEVERITY: Record<StaffAccountStatus, TagSeverity> = {
+  pending: 'info',
+  active: 'success',
+  locked: 'danger',
+};
+
 /** Combined lookup keyed by `TagKind`, used by `app-status-tag`. */
 export const TAG_SEVERITY_MAP: Record<TagKind, Record<string, TagSeverity>> = {
   orderStatus: ORDER_STATUS_SEVERITY,
@@ -161,4 +169,5 @@ export const TAG_SEVERITY_MAP: Record<TagKind, Record<string, TagSeverity>> = {
   diagnosisStatus: DIAGNOSIS_STATUS_SEVERITY,
   encounterStatus: ENCOUNTER_STATUS_SEVERITY,
   allergyStatus: ALLERGY_STATUS_SEVERITY,
+  accountStatus: ACCOUNT_STATUS_SEVERITY,
 };

@@ -19,12 +19,13 @@ import robert_neat.his_backend.imaging.events.ImagingOrderPlaced;
 import robert_neat.his_backend.imaging.events.ImagingOrderStatusChanged;
 
 /**
- * Integracja z e-imaging na zdarzeniach domenowych, WYLACZNIE po commicie (`AFTER_COMMIT`): zlecanie i anulowanie
+ * Integracja z e-imaging na zdarzeniach domenowych, WYLACZNIE po commicie (`AFTER_COMMIT`): zlecanie i zmiana statusu
  * nigdy nie zalezy od e-imaging - kazdy blad (siec, HTTP) jest tylko logowany, bez ponawiania.
  * <ul>
  *   <li>`ImagingOrderPlaced`: POST zlecenia (`ServiceRequest` z badaniem obrazowym).</li>
- *   <li>`ImagingOrderStatusChanged` na `cancelled` z aktorem (anulowanie w HIS): PUT stanu. Zdarzenie bez aktora (zmiana
- *       przyszla z e-imaging) nie jest odsylane - brak petli. Inne zmiany stanu nie sa przekazywane.</li>
+ *   <li>`ImagingOrderStatusChanged` z aktorem (zmiana w HIS, dowolny docelowy status - w tym anulowanie): PUT stanu.
+ *       Zdarzenie bez aktora (zmiana przyszla z e-imaging albo automatyczne `completed` po wyniku) nie jest odsylane -
+ *       brak petli.</li>
  * </ul>
  * Wywolanie jest synchroniczne (limity czasu z konfiguracji), poza transakcja bazodanowa.
  */
@@ -69,24 +70,27 @@ public class EImgIntegration {
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     void onStatusChanged(ImagingOrderStatusChanged event) {
-        if (!properties.enabled() || event.actorId() == null || event.status() != OrderStatus.CANCELLED) {
+        if (!properties.enabled() || event.actorId() == null) {
             return;
         }
         UUID id = event.orderId();
+        OrderStatus status = event.status();
         try {
             String payload = readTx.execute(tx -> orders.findById(id)
-                    .map(o -> mapper.encode(mapper.toServiceRequest(o, OrderStatus.CANCELLED))).orElse(null));
+                    .map(o -> mapper.encode(mapper.toServiceRequest(o, status))).orElse(null));
             if (payload != null) {
                 client.updateStatus(id.toString(), payload);
             }
         } catch (HttpClientErrorException e) {
             if (e.getStatusCode().isSameCodeAs(HttpStatus.NOT_FOUND)) {
-                log.info("e-imaging nie zna zlecenia {} (dane mock/zlecenie sprzed integracji); anulowanie tylko w HIS", id);
+                log.info("e-imaging nie zna zlecenia {} (dane mock/zlecenie sprzed integracji); zmiana statusu tylko w HIS", id);
             } else {
-                log.warn("e-imaging odrzucilo anulowanie zlecenia {}: HTTP {}", id, e.getStatusCode().value());
+                log.warn("e-imaging odrzucilo zmiane statusu zlecenia {} na '{}': HTTP {}", id, status.wire(),
+                        e.getStatusCode().value());
             }
         } catch (RuntimeException e) {
-            log.warn("Nie przekazano anulowania zlecenia {} do e-imaging: {}", id, e.getMessage());
+            log.warn("Nie przekazano zmiany statusu zlecenia {} na '{}' do e-imaging: {}", id, status.wire(),
+                    e.getMessage());
         }
     }
 }

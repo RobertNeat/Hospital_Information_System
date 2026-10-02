@@ -5,7 +5,7 @@ import { TestBed } from '@angular/core/testing';
 import { firstValueFrom } from 'rxjs';
 import type { Observable } from 'rxjs';
 import {
-  ICD10_URL,
+  SNOMED_SUGGESTIONS_URL,
   patientAllergiesUrl,
   patientClinicalNotesUrl,
   patientContraindicationsUrl,
@@ -15,7 +15,11 @@ import {
   patientEpisodesUrl,
   patientTreatmentsUrl,
 } from '../config/api.config';
-import type { ClinicalNoteCreateRequest } from '../models/api';
+import type {
+  AllergyCreateRequest,
+  ClinicalNoteCreateRequest,
+  DiagnosisCreateRequest,
+} from '../models/api';
 import { EhrService } from './ehr.service';
 
 describe('EhrService', () => {
@@ -84,12 +88,67 @@ describe('EhrService', () => {
     expect((await result).id).toBe('n-1');
   });
 
-  it('getIcd10Dictionary requests the maximum page and an optional term', async () => {
-    const result = firstValueFrom(service.getIcd10Dictionary('cuk'));
-    const req = http.expectOne((r) => r.url === ICD10_URL);
+  it('addDiagnosis POSTs to the patient diagnoses endpoint and returns the saved diagnosis', async () => {
+    const draft: DiagnosisCreateRequest = {
+      patientId: 'p-1',
+      code: { system: 'SNOMED', code: '44054006', display: 'Cukrzyca typu 2' },
+      type: 'primary',
+    };
+    const result = firstValueFrom(service.addDiagnosis('p-1', draft));
+    const req = http.expectOne({ method: 'POST', url: patientDiagnosesUrl('p-1') });
+    expect(req.request.body).toEqual(draft);
+    req.flush(
+      { ...draft, id: 'd-1', status: 'active', diagnosedAt: '2026-01-01T00:00:00Z' },
+      { status: 201, statusText: 'Created' },
+    );
+    expect((await result).id).toBe('d-1');
+  });
+
+  it('addDiagnosis propagates a 422 (non-SNOMED or invalid SCTID)', async () => {
+    const draft: DiagnosisCreateRequest = {
+      patientId: 'p-1',
+      code: { system: 'ICD_10' as never, code: 'J45', display: 'Astma' },
+      type: 'primary',
+    };
+    const result = firstValueFrom(service.addDiagnosis('p-1', draft));
+    http
+      .expectOne({ method: 'POST', url: patientDiagnosesUrl('p-1') })
+      .flush(
+        { errors: [{ field: 'code.system', message: 'unsupportedSystem' }] },
+        { status: 422, statusText: 'Unprocessable Entity' },
+      );
+    await expect(result).rejects.toBeTruthy();
+  });
+
+  it('addAllergy POSTs to the patient allergies endpoint and returns the saved allergy', async () => {
+    const draft: AllergyCreateRequest = {
+      patientId: 'p-1',
+      substance: 'Penicylina',
+      category: 'drug',
+      reaction: 'Wysypka',
+      severity: 'moderate',
+    };
+    const result = firstValueFrom(service.addAllergy('p-1', draft));
+    const req = http.expectOne({ method: 'POST', url: patientAllergiesUrl('p-1') });
+    expect(req.request.body).toEqual(draft);
+    req.flush(
+      { ...draft, id: 'a-1', status: 'active', recordedAt: '2026-01-01T00:00:00Z' },
+      { status: 201, statusText: 'Created' },
+    );
+    expect((await result).id).toBe('a-1');
+  });
+
+  it('getSnomedSuggestions requests the kind, term and a page size', async () => {
+    const result = firstValueFrom(service.getSnomedSuggestions('diagnosis', 'cuk'));
+    const req = http.expectOne((r) => r.url === SNOMED_SUGGESTIONS_URL);
+    expect(req.request.params.get('kind')).toBe('diagnosis');
     expect(req.request.params.get('term')).toBe('cuk');
     expect(req.request.params.get('size')).toBe('100');
-    req.flush([{ system: 'ICD-10', code: 'E11', display: 'Cukrzyca' }]);
-    expect(await result).toHaveLength(1);
+    req.flush({
+      total: 1,
+      offset: 0,
+      concepts: [{ code: '44054006', display: 'Cukrzyca typu 2' }],
+    });
+    expect((await result).concepts).toHaveLength(1);
   });
 });

@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import type { Observable } from 'rxjs';
 import {
-  ICD10_URL,
+  SNOMED_SUGGESTIONS_URL,
   patientAllergiesUrl,
   patientClinicalNotesUrl,
   patientContraindicationsUrl,
@@ -15,7 +15,6 @@ import {
 import type {
   Allergy,
   ClinicalNote,
-  Coding,
   Contraindication,
   Diagnosis,
   EhrSummary,
@@ -24,11 +23,17 @@ import type {
   Treatment,
   TreatmentEpisode,
 } from '../models';
-import type { ClinicalNoteCreateRequest } from '../models/api';
+import type {
+  AllergyCreateRequest,
+  ClinicalNoteCreateRequest,
+  DiagnosisCreateRequest,
+  SnomedConceptPage,
+  TerminologyKind,
+} from '../models/api';
 import { toHttpParams } from '../utils/http-params';
 
-/** Backend maximum for the ICD-10 dictionary page (`size` above it is truncated). */
-const ICD10_SIZE = 100;
+/** Page size for the terminology suggestion picker. */
+const SUGGESTIONS_SIZE = 100;
 
 /**
  * Patient EHR backed by `/patients/{id}/...`. The summary is a backend projection. Roles with
@@ -63,8 +68,18 @@ export class EhrService {
     return this.http.get<Diagnosis[]>(patientDiagnosesUrl(pid));
   }
 
+  /** `ehr:diagnosis:write` (lekarz). `code` musi byc SNOMED/SCTID (422 w innym przypadku). */
+  addDiagnosis(pid: ID, draft: DiagnosisCreateRequest): Observable<Diagnosis> {
+    return this.http.post<Diagnosis>(patientDiagnosesUrl(pid), draft);
+  }
+
   getAllergies(pid: ID): Observable<Allergy[]> {
     return this.http.get<Allergy[]>(patientAllergiesUrl(pid));
+  }
+
+  /** `ehr:allergy:write` (lekarz, pielegniarka). */
+  addAllergy(pid: ID, draft: AllergyCreateRequest): Observable<Allergy> {
+    return this.http.post<Allergy>(patientAllergiesUrl(pid), draft);
   }
 
   getContraindications(pid: ID): Observable<Contraindication[]> {
@@ -75,8 +90,13 @@ export class EhrService {
     return this.http.get<Treatment[]>(patientTreatmentsUrl(pid));
   }
 
-  /** ICD-10 codes for the diagnosis picker (optional `term` filters by code or name). */
-  getIcd10Dictionary(term?: string): Observable<Coding[]> {
-    return this.http.get<Coding[]>(ICD10_URL, { params: toHttpParams({ term, size: ICD10_SIZE }) });
+  /**
+   * SNOMED CT suggestions for the diagnosis/symptom/procedure picker, narrowed by the logged-in doctor's
+   * specialty (optional `term` filters by code or name). Codes sent back to the backend must be SCTID.
+   */
+  getSnomedSuggestions(kind: TerminologyKind, term?: string): Observable<SnomedConceptPage> {
+    return this.http.get<SnomedConceptPage>(SNOMED_SUGGESTIONS_URL, {
+      params: toHttpParams({ kind, term, size: SUGGESTIONS_SIZE }),
+    });
   }
 }

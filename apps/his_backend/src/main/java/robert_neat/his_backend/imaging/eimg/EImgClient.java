@@ -46,7 +46,7 @@ public class EImgClient {
                 .body(serviceRequestJson).retrieve().toBodilessEntity();
     }
 
-    /** `PUT /ServiceRequest/{orderId}`: zmiana stanu zainicjowana w HIS (anulowanie). */
+    /** `PUT /ServiceRequest/{orderId}`: zmiana statusu zlecenia zainicjowana w HIS (dowolne przejscie, w tym anulowanie). */
     public void updateStatus(String orderId, String serviceRequestJson) {
         restClient.put().uri("/ServiceRequest/{id}", orderId)
                 .contentType(FhirSystems.FHIR_JSON)

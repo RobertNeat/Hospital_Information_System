@@ -9,6 +9,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -16,8 +17,10 @@ import robert_neat.his_backend.catalog.ImagingModality;
 
 /**
  * Wynik badania obrazowego (`imaging_result`). Niezmienny poza potwierdzeniem (`reviewedAt`/`reviewedById`, ustawiane
- * wylacznie przez {@link #acknowledge}); tabela nie ma kolumn audytu ani `version`. `modality`, `examName`,
- * `bodyRegion` i `radiologistName` to snapshoty. FK mapowane skalarnie. Tworzy go {@link ImagingResultRecordingService}.
+ * wylacznie przez {@link #acknowledge}); tabela nie ma kolumn audytu, ma tylko `version` (optymistyczne blokowanie,
+ * sprawdzane recznie w {@code acknowledge} wzgledem `version` z zadania - patrz {@link ImagingResultService}).
+ * `modality`, `examName`, `bodyRegion` i `radiologistName` to snapshoty. FK mapowane skalarnie. Tworzy go
+ * {@link ImagingResultRecordingService}.
  */
 @Entity
 @Table(name = "imaging_result")
@@ -79,6 +82,10 @@ public class ImagingResult {
 
     @Column(name = "reviewed_by_id")
     private UUID reviewedById;
+
+    @Version
+    @Column(name = "version", nullable = false)
+    private long version;
 
     @SuppressWarnings("java:S107")
     static ImagingResult record(UUID patientId, UUID orderId, ImagingModality modality, String examName,

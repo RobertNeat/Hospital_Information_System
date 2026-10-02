@@ -9,7 +9,7 @@ function makeSummary(overrides: Partial<EhrSummary> = {}): EhrSummary {
       {
         id: 'diag-1',
         patientId: 'pat-001',
-        code: { system: 'ICD-10', code: 'I10', display: 'Nadciśnienie tętnicze samoistne' },
+        code: { system: 'SNOMED', code: '38341003', display: 'Nadciśnienie tętnicze samoistne' },
         type: 'primary',
         status: 'active',
         diagnosedAt: '2026-01-01T08:00:00.000Z',
@@ -30,7 +30,7 @@ describe('EhrSummaryCards', () => {
     fixture.componentRef.setInput('summary', makeSummary());
     await fixture.whenStable();
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
-    expect(text).toContain('I10');
+    expect(text).toContain('38341003');
     expect(text).toContain('Nadciśnienie tętnicze samoistne');
   });
 

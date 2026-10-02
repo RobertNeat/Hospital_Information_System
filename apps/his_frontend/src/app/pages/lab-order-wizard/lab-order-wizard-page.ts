@@ -9,7 +9,7 @@ import {
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
-import { forkJoin } from 'rxjs';
+import { catchError, forkJoin, of } from 'rxjs';
 import { MessageService } from 'primeng/api';
 import { Step, StepList, StepPanel, StepPanels, Stepper } from 'primeng/stepper';
 import { Select } from 'primeng/select';
@@ -34,6 +34,7 @@ import { LabOrderService } from '../../services/lab-order.service';
 import { StaffService } from '../../services/staff.service';
 import { toApiError } from '../../utils/api-error';
 import { buildDiagnosisOptions, type DiagnosisOption } from '../../utils/diagnosis-options';
+import { rawValueSignal } from '../../utils/form-signals';
 import { orderSubmitObserver, warnIncompleteOrder } from '../../utils/order-wizard';
 import { tryAdvance } from '../../utils/wizard';
 
@@ -104,13 +105,16 @@ export class LabOrderWizardPage implements HasUnsavedChanges {
     stream: ({ params: pid }) =>
       forkJoin({
         diagnoses: this.ehrService.getDiagnoses(pid),
-        icd10: this.ehrService.getIcd10Dictionary(),
+        // Snowstorm może być wyłączony/niedostępny - brak podpowiedzi nie blokuje reszty kroku 3.
+        suggestions: this.ehrService
+          .getSnomedSuggestions('diagnosis')
+          .pipe(catchError(() => of({ total: 0, offset: 0, concepts: [] }))),
       }),
   });
 
   protected readonly diagnosisOptions = computed<DiagnosisOption[]>(() => {
     const data = this.diagnosesResource.value();
-    return data ? buildDiagnosisOptions(data.diagnoses, data.icd10) : [];
+    return data ? buildDiagnosisOptions(data.diagnoses, data.suggestions.concepts) : [];
   });
 
   // ---- Step 1: Wybór badań ----
@@ -161,6 +165,7 @@ export class LabOrderWizardPage implements HasUnsavedChanges {
   });
 
   protected readonly minCollectionDate = new Date();
+  private readonly step2Value = rawValueSignal(this.step2Form);
 
   constructor() {
     this.step2Form.controls.urgency.valueChanges.subscribe((urgency) => {
@@ -197,6 +202,7 @@ export class LabOrderWizardPage implements HasUnsavedChanges {
     }),
     notes: this.fb.control(''),
   });
+  private readonly step3Value = rawValueSignal(this.step3Form);
 
   // ---- Step 4: Summary ----
   protected readonly summaryItems = computed<SummaryItem[]>(() => {
@@ -207,25 +213,25 @@ export class LabOrderWizardPage implements HasUnsavedChanges {
           `${t.name}: ${SPECIMEN_LABELS[this.specimenForm.controls[t.code]?.value ?? t.defaultSpecimen]}`,
       )
       .join('; ');
-    const urgencyLabel =
-      URGENCY_OPTIONS.find((o) => o.value === this.step2Form.controls.urgency.value)?.label ?? '';
-    const diagCode = this.step3Form.controls.diagnosisCode.value;
-    const diag = this.diagnosisOptions().find((o) => o.value === diagCode);
+    const step2Value = this.step2Value();
+    const step3Value = this.step3Value();
+    const urgencyLabel = URGENCY_OPTIONS.find((o) => o.value === step2Value.urgency)?.label ?? '';
+    const diag = this.diagnosisOptions().find((o) => o.value === step3Value.diagnosisCode);
     return [
       { label: 'Badania', value: tests.map((t) => t.name).join(', ') || '—' },
       { label: 'Materiał', value: specimens || '—' },
       { label: 'Pilność', value: urgencyLabel },
       {
         label: 'Na czczo',
-        value: this.step2Form.controls.fasting.value ? 'Tak' : 'Nie',
+        value: step2Value.fasting ? 'Tak' : 'Nie',
       },
       {
         label: 'Planowany termin pobrania',
-        value: this.formatDate(this.step2Form.controls.plannedCollectionAt.value),
+        value: this.formatDate(step2Value.plannedCollectionAt),
       },
       { label: 'Rozpoznanie', value: diag?.label ?? '—' },
-      { label: 'Informacje kliniczne', value: this.step3Form.controls.clinicalInfo.value },
-      { label: 'Uwagi dla laboratorium', value: this.step3Form.controls.notes.value || '—' },
+      { label: 'Informacje kliniczne', value: step3Value.clinicalInfo },
+      { label: 'Uwagi dla laboratorium', value: step3Value.notes || '—' },
     ];
   });
 

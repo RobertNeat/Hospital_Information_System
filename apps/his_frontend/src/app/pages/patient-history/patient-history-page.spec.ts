@@ -84,6 +84,110 @@ describe('PatientHistoryPage', () => {
     expect(component['noteDialogVisible']()).toBe(true);
   });
 
+  it('shows "Dodaj rozpoznanie" for a doctor (ehr:diagnosis:write)', async () => {
+    permissions = ['ehr:read', 'ehr:diagnosis:write'];
+    const fixture = TestBed.createComponent(PatientHistoryPage);
+    fixture.componentRef.setInput('patientId', 'pat-001');
+    fixture.componentRef.setInput('tab', 'diagnoses');
+    await fixture.whenStable();
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(text).toContain('Dodaj rozpoznanie');
+    expect(text).not.toContain('Dodaj alergię');
+  });
+
+  it('shows "Dodaj alergię" but not "Dodaj rozpoznanie" for a nurse (ehr:allergy:write only)', async () => {
+    permissions = ['ehr:read-limited', 'ehr:allergy:write'];
+    const fixture = TestBed.createComponent(PatientHistoryPage);
+    fixture.componentRef.setInput('patientId', 'pat-001');
+    fixture.componentRef.setInput('tab', 'allergies');
+    await fixture.whenStable();
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(text).toContain('Dodaj alergię');
+    expect(text).not.toContain('Dodaj rozpoznanie');
+  });
+
+  it('shows neither write button for a pharmacist (ehr:read-limited only)', async () => {
+    permissions = ['ehr:read-limited'];
+    const fixture = TestBed.createComponent(PatientHistoryPage);
+    fixture.componentRef.setInput('patientId', 'pat-001');
+    fixture.componentRef.setInput('tab', 'allergies');
+    await fixture.whenStable();
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(text).not.toContain('Dodaj alergię');
+    expect(text).not.toContain('Dodaj rozpoznanie');
+  });
+
+  it('saves a new diagnosis, shows a success toast and reloads', async () => {
+    permissions = ['ehr:read', 'ehr:diagnosis:write'];
+    const ehr = TestBed.inject(EhrService);
+    const addSpy = vi.spyOn(ehr, 'addDiagnosis');
+    const toast = vi.spyOn(TestBed.inject(MessageService), 'add');
+    const fixture = TestBed.createComponent(PatientHistoryPage);
+    fixture.componentRef.setInput('patientId', 'pat-001');
+    await fixture.whenStable();
+    const component = fixture.componentInstance;
+
+    component['onDiagnosisSave']({
+      draft: {
+        patientId: 'pat-001',
+        code: { system: 'SNOMED', code: '44054006', display: 'Cukrzyca typu 2' },
+        type: 'primary',
+      },
+    });
+    await fixture.whenStable();
+
+    expect(addSpy).toHaveBeenCalledWith('pat-001', expect.objectContaining({ type: 'primary' }));
+    expect(toast).toHaveBeenCalledWith(expect.objectContaining({ severity: 'success' }));
+  });
+
+  it('shows an error toast when saving a diagnosis fails', async () => {
+    permissions = ['ehr:read', 'ehr:diagnosis:write'];
+    const ehr = TestBed.inject(EhrService);
+    vi.spyOn(ehr, 'addDiagnosis').mockReturnValue(throwError(() => new Error('422')));
+    const toast = vi.spyOn(TestBed.inject(MessageService), 'add');
+    const fixture = TestBed.createComponent(PatientHistoryPage);
+    fixture.componentRef.setInput('patientId', 'pat-001');
+    await fixture.whenStable();
+
+    fixture.componentInstance['onDiagnosisSave']({
+      draft: {
+        patientId: 'pat-001',
+        code: { system: 'SNOMED', code: '44054006', display: 'Cukrzyca typu 2' },
+        type: 'primary',
+      },
+    });
+    await fixture.whenStable();
+
+    expect(toast).toHaveBeenCalledWith(expect.objectContaining({ severity: 'error' }));
+  });
+
+  it('saves a new allergy, shows a success toast and reloads', async () => {
+    permissions = ['ehr:read-limited', 'ehr:allergy:write'];
+    const ehr = TestBed.inject(EhrService);
+    const addSpy = vi.spyOn(ehr, 'addAllergy');
+    const toast = vi.spyOn(TestBed.inject(MessageService), 'add');
+    const fixture = TestBed.createComponent(PatientHistoryPage);
+    fixture.componentRef.setInput('patientId', 'pat-001');
+    await fixture.whenStable();
+
+    fixture.componentInstance['onAllergySave']({
+      draft: {
+        patientId: 'pat-001',
+        substance: 'Penicylina',
+        category: 'drug',
+        reaction: 'Wysypka',
+        severity: 'moderate',
+      },
+    });
+    await fixture.whenStable();
+
+    expect(addSpy).toHaveBeenCalledWith(
+      'pat-001',
+      expect.objectContaining({ substance: 'Penicylina' }),
+    );
+    expect(toast).toHaveBeenCalledWith(expect.objectContaining({ severity: 'success' }));
+  });
+
   it('with ehr:read-limited requests and shows only the limited sections', async () => {
     permissions = ['ehr:read-limited'];
     const ehr = TestBed.inject(EhrService);

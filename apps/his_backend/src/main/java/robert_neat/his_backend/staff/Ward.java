@@ -30,4 +30,22 @@ public class Ward {
 
     @Column(name = "beds", nullable = false)
     private int beds;
+
+    /** Nowy oddzial (identyfikator nadawany po stronie aplikacji). */
+    public static Ward create(String name, String shortName, String floor, int beds) {
+        Ward ward = new Ward();
+        ward.id = java.util.UUID.randomUUID();
+        ward.name = name;
+        ward.shortName = shortName;
+        ward.floor = floor;
+        ward.beds = beds;
+        return ward;
+    }
+
+    public void update(String name, String shortName, String floor, int beds) {
+        this.name = name;
+        this.shortName = shortName;
+        this.floor = floor;
+        this.beds = beds;
+    }
 }

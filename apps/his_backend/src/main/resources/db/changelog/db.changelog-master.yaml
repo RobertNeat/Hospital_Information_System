@@ -8,6 +8,10 @@ databaseChangeLog:
       relativeToChangelogFile: false
       errorIfMissingOrEmpty: false
   - includeAll:
+      path: db/changelog/cleanup/
+      relativeToChangelogFile: false
+      errorIfMissingOrEmpty: false
+  - includeAll:
       path: db/changelog/demo/
       relativeToChangelogFile: false
       errorIfMissingOrEmpty: false

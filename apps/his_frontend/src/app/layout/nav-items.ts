@@ -97,4 +97,15 @@ export const NAV_GROUPS: NavGroup[] = [
     label: 'Komunikacja',
     items: [{ label: 'Wiadomości i zadania', icon: 'pi pi-comments', route: '/messages' }],
   },
+  {
+    label: 'Administracja',
+    items: [
+      {
+        label: 'Pracownicy',
+        icon: 'pi pi-users',
+        route: '/admin/staff',
+        requiresAnyOf: [PERMISSIONS.ACCOUNT_MANAGE],
+      },
+    ],
+  },
 ];

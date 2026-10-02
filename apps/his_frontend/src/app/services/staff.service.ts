@@ -3,7 +3,7 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import type { Signal } from '@angular/core';
 import { finalize, of, shareReplay, tap } from 'rxjs';
 import type { Observable } from 'rxjs';
-import { STAFF_URL, staffUrl } from '../config/api.config';
+import { STAFF_URL, staffActivateUrl, staffLockUrl, staffUrl } from '../config/api.config';
 import type { StaffMember, StaffRole } from '../models';
 import type { CurrentUser } from '../models/api';
 import { toHttpParams } from '../utils/http-params';
@@ -73,6 +73,20 @@ export class StaffService {
     return this.http.get<StaffMember>(staffUrl(id)).pipe(tap((member) => this.remember([member])));
   }
 
+  /** Activates (or unlocks) the account; requires `account:manage`. No request body. */
+  activate(staffId: string): Observable<StaffMember> {
+    return this.http
+      .post<StaffMember>(staffActivateUrl(staffId), null)
+      .pipe(tap((member) => this.remember([member])));
+  }
+
+  /** Locks the account; requires `account:manage`. The backend rejects locking one's own account (409). */
+  lock(staffId: string): Observable<StaffMember> {
+    return this.http
+      .post<StaffMember>(staffLockUrl(staffId), null)
+      .pipe(tap((member) => this.remember([member])));
+  }
+
   /** Synchronous lookup for pipes/templates; falls back to the id. */
   nameOf(id: string): string {
     if (this.cache() === null && !this.loadFailed && this.auth.isAuthenticated())
@@ -91,5 +105,7 @@ export class StaffService {
 
   private remember(staff: StaffMember[]): void {
     this.known.update((m) => new Map([...m, ...staff.map((s) => [s.id, s] as const)]));
+    const updated = new Map(staff.map((s) => [s.id, s] as const));
+    this.cache.update((cached) => (cached ? cached.map((s) => updated.get(s.id) ?? s) : cached));
   }
 }

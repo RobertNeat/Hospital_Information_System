@@ -6,7 +6,8 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Wewnetrzne polecenie zapisu wyniku (budowane z `DiagnosticReport` z `e-laboratory`; brak endpointu REST). Nazwa badania,
+ * Wewnetrzne polecenie zapisu wyniku (budowane z `DiagnosticReport` z `e-laboratory` albo z
+ * `POST /api/v1/lab-orders/{orderId}/results`). Nazwa badania,
  * kategoria, nazwy i jednostki analitow oraz zakresy pochodza z katalogu (snapshot). `orderId`/`orderItemId`
  * opcjonalne (wynik zewnetrzny); samo `orderItemId` wystarcza (zlecenie wynika z pozycji), samo `orderId` - pozycja
  * wskazywana kodem badania. `performerName` pusty = nazwa zalogowanego pracownika.

@@ -51,7 +51,8 @@ import robert_neat.his_backend.lab.events.LabResultRecorded;
 /**
  * Wyniki laboratoryjne (API.md, par. 4) na danych mock: 20 wynikow / 39 obserwacji, zaden nie potwierdzony;
  * 16 wynikow nieprawidlowych, w tym 5 krytycznych. Zapis wynikow ({@link LabResultRecordingService}) testowany
- * bezposrednio (brak endpointu). Tokeny z `POST /auth/login`; aktor pochodzi z tokenu.
+ * bezposrednio oraz przez natywny endpoint REST (`POST /lab-orders/{orderId}/results`). Tokeny z `POST /auth/login`;
+ * aktor pochodzi z tokenu.
  */
 @RecordApplicationEvents
 class LabResultApiTest extends ApiIntegrationTest {
@@ -227,7 +228,7 @@ class LabResultApiTest extends ApiIntegrationTest {
         Map<String, Object> result = JsonPath.read(withOrder, "$");
         assertThat(result.keySet()).containsExactlyInAnyOrder("id", "patientId", "orderId", "orderItemId",
                 "testCode", "testName", "category", "collectedAt", "resultedAt", "status", "observations",
-                "performerName"); // comment i reviewed* pomijane
+                "performerName", "version"); // comment i reviewed* pomijane
         Map<String, Object> observation = JsonPath.read(withOrder, "$.observations[0]");
         assertThat(observation.keySet()).containsExactlyInAnyOrder("analyteCode", "analyteName", "value", "unit",
                 "referenceRange", "flag");
@@ -293,17 +294,89 @@ class LabResultApiTest extends ApiIntegrationTest {
     }
 
     @Test
-    void acknowledgeAcceptsOptionalBodyAndIgnoresVersion() throws Exception {
+    void acknowledgeAcceptsOptionalBody() throws Exception {
         as("doctor", post("/api/v1/lab-results/{id}/acknowledge", RES_CRP)).andExpect(status().isOk());
         as("doctor", post("/api/v1/lab-results/{id}/acknowledge", RES_MORF_OLDEST).contentType(JSON)
-                .content("{\"version\":7}")).andExpect(status().isOk())
+                .content("{\"version\":0}")).andExpect(status().isOk())
                 .andExpect(jsonPath("$.reviewedAt").exists());
+    }
+
+    @Test
+    void acknowledgeWithWrongVersionIs409AndDoesNotChangeResult() throws Exception {
+        as("doctor", post("/api/v1/lab-results/{id}/acknowledge", RES_TROP).contentType(JSON)
+                .content("{\"version\":7}")).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("CONFLICT"));
+        assertThat(reviewedAt(RES_TROP)).isNull();
+    }
+
+    @Test
+    void acknowledgeWithMatchingVersionSucceedsAndBumpsVersion() throws Exception {
+        as("doctor", post("/api/v1/lab-results/{id}/acknowledge", RES_TROP).contentType(JSON)
+                .content("{\"version\":0}")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.version").value(1));
+        // ponowne potwierdzenie ze starym (teraz niezgodnym) numerem -> 409, mimo ze stan wyniku sie nie zmienia
+        as("doctor", post("/api/v1/lab-results/{id}/acknowledge", RES_TROP).contentType(JSON)
+                .content("{\"version\":0}")).andExpect(status().isConflict());
+        // z aktualnym numerem - nadal 200, idempotentne
+        as("doctor", post("/api/v1/lab-results/{id}/acknowledge", RES_TROP).contentType(JSON)
+                .content("{\"version\":1}")).andExpect(status().isOk());
     }
 
     @Test
     void acknowledgeOfUnknownResultIs404() throws Exception {
         acknowledge("doctor", UUID.randomUUID().toString()).andExpect(status().isNotFound());
         acknowledge("doctor", "to-nie-uuid").andExpect(status().isNotFound());
+    }
+
+    // --- zapis wyniku przez REST (laborant) ---
+
+    @Test
+    void recordResultEndpointRequiresAuthenticationAndPermission() throws Exception {
+        mvc.perform(post("/api/v1/lab-orders/{id}/results", ORD_IN_PROGRESS).contentType(JSON)
+                .content(resultBody(ITEM_IP_MORF, "HGB"))).andExpect(status().isUnauthorized());
+        for (String login : new String[] {"doctor", "nurse", "admin", "radiologist", "pharmacist", "registrar"}) {
+            as(login, post("/api/v1/lab-orders/{id}/results", ORD_IN_PROGRESS).contentType(JSON)
+                    .content(resultBody(ITEM_IP_MORF, "HGB"))).andExpect(status().isForbidden());
+        }
+    }
+
+    @Test
+    void labTechRecordsResultViaRestAndItIsVisible() throws Exception {
+        String location = as("lab-tech", post("/api/v1/lab-orders/{id}/results", ORD_IN_PROGRESS).contentType(JSON)
+                .content(resultBody(ITEM_IP_MORF, "HGB"))).andExpect(status().isCreated())
+                .andExpect(jsonPath("$.testCode").value("MORF"))
+                .andExpect(jsonPath("$.orderId").value(ORD_IN_PROGRESS))
+                .andExpect(jsonPath("$.performerName").exists())
+                .andReturn().getResponse().getHeader("Location");
+        assertThat(location).startsWith("/api/v1/lab-results/");
+        as("doctor", get(location)).andExpect(status().isOk()).andExpect(jsonPath("$.testCode").value("MORF"));
+    }
+
+    @Test
+    void recordResultEndpointUnknownOrOrderedOrderBehavesAsRecordingService() throws Exception {
+        as("lab-tech", post("/api/v1/lab-orders/{id}/results", UUID.randomUUID()).contentType(JSON)
+                .content(resultBody(null, "HGB"))).andExpect(status().isNotFound());
+        as("lab-tech", post("/api/v1/lab-orders/{id}/results", "to-nie-uuid").contentType(JSON)
+                .content(resultBody(null, "HGB"))).andExpect(status().isNotFound());
+        // ORD_ORDERED: material nie pobrany -> 409
+        as("lab-tech", post("/api/v1/lab-orders/{id}/results", ORD_ORDERED).contentType(JSON)
+                .content(resultBody(ITEM_ORDERED_MORF, "HGB"))).andExpect(status().isConflict());
+        // nieznany analit -> 422
+        as("lab-tech", post("/api/v1/lab-orders/{id}/results", ORD_IN_PROGRESS).contentType(JSON)
+                .content(resultBody(ITEM_IP_MORF, "NIEMA"))).andExpect(status().isUnprocessableContent());
+    }
+
+    private String resultBody(String orderItemId, String analyteCode) {
+        Instant collected = Instant.now().minusSeconds(3600);
+        Instant resulted = Instant.now();
+        return "{"
+                + "\"orderItemId\":" + (orderItemId == null ? "null" : "\"" + orderItemId + "\"") + ","
+                + "\"testCode\":\"MORF\","
+                + "\"collectedAt\":\"" + collected + "\","
+                + "\"resultedAt\":\"" + resulted + "\","
+                + "\"status\":\"final\","
+                + "\"observations\":[{\"analyteCode\":\"" + analyteCode + "\",\"numericValue\":7.5}]"
+                + "}";
     }
 
     // --- trendy i anality ---

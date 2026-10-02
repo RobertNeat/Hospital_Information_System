@@ -113,7 +113,7 @@ class AlertApiTest extends ApiIntegrationTest {
     @ParameterizedTest
     @ValueSource(strings = {"doctor", "nurse", "lab-tech", "radiologist", "admin"})
     void rolesWithAlertReadMayList(String login) throws Exception {
-        as(login, get("/api/v1/alerts")).andExpect(status().isOk()).andExpect(jsonPath("$", hasSize(6)));
+        as(login, get("/api/v1/alerts")).andExpect(status().isOk()).andExpect(jsonPath("$.items", hasSize(6)));
     }
 
     @ParameterizedTest
@@ -141,15 +141,39 @@ class AlertApiTest extends ApiIntegrationTest {
 
     @Test
     void listReturnsSixMockAlertsNewestFirstWithViewerProjection() throws Exception {
-        as("EMP-0001", get("/api/v1/alerts")).andExpect(status().isOk()).andExpect(jsonPath("$", hasSize(6)))
-                .andExpect(jsonPath("$[*].id",
+        as("EMP-0001", get("/api/v1/alerts")).andExpect(status().isOk()).andExpect(jsonPath("$.items", hasSize(6)))
+                .andExpect(jsonPath("$.items[*].id",
                         contains(A_TASK, A_CT, A_SPO2, A_TROPONIN, A_POTASSIUM, A_PRESSURE)))
-                .andExpect(jsonPath("$[*].acknowledged", contains(false, false, false, false, true, false)));
-        as("EMP-0006", get("/api/v1/alerts")).andExpect(jsonPath("$", hasSize(6)))
-                .andExpect(jsonPath("$[*].acknowledged", contains(false, false, false, false, false, true)));
+                .andExpect(jsonPath("$.items[*].acknowledged", contains(false, false, false, false, true, false)))
+                .andExpect(jsonPath("$.nextBefore").doesNotExist());
+        as("EMP-0006", get("/api/v1/alerts")).andExpect(jsonPath("$.items", hasSize(6)))
+                .andExpect(jsonPath("$.items[*].acknowledged", contains(false, false, false, false, false, true)));
         // konto bez potwierdzen widzi wszystko jako niepotwierdzone
-        as("doctor", get("/api/v1/alerts")).andExpect(jsonPath("$[*].acknowledged",
+        as("doctor", get("/api/v1/alerts")).andExpect(jsonPath("$.items[*].acknowledged",
                 contains(false, false, false, false, false, false)));
+    }
+
+    @Test
+    void listCursorPaginatesWithBeforeAndSize() throws Exception {
+        // 6 alertow mock; size=2 zwraca 2 najnowsze i nextBefore do kolejnej strony
+        String firstPage = as("EMP-0001", get("/api/v1/alerts?size=2")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.items", hasSize(2)))
+                .andExpect(jsonPath("$.items[*].id", contains(A_TASK, A_CT)))
+                .andExpect(jsonPath("$.nextBefore").isString())
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        String nextBefore = JsonPath.read(firstPage, "$.nextBefore");
+        as("EMP-0001", get("/api/v1/alerts?size=2&before=" + nextBefore)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.items", hasSize(2)))
+                .andExpect(jsonPath("$.items[*].id", contains(A_SPO2, A_TROPONIN)))
+                .andExpect(jsonPath("$.nextBefore").isString());
+    }
+
+    @Test
+    void listSizeIsClampedAndEmptyBeforeYieldsEmptyPage() throws Exception {
+        as("EMP-0001", get("/api/v1/alerts?size=0")).andExpect(jsonPath("$.items", hasSize(6))); // <=0 -> domyslny
+        as("EMP-0001", get("/api/v1/alerts?size=500")).andExpect(jsonPath("$.items", hasSize(6))); // >max -> przyciecie
+        as("EMP-0001", get("/api/v1/alerts?before=2000-01-01T00:00:00Z"))
+                .andExpect(jsonPath("$.items", hasSize(0))).andExpect(jsonPath("$.nextBefore").doesNotExist());
     }
 
     @Test
@@ -168,10 +192,13 @@ class AlertApiTest extends ApiIntegrationTest {
         // cel bez patientId (patient_vitals: id = pacjent)
         assertThat(byId(json, A_SPO2).get("target"))
                 .isEqualTo(Map.of("kind", "patient_vitals", "id", SZYMANSKI));
-        // brak celu: pole `target` pomijane
-        assertThat(byId(json, A_PRESSURE)).doesNotContainKey("target").containsEntry("severity", "warning")
-                .containsEntry("acknowledged", false).containsEntry("type", "vital_anomaly");
-        assertThat(byId(json, A_TASK)).doesNotContainKey("target").containsEntry("type", "task");
+        assertThat(byId(json, A_PRESSURE).get("target"))
+                .isEqualTo(Map.of("kind", "patient_vitals", "id", MAZUR));
+        assertThat(byId(json, A_PRESSURE)).containsEntry("severity", "warning").containsEntry("acknowledged", false)
+                .containsEntry("type", "vital_anomaly");
+        assertThat(byId(json, A_TASK).get("target")).isEqualTo(Map.of("kind", "task",
+                "id", "94b29fa1-7c9e-5182-aab3-bdeceba70201", "patientId", "17a3dd05-d7d5-5211-ba70-0fc6e51cc476"));
+        assertThat(byId(json, A_TASK)).containsEntry("type", "task");
         assertThat(byId(json, A_CT)).containsEntry("type", "order_status").containsEntry("severity", "info");
         // potwierdzone przez biezacego: acknowledgedById/At
         Map<String, Object> potassium = byId(json, A_POTASSIUM);
@@ -183,18 +210,18 @@ class AlertApiTest extends ApiIntegrationTest {
 
     @Test
     void filtersByPatientAndAcknowledgedRelativeToViewer() throws Exception {
-        as("EMP-0001", get("/api/v1/alerts?patientId=" + MAZUR)).andExpect(jsonPath("$[*].id",
+        as("EMP-0001", get("/api/v1/alerts?patientId=" + MAZUR)).andExpect(jsonPath("$.items[*].id",
                 contains(A_POTASSIUM, A_PRESSURE)));
         as("EMP-0001", get("/api/v1/alerts?patientId=" + MAZUR + "&acknowledged=false"))
-                .andExpect(jsonPath("$[*].id", contains(A_PRESSURE)));
+                .andExpect(jsonPath("$.items[*].id", contains(A_PRESSURE)));
         as("EMP-0001", get("/api/v1/alerts?patientId=" + MAZUR + "&acknowledged=true"))
-                .andExpect(jsonPath("$[*].id", contains(A_POTASSIUM)));
-        as("EMP-0006", get("/api/v1/alerts?acknowledged=true")).andExpect(jsonPath("$[*].id",
+                .andExpect(jsonPath("$.items[*].id", contains(A_POTASSIUM)));
+        as("EMP-0006", get("/api/v1/alerts?acknowledged=true")).andExpect(jsonPath("$.items[*].id",
                 contains(A_PRESSURE)));
-        as("EMP-0006", get("/api/v1/alerts?acknowledged=false")).andExpect(jsonPath("$", hasSize(5)));
-        as("doctor", get("/api/v1/alerts?acknowledged=true")).andExpect(jsonPath("$", hasSize(0)));
-        as("EMP-0001", get("/api/v1/alerts?patientId=" + UNKNOWN)).andExpect(jsonPath("$", hasSize(0)));
-        as("EMP-0001", get("/api/v1/alerts?patientId=" + KOWALSKI)).andExpect(jsonPath("$", hasSize(0)));
+        as("EMP-0006", get("/api/v1/alerts?acknowledged=false")).andExpect(jsonPath("$.items", hasSize(5)));
+        as("doctor", get("/api/v1/alerts?acknowledged=true")).andExpect(jsonPath("$.items", hasSize(0)));
+        as("EMP-0001", get("/api/v1/alerts?patientId=" + UNKNOWN)).andExpect(jsonPath("$.items", hasSize(0)));
+        as("EMP-0001", get("/api/v1/alerts?patientId=" + KOWALSKI)).andExpect(jsonPath("$.items", hasSize(0)));
     }
 
     // --- potwierdzenie ---
@@ -212,16 +239,16 @@ class AlertApiTest extends ApiIntegrationTest {
                 .andExpect(jsonPath("$.acknowledgedAt").value(at));
         assertThat(ackRows(A_SPO2)).isEqualTo(1);
         // projekcja drugiego konta bez zmian
-        as("EMP-0006", get("/api/v1/alerts?patientId=" + SZYMANSKI)).andExpect(jsonPath("$[0].acknowledged")
-                .value(false)).andExpect(jsonPath("$[0].acknowledgedById").doesNotExist());
-        as("EMP-0001", get("/api/v1/alerts?acknowledged=false")).andExpect(jsonPath("$", hasSize(4)));
-        as("EMP-0006", get("/api/v1/alerts?acknowledged=false")).andExpect(jsonPath("$", hasSize(5)));
+        as("EMP-0006", get("/api/v1/alerts?patientId=" + SZYMANSKI)).andExpect(jsonPath("$.items[0].acknowledged")
+                .value(false)).andExpect(jsonPath("$.items[0].acknowledgedById").doesNotExist());
+        as("EMP-0001", get("/api/v1/alerts?acknowledged=false")).andExpect(jsonPath("$.items", hasSize(4)));
+        as("EMP-0006", get("/api/v1/alerts?acknowledged=false")).andExpect(jsonPath("$.items", hasSize(5)));
         // drugie konto potwierdza niezaleznie
         as("EMP-0006", post("/api/v1/alerts/{id}/acknowledge", A_SPO2)).andExpect(status().isOk())
                 .andExpect(jsonPath("$.acknowledgedById").value(NURSE_6));
         assertThat(ackRows(A_SPO2)).isEqualTo(2);
         as("EMP-0001", get("/api/v1/alerts?patientId=" + SZYMANSKI + "&acknowledged=true"))
-                .andExpect(jsonPath("$", hasSize(1)));
+                .andExpect(jsonPath("$.items", hasSize(1)));
     }
 
     @Test
@@ -261,9 +288,9 @@ class AlertApiTest extends ApiIntegrationTest {
             assertThat(e.recipientIds()).containsExactly(uuid(NURSE_8), uuid(DOC_1));
         });
         // nowy alert jest niepotwierdzony dla kazdego
-        as("EMP-0001", get("/api/v1/alerts?acknowledged=false")).andExpect(jsonPath("$", hasSize(6)))
-                .andExpect(jsonPath("$[0].id").value(row.get("id").toString()))
-                .andExpect(jsonPath("$[0].target.id").value(resultId.toString()));
+        as("EMP-0001", get("/api/v1/alerts?acknowledged=false")).andExpect(jsonPath("$.items", hasSize(6)))
+                .andExpect(jsonPath("$.items[0].id").value(row.get("id").toString()))
+                .andExpect(jsonPath("$.items[0].target.id").value(resultId.toString()));
     }
 
     // P8: kod analitu rowny kodowi badania (np. jednoanalitowe TROP) nie moze sie dublowac w tresci alertu.
@@ -404,19 +431,19 @@ class AlertApiTest extends ApiIntegrationTest {
     void postingCriticalVitalsCreatesAlertAtomicallyWithReading() throws Exception {
         as("nurse", post("/api/v1/patients/{id}/vitals", KOWALSKI).contentType(JSON)
                 .content("{\"context\":\"ward_round\",\"systolic\":75,\"spo2\":85}")).andExpect(status().isCreated());
-        as("EMP-0001", get("/api/v1/alerts?patientId=" + KOWALSKI)).andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].type").value("vital_anomaly"))
-                .andExpect(jsonPath("$[0].severity").value("critical"))
-                .andExpect(jsonPath("$[0].target.kind").value("patient_vitals"))
-                .andExpect(jsonPath("$[0].target.id").value(KOWALSKI))
-                .andExpect(jsonPath("$[0].target.patientId").doesNotExist());
+        as("EMP-0001", get("/api/v1/alerts?patientId=" + KOWALSKI)).andExpect(jsonPath("$.items", hasSize(1)))
+                .andExpect(jsonPath("$.items[0].type").value("vital_anomaly"))
+                .andExpect(jsonPath("$.items[0].severity").value("critical"))
+                .andExpect(jsonPath("$.items[0].target.kind").value("patient_vitals"))
+                .andExpect(jsonPath("$.items[0].target.id").value(KOWALSKI))
+                .andExpect(jsonPath("$.items[0].target.patientId").doesNotExist());
     }
 
     @Test
     void warningOnlyVitalsCreateNoAlert() throws Exception {
         as("nurse", post("/api/v1/patients/{id}/vitals", KOWALSKI).contentType(JSON)
                 .content("{\"context\":\"ward_round\",\"heartRate\":105}")).andExpect(status().isCreated());
-        as("EMP-0001", get("/api/v1/alerts?patientId=" + KOWALSKI)).andExpect(jsonPath("$", hasSize(0)));
+        as("EMP-0001", get("/api/v1/alerts?patientId=" + KOWALSKI)).andExpect(jsonPath("$.items", hasSize(0)));
     }
 
     @Test
@@ -438,13 +465,15 @@ class AlertApiTest extends ApiIntegrationTest {
                         + "\",\"priority\":\"high\"}")).andExpect(status().isCreated()).andReturn().getResponse()
                 .getContentAsString(StandardCharsets.UTF_8);
         String taskId = JsonPath.read(task, "$.id");
-        as("EMP-0006", get("/api/v1/alerts?patientId=" + KOWALSKI)).andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].type").value("task")).andExpect(jsonPath("$[0].severity").value("warning"))
-                .andExpect(jsonPath("$[0].message").value(org.hamcrest.Matchers.containsString("Zmierzyć ciśnienie")))
-                .andExpect(jsonPath("$[0].target.kind").value("task")).andExpect(jsonPath("$[0].target.id")
-                        .value(taskId))
-                .andExpect(jsonPath("$[0].target.patientId").value(KOWALSKI))
-                .andExpect(jsonPath("$[0].acknowledgedAt").doesNotExist());
+        as("EMP-0006", get("/api/v1/alerts?patientId=" + KOWALSKI)).andExpect(jsonPath("$.items", hasSize(1)))
+                .andExpect(jsonPath("$.items[0].type").value("task"))
+                .andExpect(jsonPath("$.items[0].severity").value("warning"))
+                .andExpect(jsonPath("$.items[0].message")
+                        .value(org.hamcrest.Matchers.containsString("Zmierzyć ciśnienie")))
+                .andExpect(jsonPath("$.items[0].target.kind").value("task"))
+                .andExpect(jsonPath("$.items[0].target.id").value(taskId))
+                .andExpect(jsonPath("$.items[0].target.patientId").value(KOWALSKI))
+                .andExpect(jsonPath("$.items[0].acknowledgedAt").doesNotExist());
     }
 
     // --- dashboard ---
@@ -534,7 +563,7 @@ class AlertApiTest extends ApiIntegrationTest {
     }
 
     private static Map<String, Object> byId(String json, String id) {
-        List<Map<String, Object>> found = JsonPath.read(json, "$[?(@.id=='" + id + "')]");
+        List<Map<String, Object>> found = JsonPath.read(json, "$.items[?(@.id=='" + id + "')]");
         assertThat(found).hasSize(1);
         return found.getFirst();
     }

@@ -35,6 +35,7 @@ import robert_neat.his_backend.common.order.OrderStatusUpdateRequest;
 import robert_neat.his_backend.common.order.Urgency;
 import robert_neat.his_backend.common.security.CurrentActor;
 import robert_neat.his_backend.ehr.Coding;
+import robert_neat.his_backend.ehr.CodingValidation;
 import robert_neat.his_backend.lab.events.LabOrderPlaced;
 import robert_neat.his_backend.lab.events.LabOrderStatusChanged;
 import robert_neat.his_backend.patient.EncounterRepository;
@@ -110,6 +111,7 @@ public class LabOrderService {
             errors.add(new FieldError("encounterId", "Kontakt nie istnieje dla tego pacjenta", "notFound"));
         }
         List<LabOrderItem> items = buildItems(request, errors);
+        CodingValidation.requireSnomedIfPresent("diagnosisCode", request.diagnosisCode(), errors);
         if (!errors.isEmpty()) {
             throw new ValidationFailedException(errors);
         }

@@ -102,8 +102,12 @@ class EImgFlowTest {
     }
 
     private String token() throws Exception {
+        return token("doctor", "doctor");
+    }
+
+    private String token(String employeeId, String password) throws Exception {
         String response = mvc.perform(post("/api/v1/auth/login").contentType(JSON)
-                        .content("{\"employeeId\":\"doctor\",\"password\":\"doctor\"}"))
+                        .content("{\"employeeId\":\"" + employeeId + "\",\"password\":\"" + password + "\"}"))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
         return "Bearer " + JsonPath.<String>read(response, "$.accessToken");
     }
@@ -177,6 +181,44 @@ class EImgFlowTest {
         String other = order();
         FAILURE.set(-1);
         cancelInHis(other);
+    }
+
+    @Test
+    void nonCancelStatusChangeInHisIsPropagatedToEImg() throws Exception {
+        String id = order();
+        CALLS.clear();
+
+        mvc.perform(post("/api/v1/imaging-orders/{id}/status", id)
+                        .header(HttpHeaders.AUTHORIZATION, token("radiologist", "radiologist")).contentType(JSON)
+                        .content("{\"status\":\"in_progress\"}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("in_progress"));
+
+        assertThat(CALLS).singleElement().satisfies(call -> {
+            assertThat(call.method()).isEqualTo("PUT");
+            assertThat(call.path()).isEqualTo("/fhir/ServiceRequest/" + id);
+            ServiceRequest sent = fhir.newJsonParser().parseResource(ServiceRequest.class, call.body());
+            assertThat(sent.getStatus()).isEqualTo(ServiceRequest.ServiceRequestStatus.ACTIVE);
+            assertThat(sent.getExtensionByUrl("urn:his:fhir:imaging-order-status").getValue().primitiveValue())
+                    .isEqualTo("in_progress");
+        });
+    }
+
+    @Test
+    void statusChangeInitiatedByEImgIsNotEchoedBack() throws Exception {
+        String id = order();
+        CALLS.clear();
+
+        mvc.perform(put("/fhir/ServiceRequest/{id}", id).with(FhirTestAuth.service())
+                        .contentType(FHIR_JSON)
+                        .content("{\"resourceType\":\"ServiceRequest\",\"status\":\"active\",\"intent\":\"order\","
+                                + "\"extension\":[{\"url\":\"urn:his:fhir:imaging-order-status\","
+                                + "\"valueString\":\"in_progress\"}]}"))
+                .andExpect(status().isOk());
+
+        assertThat(CALLS).isEmpty();
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/v1/imaging-orders/{id}", id)
+                        .header(HttpHeaders.AUTHORIZATION, token()))
+                .andExpect(jsonPath("$.status").value("in_progress"));
     }
 
     @Test

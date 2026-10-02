@@ -1,9 +1,11 @@
 package robert_neat.his_backend.lab;
 
+import java.net.URI;
 import java.util.List;
 import java.util.UUID;
 
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -16,8 +18,9 @@ import org.springframework.web.bind.annotation.RestController;
 import robert_neat.his_backend.common.api.PageResponse;
 
 /**
- * Wyniki laboratoryjne (API.md, par. 4). Odczyt: `lab-result:read`; potwierdzenie: `lab-result:acknowledge`.
- * Wprowadzanie wynikow nie ma endpointu (poza kontraktem UI) - {@link LabResultRecordingService}.
+ * Wyniki laboratoryjne (API.md, par. 4). Odczyt: `lab-result:read`; potwierdzenie: `lab-result:acknowledge`;
+ * zapis: `lab-result:write` ({@code POST /lab-orders/{orderId}/results}, ta sama walidacja co
+ * `POST /fhir/DiagnosticReport` - {@link LabResultRecordingService}).
  */
 @RestController
 @RequestMapping("/api/v1")
@@ -63,11 +66,20 @@ public class LabResultController {
         return service.get(resultId);
     }
 
-    /** Idempotentne; cialo opcjonalne (`version` ignorowane - wynik nie ma wersji). */
+    /** Idempotentne; cialo opcjonalne. 409 gdy podana `version` nie zgadza sie z biezaca. */
     @PostMapping("/lab-results/{resultId}/acknowledge")
     @PreAuthorize("hasAuthority('lab-result:acknowledge')")
     public LabResultResponse acknowledge(@PathVariable String resultId,
             @RequestBody(required = false) ResultAcknowledgeRequest request) {
-        return service.acknowledge(resultId);
+        return service.acknowledge(resultId, request == null ? null : request.version());
+    }
+
+    /** Wprowadzenie wyniku przez laboranta (native REST, odpowiednik `POST /fhir/DiagnosticReport`). 201 + `Location`. */
+    @PostMapping("/lab-orders/{orderId}/results")
+    @PreAuthorize("hasAuthority('lab-result:write')")
+    public ResponseEntity<LabResultResponse> recordResult(@PathVariable String orderId,
+            @RequestBody LabResultCreateRequest request) {
+        LabResultResponse created = service.recordForOrder(orderId, request);
+        return ResponseEntity.created(URI.create("/api/v1/lab-results/" + created.id())).body(created);
     }
 }

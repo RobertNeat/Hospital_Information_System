@@ -1,0 +1,65 @@
+<div id="admin-staff-page" class="his-page">
+  <app-page-header
+    id="admin-staff-app-page-header"
+    title="Pracownicy"
+    subtitle="Aktywacja i blokada kont"
+  />
+
+  <app-data-table
+    id="admin-staff-table"
+    [rows]="rows()"
+    [columns]="columns"
+    [loading]="loading()"
+    [globalFilterFields]="['lastName', 'firstName', 'employeeId', 'email']"
+    dataKey="id"
+  >
+    <ng-template #cell let-row let-col="col">
+      @switch (col.field) {
+        @case ('lastName') {
+          {{ row.lastName }} {{ row.firstName }}
+        }
+        @case ('role') {
+          {{ row.role | label: 'staffRole' }}
+        }
+        @case ('accountStatus') {
+          @if (row.accountStatus) {
+            <app-status-tag
+              [id]="'admin-staff-app-status-tag-' + row.id"
+              kind="accountStatus"
+              [value]="row.accountStatus"
+            />
+          }
+        }
+        @default {
+          {{ row[col.field] }}
+        }
+      }
+    </ng-template>
+    <ng-template #rowActions let-row>
+      @if (canActivate(row)) {
+        <button
+          [id]="'admin-staff-activate-' + row.id"
+          type="button"
+          class="his-icon-btn"
+          aria-label="Aktywuj konto"
+          pTooltip="Aktywuj konto"
+          (click)="requestActivate(row)"
+        >
+          <i [id]="'admin-staff-pi-activate-' + row.id" class="pi pi-lock-open"></i>
+        </button>
+      }
+      @if (canLock(row)) {
+        <button
+          [id]="'admin-staff-lock-' + row.id"
+          type="button"
+          class="his-icon-btn"
+          aria-label="Zablokuj konto"
+          pTooltip="Zablokuj konto"
+          (click)="requestLock(row)"
+        >
+          <i [id]="'admin-staff-pi-lock-' + row.id" class="pi pi-lock"></i>
+        </button>
+      }
+    </ng-template>
+  </app-data-table>
+</div>

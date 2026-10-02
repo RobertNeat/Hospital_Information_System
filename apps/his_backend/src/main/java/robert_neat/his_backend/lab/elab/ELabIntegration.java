@@ -19,12 +19,12 @@ import robert_neat.his_backend.lab.events.LabOrderPlaced;
 import robert_neat.his_backend.lab.events.LabOrderStatusChanged;
 
 /**
- * Integracja z e-laboratory na zdarzeniach domenowych, WYLACZNIE po commicie (`AFTER_COMMIT`): zlecanie i anulowanie
- * nigdy nie zalezy od e-laboratory - kazdy blad (siec, HTTP) jest tylko logowany, bez ponawiania.
+ * Integracja z e-laboratory na zdarzeniach domenowych, WYLACZNIE po commicie (`AFTER_COMMIT`): zlecanie i zmiana
+ * statusu nigdy nie zalezy od e-laboratory - kazdy blad (siec, HTTP) jest tylko logowany, bez ponawiania.
  * <ul>
  *   <li>`LabOrderPlaced`: POST zlecenia (`ServiceRequest` z pozycjami badan).</li>
- *   <li>`LabOrderStatusChanged` na `cancelled` z aktorem (anulowanie w HIS): PUT stanu. Zdarzenie bez aktora (zmiana
- *       przyszla z e-laboratory) nie jest odsylane - brak petli. Inne zmiany stanu nie sa przekazywane.</li>
+ *   <li>`LabOrderStatusChanged` z aktorem (zmiana w HIS, dowolny docelowy status - w tym anulowanie): PUT stanu.
+ *       Zdarzenie bez aktora (zmiana przyszla z e-laboratory) nie jest odsylane - brak petli.</li>
  * </ul>
  * Wywolanie jest synchroniczne (limity czasu z konfiguracji), poza transakcja bazodanowa.
  */
@@ -69,24 +69,27 @@ public class ELabIntegration {
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     void onStatusChanged(LabOrderStatusChanged event) {
-        if (!properties.enabled() || event.actorId() == null || event.status() != OrderStatus.CANCELLED) {
+        if (!properties.enabled() || event.actorId() == null) {
             return;
         }
         UUID id = event.orderId();
+        OrderStatus status = event.status();
         try {
             String payload = readTx.execute(tx -> orders.findById(id)
-                    .map(o -> mapper.encode(mapper.toServiceRequest(o, OrderStatus.CANCELLED))).orElse(null));
+                    .map(o -> mapper.encode(mapper.toServiceRequest(o, status))).orElse(null));
             if (payload != null) {
                 client.updateStatus(id.toString(), payload);
             }
         } catch (HttpClientErrorException e) {
             if (e.getStatusCode().isSameCodeAs(HttpStatus.NOT_FOUND)) {
-                log.info("e-laboratory nie zna zlecenia {} (dane mock/zlecenie sprzed integracji); anulowanie tylko w HIS", id);
+                log.info("e-laboratory nie zna zlecenia {} (dane mock/zlecenie sprzed integracji); zmiana statusu tylko w HIS", id);
             } else {
-                log.warn("e-laboratory odrzucilo anulowanie zlecenia {}: HTTP {}", id, e.getStatusCode().value());
+                log.warn("e-laboratory odrzucilo zmiane statusu zlecenia {} na '{}': HTTP {}", id, status.wire(),
+                        e.getStatusCode().value());
             }
         } catch (RuntimeException e) {
-            log.warn("Nie przekazano anulowania zlecenia {} do e-laboratory: {}", id, e.getMessage());
+            log.warn("Nie przekazano zmiany statusu zlecenia {} na '{}' do e-laboratory: {}", id, status.wire(),
+                    e.getMessage());
         }
     }
 }

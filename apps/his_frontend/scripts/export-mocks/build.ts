@@ -47,7 +47,6 @@ export interface Mocks {
   ENCOUNTERS: Encounter[];
   CLINICAL_NOTES: ClinicalNote[];
   DIAGNOSES: Diagnosis[];
-  ICD10_DICTIONARY: readonly { code: string; display: string }[];
   ALLERGIES: Allergy[];
   CONTRAINDICATIONS: Contraindication[];
   TREATMENTS: Treatment[];
@@ -167,12 +166,6 @@ export function build(m: Mocks): BuildResult {
     const f1 = new FileBuilder('reference/001-vital-threshold.sql', 'reference');
     f1.changeset('001-vital-threshold', thresholds);
     finish(f1, 'reference');
-
-    const icd = new Table('icd10_code', ['code', 'display']);
-    for (const c of m.ICD10_DICTIONARY) icd.add({ code: c.code, display: c.display });
-    const f2 = new FileBuilder('reference/002-icd10-code.sql', 'reference');
-    f2.changeset('002-icd10-code', icd);
-    finish(f2, 'reference');
   }
 
   // ---------------------------------------------------------------- MOCK 001: staff

@@ -21,7 +21,16 @@ import {
   ClinicalNoteDialog,
   type ClinicalNoteDialogSave,
 } from '../../components/clinical-note-dialog/clinical-note-dialog';
+import {
+  DiagnosisDialog,
+  type DiagnosisDialogSave,
+} from '../../components/diagnosis-dialog/diagnosis-dialog';
+import {
+  AllergyDialog,
+  type AllergyDialogSave,
+} from '../../components/allergy-dialog/allergy-dialog';
 import { NOTE_CATEGORY_OPTIONS } from '../../constants/labels';
+import { PERMISSIONS } from '../../constants/permissions';
 import type {
   Allergy,
   ClinicalNote,
@@ -68,6 +77,8 @@ const FULL_ONLY_TABS: HistoryTab[] = ['overview', 'encounters', 'notes'];
     StatusTag,
     EhrSummaryCards,
     ClinicalNoteDialog,
+    DiagnosisDialog,
+    AllergyDialog,
     Tabs,
     TabList,
     Tab,
@@ -105,6 +116,14 @@ export class PatientHistoryPage {
   /** Full chart (`ehr:read`); otherwise only the limited sections are requested and shown. */
   protected readonly canReadFull = computed(() => this.auth.hasPermission('ehr:read'));
 
+  /** `ehr:diagnosis:write` (lekarz) / `ehr:allergy:write` (lekarz, pielegniarka). */
+  protected readonly canWriteDiagnosis = computed(() =>
+    this.auth.hasPermission(PERMISSIONS.EHR_DIAGNOSIS_WRITE),
+  );
+  protected readonly canWriteAllergy = computed(() =>
+    this.auth.hasPermission(PERMISSIONS.EHR_ALLERGY_WRITE),
+  );
+
   protected readonly activeTab = computed<HistoryTab>(() => {
     const t = this.tab();
     const requested = (VALID_TABS as string[]).includes(t ?? '') ? (t as HistoryTab) : 'overview';
@@ -114,6 +133,8 @@ export class PatientHistoryPage {
   protected readonly noteCategoryOptions = NOTE_CATEGORY_OPTIONS;
   protected readonly noteCategoryFilter = signal<NoteCategory | null>(null);
   protected readonly noteDialogVisible = signal(false);
+  protected readonly diagnosisDialogVisible = signal(false);
+  protected readonly allergyDialogVisible = signal(false);
 
   protected get noteCategoryFilterValue(): NoteCategory | null {
     return this.noteCategoryFilter();
@@ -251,6 +272,54 @@ export class PatientHistoryPage {
           severity: 'error',
           summary: 'Błąd',
           detail: 'Nie udało się zapisać notatki klinicznej.',
+        });
+      },
+    });
+  }
+
+  protected openDiagnosisDialog(): void {
+    this.diagnosisDialogVisible.set(true);
+  }
+
+  protected onDiagnosisSave(event: DiagnosisDialogSave): void {
+    this.ehrService.addDiagnosis(this.patientId(), event.draft).subscribe({
+      next: () => {
+        this.toast.add({
+          severity: 'success',
+          summary: 'Rozpoznanie dodane',
+          detail: 'Rozpoznanie zostało zapisane.',
+        });
+        this.ehrResource.reload();
+      },
+      error: () => {
+        this.toast.add({
+          severity: 'error',
+          summary: 'Błąd',
+          detail: 'Nie udało się zapisać rozpoznania.',
+        });
+      },
+    });
+  }
+
+  protected openAllergyDialog(): void {
+    this.allergyDialogVisible.set(true);
+  }
+
+  protected onAllergySave(event: AllergyDialogSave): void {
+    this.ehrService.addAllergy(this.patientId(), event.draft).subscribe({
+      next: () => {
+        this.toast.add({
+          severity: 'success',
+          summary: 'Alergia dodana',
+          detail: 'Alergia została zapisana.',
+        });
+        this.ehrResource.reload();
+      },
+      error: () => {
+        this.toast.add({
+          severity: 'error',
+          summary: 'Błąd',
+          detail: 'Nie udało się zapisać alergii.',
         });
       },
     });

@@ -28,14 +28,6 @@ class ReferenceDataMigrationTest {
     }
 
     @Test
-    void loadsIcd10Dictionary() {
-        Integer count = jdbc.queryForObject("SELECT count(*) FROM icd10_code", Integer.class);
-        assertThat(count).isEqualTo(MockManifest.load().reference().get("icd10_code"));
-        assertThat(jdbc.queryForObject("SELECT display FROM icd10_code WHERE code = 'I10'", String.class))
-                .isEqualTo("Nadciśnienie tętnicze samoistne");
-    }
-
-    @Test
     void mockTablesStayEmptyExceptDemoAccounts() {
         for (String table : MockManifest.load().mock().keySet()) {
             Integer count = jdbc.queryForObject("SELECT count(*) FROM " + table, Integer.class);
@@ -63,6 +55,6 @@ class ReferenceDataMigrationTest {
         assertThat(mockRows).isEmpty();
         Integer reference = jdbc.queryForObject(
                 "SELECT count(*) FROM databasechangelog WHERE author = 'his-ref'", Integer.class);
-        assertThat(reference).isEqualTo(2);
+        assertThat(reference).isEqualTo(1);
     }
 }

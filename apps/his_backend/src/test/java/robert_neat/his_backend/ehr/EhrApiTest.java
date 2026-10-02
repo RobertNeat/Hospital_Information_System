@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.matchesPattern;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -39,7 +38,7 @@ import robert_neat.his_backend.ehr.events.ClinicalNoteCreated;
 import robert_neat.his_backend.ehr.events.DiagnosisRecorded;
 
 /**
- * Kontrakt EHR (`/patients/{id}/...`, `/dictionaries/icd-10`) na danych mock: 13 notatek, 18 diagnoz, 7 alergii,
+ * Kontrakt EHR (`/patients/{id}/...`) na danych mock: 13 notatek, 18 diagnoz, 7 alergii,
  * 4 przeciwwskazania, 10 leczen, 8 epizodow, 16 kontaktow. Uwierzytelnianie tokenami z `POST /auth/login`
  * (aktor zapisu pochodzi z tokenu).
  */
@@ -84,14 +83,13 @@ class EhrApiTest extends ApiIntegrationTest {
     }
 
     @Test
-    void writesAndDictionaryWithoutTokenAreUnauthorized() throws Exception {
+    void writesWithoutTokenAreUnauthorized() throws Exception {
         mvc.perform(post("/api/v1/patients/{id}/clinical-notes", KOWALSKI).contentType(JSON).content(noteJson("progress")))
                 .andExpect(status().isUnauthorized());
         mvc.perform(post("/api/v1/patients/{id}/diagnoses", KOWALSKI).contentType(JSON).content(diagnosisJson()))
                 .andExpect(status().isUnauthorized());
         mvc.perform(post("/api/v1/patients/{id}/allergies", KOWALSKI).contentType(JSON).content(allergyJson()))
                 .andExpect(status().isUnauthorized());
-        mvc.perform(get("/api/v1/dictionaries/icd-10")).andExpect(status().isUnauthorized());
     }
 
     @ParameterizedTest
@@ -207,15 +205,15 @@ class EhrApiTest extends ApiIntegrationTest {
         read("doctor", WISNIEWSKA, "diagnoses")
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(3)))
-                .andExpect(jsonPath("$[?(@.code.code=='I21')].code.system").value("ICD-10"))
-                .andExpect(jsonPath("$[?(@.code.code=='I21')].code.display").value("Ostry zawał serca"))
-                .andExpect(jsonPath("$[?(@.code.code=='I21')].type").value("primary"))
-                .andExpect(jsonPath("$[?(@.code.code=='I21')].status").value("active"))
-                .andExpect(jsonPath("$[?(@.code.code=='I21')].encounterId").value(WISNIEWSKA_ENCOUNTER))
-                .andExpect(jsonPath("$[?(@.code.code=='I21')].diagnosedById").value("6a2063f1-ade9-52c8-a1b0-f894c0093d46"))
-                .andExpect(jsonPath("$[?(@.code.code=='I21')].version").value(0))
-                .andExpect(jsonPath("$[?(@.code.code=='E78.0')].type").value("chronic"))
-                .andExpect(jsonPath("$[?(@.code.code=='I48')].encounterId").isEmpty());
+                .andExpect(jsonPath("$[?(@.code.code=='22298006')].code.system").value("SNOMED"))
+                .andExpect(jsonPath("$[?(@.code.code=='22298006')].code.display").value("Ostry zawał serca"))
+                .andExpect(jsonPath("$[?(@.code.code=='22298006')].type").value("primary"))
+                .andExpect(jsonPath("$[?(@.code.code=='22298006')].status").value("active"))
+                .andExpect(jsonPath("$[?(@.code.code=='22298006')].encounterId").value(WISNIEWSKA_ENCOUNTER))
+                .andExpect(jsonPath("$[?(@.code.code=='22298006')].diagnosedById").value("6a2063f1-ade9-52c8-a1b0-f894c0093d46"))
+                .andExpect(jsonPath("$[?(@.code.code=='22298006')].version").value(0))
+                .andExpect(jsonPath("$[?(@.code.code=='55822004')].type").value("chronic"))
+                .andExpect(jsonPath("$[?(@.code.code=='49436004')].encounterId").isEmpty());
         read("doctor", WOJCIK, "diagnoses")
                 .andExpect(jsonPath("$[0].status").value("resolved"));
     }
@@ -270,7 +268,7 @@ class EhrApiTest extends ApiIntegrationTest {
         read("doctor", KOWALSKI, "ehr-summary")
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.recentDiagnoses", hasSize(3)))
-                .andExpect(jsonPath("$.recentDiagnoses[0].code.code").value("I50")) // najnowsza (76 h)
+                .andExpect(jsonPath("$.recentDiagnoses[0].code.code").value("84114007")) // najnowsza (76 h)
                 .andExpect(jsonPath("$.chronicConditions", hasSize(2)))
                 .andExpect(jsonPath("$.chronicConditions[*].type", contains("chronic", "chronic")))
                 .andExpect(jsonPath("$.activeMedications", hasSize(2))) // zywa recepta mock (Furosemid + Polpril)
@@ -294,73 +292,6 @@ class EhrApiTest extends ApiIntegrationTest {
         read("doctor", KOWALSKI, "ehr-summary")
                 .andExpect(jsonPath("$.recentDiagnoses", hasSize(5)))
                 .andExpect(jsonPath("$.chronicConditions", hasSize(2)));
-    }
-
-    // --- slownik ICD-10 ---
-
-    @Test
-    void dictionaryReturnsAllCodesAsIcd10CodingsSortedByCode() throws Exception {
-        mvc.perform(get("/api/v1/dictionaries/icd-10").header(HttpHeaders.AUTHORIZATION, bearer("doctor")))
-                .andExpect(status().isOk())
-                .andExpect(content().contentTypeCompatibleWith(JSON))
-                .andExpect(jsonPath("$", hasSize(40)))
-                .andExpect(jsonPath("$[*].system", org.hamcrest.Matchers.everyItem(is("ICD-10"))))
-                .andExpect(jsonPath("$[0].code").value("A09"))
-                .andExpect(jsonPath("$[0].display").value("Biegunka i nieżyt żołądkowo-jelitowy"));
-    }
-
-    @Test
-    void dictionarySearchesByCodeAndName() throws Exception {
-        icd("i10").andExpect(jsonPath("$", hasSize(1))).andExpect(jsonPath("$[0].code").value("I10"));
-        icd("J18").andExpect(jsonPath("$[0].code").value("J18.9"));
-        icd("E78.0").andExpect(jsonPath("$", hasSize(1)));
-        icd("cukrzyca").andExpect(jsonPath("$[0].code").value("E11"));
-        icd("zawał serca").andExpect(jsonPath("$", hasSize(1))).andExpect(jsonPath("$[0].code").value("I21"));
-        icd("serca ostry").andExpect(jsonPath("$[0].code").value("I21")); // kolejnosc tokenow bez znaczenia
-        icd("brak-takiego-kodu").andExpect(jsonPath("$", hasSize(0)));
-    }
-
-    @Test
-    void dictionarySearchIgnoresCaseAndPolishDiacritics() throws Exception {
-        icd("zawal").andExpect(jsonPath("$[*].code", containsInAnyOrder("I21", "I63")));
-        icd("ZAWAŁ").andExpect(jsonPath("$[*].code", containsInAnyOrder("I21", "I63")));
-        icd("Zawał").andExpect(jsonPath("$[*].code", containsInAnyOrder("I21", "I63")));
-        icd("niewydolnosc").andExpect(jsonPath("$[0].code").value("I50"));
-        icd("ból").andExpect(jsonPath("$[*].code", containsInAnyOrder("M54.5", "R10.4")));
-        icd("bol").andExpect(jsonPath("$[*].code", containsInAnyOrder("M54.5", "R10.4")));
-        icd("zoladk").andExpect(jsonPath("$[*].code", containsInAnyOrder("K25", "A09"))); // żołądka, żołądkowo
-        icd("zolciowa").andExpect(jsonPath("$[0].code").value("K80"));
-    }
-
-    @Test
-    void dictionaryTreatsLikeWildcardsLiterally() throws Exception {
-        icd("%").andExpect(jsonPath("$", hasSize(0)));
-        icd("_").andExpect(jsonPath("$", hasSize(0)));
-    }
-
-    @Test
-    void dictionaryLimitIsAppliedByServer() throws Exception {
-        mvc.perform(get("/api/v1/dictionaries/icd-10").param("size", "3")
-                .header(HttpHeaders.AUTHORIZATION, bearer("nurse")))
-                .andExpect(status().isOk()).andExpect(jsonPath("$", hasSize(3)))
-                .andExpect(jsonPath("$[0].code").value("A09"));
-        mvc.perform(get("/api/v1/dictionaries/icd-10").param("size", "100000")
-                .header(HttpHeaders.AUTHORIZATION, bearer("nurse")))
-                .andExpect(status().isOk()).andExpect(jsonPath("$", hasSize(40)));
-        mvc.perform(get("/api/v1/dictionaries/icd-10").param("size", "0")
-                .header(HttpHeaders.AUTHORIZATION, bearer("nurse")))
-                .andExpect(status().isUnprocessableContent())
-                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
-                .andExpect(jsonPath("$.errors[0].field").value("size"));
-        mvc.perform(get("/api/v1/dictionaries/icd-10").param("size", "abc")
-                .header(HttpHeaders.AUTHORIZATION, bearer("nurse")))
-                .andExpect(status().isUnprocessableContent());
-    }
-
-    @Test
-    void dictionaryIsAvailableToEveryAuthenticatedRole() throws Exception {
-        mvc.perform(get("/api/v1/dictionaries/icd-10").header(HttpHeaders.AUTHORIZATION, bearer("registrar")))
-                .andExpect(status().isOk());
     }
 
     // --- zapis notatek ---
@@ -523,13 +454,13 @@ class EhrApiTest extends ApiIntegrationTest {
     @Test
     void doctorRecordsDiagnosisWithDefaults() throws Exception {
         postAs("doctor", KOWALSKI, "diagnoses", "{\"diagnosedById\":\"" + UUID.randomUUID() + "\",\"encounterId\":\""
-                + KOWALSKI_HOSPITALIZATION + "\",\"code\":{\"system\":\"ICD-10\",\"code\":\"J18.9\","
+                + KOWALSKI_HOSPITALIZATION + "\",\"code\":{\"system\":\"SNOMED\",\"code\":\"233604007\","
                 + "\"display\":\"Zapalenie płuc, nieokreślone\"},\"type\":\"secondary\",\"notes\":\"  \"}")
                 .andExpect(status().isCreated())
                 .andExpect(header().string(HttpHeaders.LOCATION, matchesPattern(
                         "/api/v1/patients/" + KOWALSKI + "/diagnoses/[0-9a-f-]{36}")))
-                .andExpect(jsonPath("$.code.system").value("ICD-10"))
-                .andExpect(jsonPath("$.code.code").value("J18.9"))
+                .andExpect(jsonPath("$.code.system").value("SNOMED"))
+                .andExpect(jsonPath("$.code.code").value("233604007"))
                 .andExpect(jsonPath("$.type").value("secondary"))
                 .andExpect(jsonPath("$.status").value("active"))
                 .andExpect(jsonPath("$.diagnosedById").value(DOCTOR_STAFF))
@@ -539,29 +470,39 @@ class EhrApiTest extends ApiIntegrationTest {
                 .andExpect(jsonPath("$.version").value(0));
         read("doctor", KOWALSKI, "diagnoses").andExpect(jsonPath("$", hasSize(4)));
         assertThat(events.stream(DiagnosisRecorded.class)).singleElement()
-                .satisfies(e -> assertThat(e.code().system()).isEqualTo(CodingSystem.ICD_10));
+                .satisfies(e -> assertThat(e.code().system()).isEqualTo(CodingSystem.SNOMED));
     }
 
     @Test
-    void diagnosisAcceptsOtherCodingSystemsAndRejectsInvalidInput() throws Exception {
+    void diagnosisRejectsNonSnomedSystemsAndInvalidSctid() throws Exception {
         postAs("doctor", KOWALSKI, "diagnoses", "{\"code\":{\"system\":\"local\",\"code\":\"X1\",\"display\":\"Lokalny\"},"
                 + "\"type\":\"chronic\",\"status\":\"resolved\",\"diagnosedAt\":\"2025-01-02T03:04:05Z\"}")
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.code.system").value("local"))
-                .andExpect(jsonPath("$.status").value("resolved"))
-                .andExpect(jsonPath("$.diagnosedAt").value("2025-01-02T03:04:05Z"));
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.errors[0].field").value("code.system"));
         postAs("doctor", KOWALSKI, "diagnoses", "{\"code\":{\"system\":\"SNOMED\",\"code\":\"X\",\"display\":\"D\"},"
-                + "\"type\":\"primary\"}").andExpect(status().isUnprocessableContent());
+                + "\"type\":\"primary\"}").andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.errors[0].field").value("code.code"));
         postAs("doctor", KOWALSKI, "diagnoses", "{\"code\":{\"system\":\"ICD-10\",\"code\":\" \",\"display\":\"D\"},"
                 + "\"type\":\"primary\"}").andExpect(status().isUnprocessableContent());
         postAs("doctor", KOWALSKI, "diagnoses", "{\"type\":\"primary\"}").andExpect(status().isUnprocessableContent());
-        postAs("doctor", KOWALSKI, "diagnoses", "{\"code\":{\"system\":\"ICD-10\",\"code\":\"I10\",\"display\":\"D\"}}")
+        postAs("doctor", KOWALSKI, "diagnoses", "{\"code\":{\"system\":\"SNOMED\",\"code\":\"38341003\",\"display\":\"D\"}}")
                 .andExpect(status().isUnprocessableContent())
                 .andExpect(jsonPath("$.errors[0].field").value("type"));
         postAs("doctor", KOWALSKI, "diagnoses", "{\"encounterId\":\"" + WISNIEWSKA_ENCOUNTER
-                + "\",\"code\":{\"system\":\"ICD-10\",\"code\":\"I10\",\"display\":\"D\"},\"type\":\"primary\"}")
+                + "\",\"code\":{\"system\":\"SNOMED\",\"code\":\"38341003\",\"display\":\"D\"},\"type\":\"primary\"}")
                 .andExpect(status().isUnprocessableContent())
                 .andExpect(jsonPath("$.errors[0].field").value("encounterId"));
+    }
+
+    @Test
+    void diagnosisAcceptsValidSnomedWithStatusAndDate() throws Exception {
+        postAs("doctor", KOWALSKI, "diagnoses", "{\"code\":{\"system\":\"SNOMED\",\"code\":\"38341003\","
+                + "\"display\":\"Nadciśnienie\"},\"type\":\"chronic\",\"status\":\"resolved\","
+                + "\"diagnosedAt\":\"2025-01-02T03:04:05Z\"}")
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.code.system").value("SNOMED"))
+                .andExpect(jsonPath("$.status").value("resolved"))
+                .andExpect(jsonPath("$.diagnosedAt").value("2025-01-02T03:04:05Z"));
     }
 
     @ParameterizedTest
@@ -632,11 +573,6 @@ class EhrApiTest extends ApiIntegrationTest {
                 .content(body));
     }
 
-    private ResultActions icd(String term) throws Exception {
-        return mvc.perform(get("/api/v1/dictionaries/icd-10").param("term", term)
-                .header(HttpHeaders.AUTHORIZATION, bearer("doctor"))).andExpect(status().isOk());
-    }
-
     private String bearer(String login) throws Exception {
         String token = TOKENS.get(login);
         if (token == null) {
@@ -654,7 +590,7 @@ class EhrApiTest extends ApiIntegrationTest {
     }
 
     private static String diagnosisJson() {
-        return "{\"code\":{\"system\":\"ICD-10\",\"code\":\"I10\",\"display\":\"Nadciśnienie tętnicze samoistne\"},"
+        return "{\"code\":{\"system\":\"SNOMED\",\"code\":\"38341003\",\"display\":\"Nadciśnienie tętnicze samoistne\"},"
                 + "\"type\":\"secondary\"}";
     }
 

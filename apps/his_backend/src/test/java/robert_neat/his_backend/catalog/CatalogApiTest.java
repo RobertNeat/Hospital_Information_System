@@ -8,6 +8,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.matchesPattern;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -516,7 +517,54 @@ class CatalogApiTest extends ApiIntegrationTest {
         assertThat(body).contains("\"low\":90,").contains("\"high\":37.5,").doesNotContain("90.0").doesNotContain("36.0");
     }
 
+    @Test
+    void adminCanUpdateVitalThreshold() throws Exception {
+        mvc.perform(put("/api/v1/vital-thresholds/heartRate").header(HttpHeaders.AUTHORIZATION, bearer("admin"))
+                        .contentType(JSON).content(thresholdBody("Tetno", "/min", 55, 95, 45, 125, 25, 240)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.type").value("heartRate"))
+                .andExpect(jsonPath("$.label").value("Tetno"))
+                .andExpect(jsonPath("$.low").value(55))
+                .andExpect(jsonPath("$.high").value(95));
+        as("doctor", "/vital-thresholds")
+                .andExpect(jsonPath("$[?(@.type=='heartRate')].low").value(55))
+                .andExpect(jsonPath("$[?(@.type=='heartRate')].high").value(95));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"doctor", "nurse", "lab-tech", "radiologist", "pharmacist", "registrar"})
+    void onlyAdminCanUpdateVitalThreshold(String login) throws Exception {
+        mvc.perform(put("/api/v1/vital-thresholds/heartRate").header(HttpHeaders.AUTHORIZATION, bearer(login))
+                        .contentType(JSON).content(thresholdBody("Tetno", "/min", 55, 95, 45, 125, 25, 240)))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void updatingUnknownVitalThresholdTypeIs404() throws Exception {
+        mvc.perform(put("/api/v1/vital-thresholds/bogus").header(HttpHeaders.AUTHORIZATION, bearer("admin"))
+                        .contentType(JSON).content(thresholdBody("X", "x", 1, 2, 0, 3, 0, 4)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("NOT_FOUND"));
+    }
+
+    @Test
+    void updatingVitalThresholdWithInvalidOrderIs422() throws Exception {
+        // high < low narusza wymagana kolejnosc progow
+        mvc.perform(put("/api/v1/vital-thresholds/heartRate").header(HttpHeaders.AUTHORIZATION, bearer("admin"))
+                        .contentType(JSON).content(thresholdBody("Tetno", "/min", 100, 90, 45, 125, 25, 240)))
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.errors[0].field").value("high"));
+    }
+
     // --- pomocnicze ---
+
+    private static String thresholdBody(String label, String unit, double low, double high, double criticalLow,
+            double criticalHigh, double min, double max) {
+        return "{\"label\":\"" + label + "\",\"unit\":\"" + unit + "\",\"low\":" + low + ",\"high\":" + high
+                + ",\"criticalLow\":" + criticalLow + ",\"criticalHigh\":" + criticalHigh + ",\"min\":" + min
+                + ",\"max\":" + max + "}";
+    }
 
     private ResultActions as(String login, String path) throws Exception {
         return mvc.perform(get("/api/v1" + path).header(HttpHeaders.AUTHORIZATION, bearer(login)));

@@ -8,19 +8,7 @@ Zasady: po wdrożeniu pozycji usuwamy ją stąd; zmiana modelu TS jest ewolucyjn
 
 | Obszar | Stan |
 | --- | --- |
-| Diagnozy i alergie | backend ma `POST /patients/{id}/diagnoses` i `/allergies`; `EhrService` nie ma metod zapisu, UI ich nie woła |
-| Aktywacja/blokada kont | backend ma `POST /staff/{id}/activate` i `/lock`; brak typu TS, metody serwisu i widoku administratora |
-| Podpowiedzi terminologii | `GET /terminology/snomed/suggestions?kind=` niewykorzystane przez frontend |
-| Kreator recepty | notka o integracji FHIR nieaktualna (plan.md, P2) |
-
-## Oczekiwania bez pokrycia w backendzie
-
-Szczegóły: [`../his_backend_contract/README.md`](../his_backend_contract/README.md).
-
-- Zapis `staff`, `wards`, `vital-thresholds` przez admina; wprowadzanie wyników lab/obrazowych przez laboranta/radiologa (UI poza kontraktem).
-- `drug-safety-checks` dla `nurse`/`pharmacist`/`admin` (odczyt).
-- `409` przy niezgodnym `version` w `acknowledge` wyników.
-- Paginacja `getMessages` i `getAlerts`.
+| Podpowiedzi terminologii - wyszukiwanie | kreatory lab/obrazowania wołają `GET /terminology/snomed/suggestions?kind=diagnosis` bez `term` (pierwsza strona wg ECL specjalizacji, ok. 100 pozycji z dziesiątek tysięcy); brak pola wyszukiwania w pickerze, więc rzadsze rozpoznania są praktycznie nieosiągalne |
 
 ## Świadomie niewdrażane / do decyzji
 

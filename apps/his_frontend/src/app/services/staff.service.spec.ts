@@ -4,7 +4,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { firstValueFrom } from 'rxjs';
-import { STAFF_URL, staffUrl } from '../config/api.config';
+import { STAFF_URL, staffActivateUrl, staffLockUrl, staffUrl } from '../config/api.config';
 import type { StaffMember } from '../models';
 import type { CurrentUser } from '../models/api';
 import { AuthService } from './auth.service';
@@ -128,6 +128,36 @@ describe('StaffService', () => {
     http.expectOne(STAFF_URL).flush(null, { status: 403, statusText: 'Forbidden' });
     service.nameOf('s-1');
     http.expectNone(STAFF_URL);
+  });
+
+  it('activate() POSTs with no body and updates the cached member', async () => {
+    service.load().subscribe();
+    http.expectOne(STAFF_URL).flush([ANNA, EWA]);
+    const result = firstValueFrom(service.activate('s-1'));
+    const req = http.expectOne({ method: 'POST', url: staffActivateUrl('s-1') });
+    expect(req.request.body).toBeNull();
+    const activated: StaffMember = { ...ANNA, accountStatus: 'active' };
+    req.flush(activated);
+    expect(await result).toEqual(activated);
+    expect(service.staff().find((s) => s.id === 's-1')).toEqual(activated);
+  });
+
+  it('lock() POSTs with no body and updates the cached member', async () => {
+    service.load().subscribe();
+    http.expectOne(STAFF_URL).flush([ANNA, EWA]);
+    const result = firstValueFrom(service.lock('s-1'));
+    const req = http.expectOne({ method: 'POST', url: staffLockUrl('s-1') });
+    expect(req.request.body).toBeNull();
+    const locked: StaffMember = { ...ANNA, accountStatus: 'locked' };
+    req.flush(locked);
+    expect(await result).toEqual(locked);
+    expect(service.staff().find((s) => s.id === 's-1')).toEqual(locked);
+  });
+
+  it("lock() propagates a 409 when locking one's own account", async () => {
+    const result = firstValueFrom(service.lock('s-1'));
+    http.expectOne(staffLockUrl('s-1')).flush(null, { status: 409, statusText: 'Conflict' });
+    await expect(result).rejects.toBeTruthy();
   });
 
   it('clear() empties the cache so the next load refetches', () => {

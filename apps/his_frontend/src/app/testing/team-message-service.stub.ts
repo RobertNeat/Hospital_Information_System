@@ -52,6 +52,8 @@ export function createTeamMessageServiceStub(): Partial<Record<keyof TeamMessage
       return found ? of(found) : notFound(id);
     },
     getMessages: (threadId: string) => of(messages.filter((m) => m.threadId === threadId)),
+    getMessagesPage: (threadId: string) =>
+      of({ items: messages.filter((m) => m.threadId === threadId), nextBefore: null }),
     sendMessage: (threadId: string, body: string, priority: Priority) => {
       const message: Message = {
         id: `test-msg-${messages.length + 1}`,
@@ -147,6 +149,15 @@ export function createTeamMessageServiceStub(): Partial<Record<keyof TeamMessage
             (filter?.acknowledged === undefined || a.acknowledged === filter.acknowledged),
         ),
       ),
+    getAlertsPage: (filter?: AlertQuery) =>
+      of({
+        items: allAlerts().filter(
+          (a) =>
+            (!filter?.patientId || a.patientId === filter.patientId) &&
+            (filter?.acknowledged === undefined || a.acknowledged === filter.acknowledged),
+        ),
+        nextBefore: null,
+      }),
     acknowledgeAlert: (id: string) => {
       const found = allAlerts().find((a) => a.id === id);
       if (!found) return notFound(id);

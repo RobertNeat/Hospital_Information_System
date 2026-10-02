@@ -1,0 +1,108 @@
+<p-dialog
+  id="diagnosis-dialog-p-dialog"
+  header="Dodaj rozpoznanie"
+  [visible]="visible()"
+  [modal]="true"
+  [style]="{ width: '32rem' }"
+  (visibleChange)="visibleChange.emit($event)"
+  (onHide)="onHide()"
+>
+  <form id="diagnosis-dialog-form-grid" [formGroup]="form" class="his-form-grid">
+    <div id="diagnosis-dialog-form-grid-full" class="his-form-grid__full">
+      <app-form-field
+        id="diagnosis-dialog-app-form-field"
+        label="Rozpoznanie (SNOMED CT)"
+        [required]="true"
+        [control]="form.controls.code"
+      >
+        <p-select
+          id="diagnosis-dialog-code"
+          [options]="diagnosisOptions()"
+          formControlName="code"
+          optionLabel="label"
+          optionValue="value"
+          [filter]="true"
+          [showClear]="true"
+          placeholder="Wybierz rozpoznanie"
+          class="his-full-width"
+        />
+      </app-form-field>
+      @if (noSuggestions()) {
+        <p id="diagnosis-dialog-no-suggestions" class="his-muted">Brak podpowiedzi SNOMED.</p>
+      }
+    </div>
+
+    <app-form-field
+      id="diagnosis-dialog-app-form-field-2"
+      label="Typ"
+      [required]="true"
+      [control]="form.controls.type"
+    >
+      <p-select
+        id="diagnosis-dialog-type"
+        [options]="typeOptions"
+        formControlName="type"
+        optionLabel="label"
+        optionValue="value"
+        class="his-full-width"
+      />
+    </app-form-field>
+
+    <app-form-field
+      id="diagnosis-dialog-app-form-field-3"
+      label="Status"
+      [required]="true"
+      [control]="form.controls.status"
+    >
+      <p-select
+        id="diagnosis-dialog-status"
+        [options]="statusOptions"
+        formControlName="status"
+        optionLabel="label"
+        optionValue="value"
+        class="his-full-width"
+      />
+    </app-form-field>
+
+    <app-form-field id="diagnosis-dialog-app-form-field-4" label="Data rozpoznania">
+      <p-datepicker
+        id="diagnosis-dialog-diagnosed-at"
+        formControlName="diagnosedAt"
+        [showTime]="true"
+        dateFormat="dd.mm.yy"
+        [showIcon]="true"
+        class="his-full-width"
+      />
+    </app-form-field>
+
+    <div id="diagnosis-dialog-form-grid-full-2" class="his-form-grid__full">
+      <app-form-field id="diagnosis-dialog-app-form-field-5" label="Notatki">
+        <textarea
+          id="diagnosis-dialog-notes"
+          pTextarea
+          formControlName="notes"
+          rows="3"
+          class="his-full-width"
+        ></textarea>
+      </app-form-field>
+    </div>
+  </form>
+
+  <ng-template #footer>
+    <div id="diagnosis-dialog-dialog-footer" class="his-dialog-footer">
+      <p-button
+        id="diagnosis-dialog-p-button"
+        label="Anuluj"
+        severity="secondary"
+        [text]="true"
+        (onClick)="onCancel()"
+      />
+      <p-button
+        id="diagnosis-dialog-p-button-2"
+        label="Zapisz rozpoznanie"
+        icon="pi pi-check"
+        (onClick)="onSave()"
+      />
+    </div>
+  </ng-template>
+</p-dialog>

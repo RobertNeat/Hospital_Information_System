@@ -20,5 +20,9 @@ export const staffServiceStub = {
       const s = STAFF.find((m) => m.id === id);
       return s ? `${s.title} ${s.firstName} ${s.lastName}` : id;
     },
+    activate: (id: string) =>
+      of({ ...(STAFF.find((s) => s.id === id) ?? STAFF[0]), accountStatus: 'active' }),
+    lock: (id: string) =>
+      of({ ...(STAFF.find((s) => s.id === id) ?? STAFF[0]), accountStatus: 'locked' }),
   },
 };

@@ -69,8 +69,14 @@ class DrugSafetyApiTest extends ApiIntegrationTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"nurse", "pharmacist", "admin", "lab-tech", "radiologist", "registrar"})
-    void onlyDoctorRunsChecks(String login) throws Exception {
+    @ValueSource(strings = {"doctor", "nurse", "pharmacist", "admin"})
+    void doctorNursePharmacistAndAdminCanRunChecks(String login) throws Exception {
+        check(login, single(KOWALSKI, AUGMENTIN)).andExpect(status().isOk());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"lab-tech", "radiologist", "registrar"})
+    void otherRolesCannotRunChecks(String login) throws Exception {
         check(login, single(KOWALSKI, AUGMENTIN)).andExpect(status().isForbidden());
     }
 

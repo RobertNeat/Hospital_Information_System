@@ -1,56 +1,12 @@
 import type { Diagnosis } from '../models';
 import { daysAgo, hoursAgo } from './mock-utils';
 
-/** ICD-10 dictionary, ~40 common codes used across diagnoses, orders and the picker. */
-export const ICD10_DICTIONARY = [
-  { code: 'I10', display: 'Nadciśnienie tętnicze samoistne' },
-  { code: 'E11', display: 'Cukrzyca typu 2' },
-  { code: 'I48', display: 'Migotanie przedsionków' },
-  { code: 'I21', display: 'Ostry zawał serca' },
-  { code: 'J18.9', display: 'Zapalenie płuc, nieokreślone' },
-  { code: 'J45', display: 'Astma' },
-  { code: 'N39.0', display: 'Zakażenie układu moczowego' },
-  { code: 'K35', display: 'Ostre zapalenie wyrostka robaczkowego' },
-  { code: 'I63', display: 'Zawał mózgu' },
-  { code: 'E78.0', display: 'Hipercholesterolemia' },
-  { code: 'M54.5', display: 'Ból okolicy lędźwiowo-krzyżowej' },
-  { code: 'K21', display: 'Choroba refluksowa przełyku' },
-  { code: 'N18', display: 'Przewlekła choroba nerek' },
-  { code: 'I50', display: 'Niewydolność serca' },
-  { code: 'J06.9', display: 'Ostre zakażenie górnych dróg oddechowych' },
-  { code: 'E03.9', display: 'Niedoczynność tarczycy' },
-  { code: 'E66', display: 'Otyłość' },
-  { code: 'M17', display: 'Choroba zwyrodnieniowa stawu kolanowego' },
-  { code: 'I25', display: 'Przewlekła choroba niedokrwienna serca' },
-  { code: 'J44', display: 'Przewlekła obturacyjna choroba płuc' },
-  { code: 'F41', display: 'Zaburzenia lękowe' },
-  { code: 'G47.0', display: 'Zaburzenia zasypiania i podtrzymywania snu' },
-  { code: 'K25', display: 'Choroba wrzodowa żołądka' },
-  { code: 'N40', display: 'Rozrost gruczołu krokowego' },
-  { code: 'D64.9', display: 'Niedokrwistość, nieokreślona' },
-  { code: 'E86', display: 'Odwodnienie' },
-  { code: 'R10.4', display: 'Ból brzucha, inny i nieokreślony' },
-  { code: 'R55', display: 'Omdlenie i zapaść' },
-  { code: 'S06', display: 'Uraz wewnątrzczaszkowy' },
-  { code: 'S72', display: 'Złamanie kości udowej' },
-  { code: 'T81', display: 'Powikłania zabiegów, niesklasyfikowane' },
-  { code: 'Z51.1', display: 'Chemioterapia z powodu nowotworu' },
-  { code: 'I80', display: 'Zapalenie żył i zakrzepica żył' },
-  { code: 'K80', display: 'Kamica żółciowa' },
-  { code: 'N20', display: 'Kamica nerkowa' },
-  { code: 'L03', display: 'Zapalenie tkanki łącznej (cellulitis)' },
-  { code: 'A09', display: 'Biegunka i nieżyt żołądkowo-jelitowy' },
-  { code: 'H25', display: 'Zaćma starcza' },
-  { code: 'M81', display: 'Osteoporoza' },
-  { code: 'G40', display: 'Padaczka' },
-] as const;
-
 export const DIAGNOSES: Diagnosis[] = [
   {
     id: 'dx-001',
     patientId: 'pat-001',
     encounterId: 'enc-001',
-    code: { system: 'ICD-10', code: 'I50', display: 'Niewydolność serca' },
+    code: { system: 'SNOMED', code: '84114007', display: 'Niewydolność serca' },
     type: 'primary',
     status: 'active',
     diagnosedAt: daysAgo(3),
@@ -60,7 +16,7 @@ export const DIAGNOSES: Diagnosis[] = [
     id: 'dx-002',
     patientId: 'pat-001',
     encounterId: 'enc-003',
-    code: { system: 'ICD-10', code: 'I10', display: 'Nadciśnienie tętnicze samoistne' },
+    code: { system: 'SNOMED', code: '38341003', display: 'Nadciśnienie tętnicze samoistne' },
     type: 'chronic',
     status: 'active',
     diagnosedAt: daysAgo(400),
@@ -69,7 +25,7 @@ export const DIAGNOSES: Diagnosis[] = [
   {
     id: 'dx-003',
     patientId: 'pat-001',
-    code: { system: 'ICD-10', code: 'E11', display: 'Cukrzyca typu 2' },
+    code: { system: 'SNOMED', code: '44054006', display: 'Cukrzyca typu 2' },
     type: 'chronic',
     status: 'active',
     diagnosedAt: daysAgo(380),
@@ -80,7 +36,7 @@ export const DIAGNOSES: Diagnosis[] = [
     id: 'dx-004',
     patientId: 'pat-002',
     encounterId: 'enc-004',
-    code: { system: 'ICD-10', code: 'I21', display: 'Ostry zawał serca' },
+    code: { system: 'SNOMED', code: '22298006', display: 'Ostry zawał serca' },
     type: 'primary',
     status: 'active',
     diagnosedAt: daysAgo(1),
@@ -89,7 +45,7 @@ export const DIAGNOSES: Diagnosis[] = [
   {
     id: 'dx-005',
     patientId: 'pat-002',
-    code: { system: 'ICD-10', code: 'I48', display: 'Migotanie przedsionków' },
+    code: { system: 'SNOMED', code: '49436004', display: 'Migotanie przedsionków' },
     type: 'secondary',
     status: 'active',
     diagnosedAt: daysAgo(1),
@@ -98,7 +54,7 @@ export const DIAGNOSES: Diagnosis[] = [
   {
     id: 'dx-006',
     patientId: 'pat-002',
-    code: { system: 'ICD-10', code: 'E78.0', display: 'Hipercholesterolemia' },
+    code: { system: 'SNOMED', code: '55822004', display: 'Hipercholesterolemia' },
     type: 'chronic',
     status: 'active',
     diagnosedAt: daysAgo(500),
@@ -108,7 +64,7 @@ export const DIAGNOSES: Diagnosis[] = [
   {
     id: 'dx-007',
     patientId: 'pat-003',
-    code: { system: 'ICD-10', code: 'M54.5', display: 'Ból okolicy lędźwiowo-krzyżowej' },
+    code: { system: 'SNOMED', code: '279039007', display: 'Ból okolicy lędźwiowo-krzyżowej' },
     type: 'primary',
     status: 'resolved',
     diagnosedAt: daysAgo(180),
@@ -118,7 +74,7 @@ export const DIAGNOSES: Diagnosis[] = [
   {
     id: 'dx-008',
     patientId: 'pat-004',
-    code: { system: 'ICD-10', code: 'I63', display: 'Zawał mózgu' },
+    code: { system: 'SNOMED', code: '422504002', display: 'Zawał mózgu' },
     type: 'primary',
     status: 'active',
     diagnosedAt: daysAgo(5),
@@ -127,7 +83,7 @@ export const DIAGNOSES: Diagnosis[] = [
   {
     id: 'dx-009',
     patientId: 'pat-004',
-    code: { system: 'ICD-10', code: 'I10', display: 'Nadciśnienie tętnicze samoistne' },
+    code: { system: 'SNOMED', code: '38341003', display: 'Nadciśnienie tętnicze samoistne' },
     type: 'chronic',
     status: 'active',
     diagnosedAt: daysAgo(900),
@@ -137,7 +93,7 @@ export const DIAGNOSES: Diagnosis[] = [
   {
     id: 'dx-010',
     patientId: 'pat-005',
-    code: { system: 'ICD-10', code: 'J18.9', display: 'Zapalenie płuc, nieokreślone' },
+    code: { system: 'SNOMED', code: '233604007', display: 'Zapalenie płuc, nieokreślone' },
     type: 'primary',
     status: 'resolved',
     diagnosedAt: daysAgo(20),
@@ -147,7 +103,7 @@ export const DIAGNOSES: Diagnosis[] = [
   {
     id: 'dx-011',
     patientId: 'pat-007',
-    code: { system: 'ICD-10', code: 'S06', display: 'Uraz wewnątrzczaszkowy' },
+    code: { system: 'SNOMED', code: '1734006', display: 'Uraz wewnątrzczaszkowy' },
     type: 'primary',
     status: 'active',
     diagnosedAt: hoursAgo(6),
@@ -157,7 +113,7 @@ export const DIAGNOSES: Diagnosis[] = [
   {
     id: 'dx-012',
     patientId: 'pat-008',
-    code: { system: 'ICD-10', code: 'J45', display: 'Astma' },
+    code: { system: 'SNOMED', code: '195967001', display: 'Astma' },
     type: 'chronic',
     status: 'active',
     diagnosedAt: daysAgo(1000),
@@ -167,7 +123,7 @@ export const DIAGNOSES: Diagnosis[] = [
   {
     id: 'dx-013',
     patientId: 'pat-009',
-    code: { system: 'ICD-10', code: 'K80', display: 'Kamica żółciowa' },
+    code: { system: 'SNOMED', code: '235919008', display: 'Kamica żółciowa' },
     type: 'primary',
     status: 'active',
     diagnosedAt: daysAgo(2),
@@ -177,7 +133,7 @@ export const DIAGNOSES: Diagnosis[] = [
   {
     id: 'dx-014',
     patientId: 'pat-011',
-    code: { system: 'ICD-10', code: 'I48', display: 'Migotanie przedsionków' },
+    code: { system: 'SNOMED', code: '49436004', display: 'Migotanie przedsionków' },
     type: 'primary',
     status: 'active',
     diagnosedAt: daysAgo(45),
@@ -187,7 +143,7 @@ export const DIAGNOSES: Diagnosis[] = [
   {
     id: 'dx-015',
     patientId: 'pat-012',
-    code: { system: 'ICD-10', code: 'N18', display: 'Przewlekła choroba nerek' },
+    code: { system: 'SNOMED', code: '709044004', display: 'Przewlekła choroba nerek' },
     type: 'primary',
     status: 'active',
     diagnosedAt: daysAgo(7),
@@ -196,7 +152,7 @@ export const DIAGNOSES: Diagnosis[] = [
   {
     id: 'dx-016',
     patientId: 'pat-012',
-    code: { system: 'ICD-10', code: 'I10', display: 'Nadciśnienie tętnicze samoistne' },
+    code: { system: 'SNOMED', code: '38341003', display: 'Nadciśnienie tętnicze samoistne' },
     type: 'chronic',
     status: 'active',
     diagnosedAt: daysAgo(2000),
@@ -206,7 +162,7 @@ export const DIAGNOSES: Diagnosis[] = [
   {
     id: 'dx-017',
     patientId: 'pat-013',
-    code: { system: 'ICD-10', code: 'K35', display: 'Ostre zapalenie wyrostka robaczkowego' },
+    code: { system: 'SNOMED', code: '68496003', display: 'Ostre zapalenie wyrostka robaczkowego' },
     type: 'primary',
     status: 'active',
     diagnosedAt: hoursAgo(3),
@@ -216,7 +172,7 @@ export const DIAGNOSES: Diagnosis[] = [
   {
     id: 'dx-018',
     patientId: 'pat-015',
-    code: { system: 'ICD-10', code: 'K35', display: 'Ostre zapalenie wyrostka robaczkowego' },
+    code: { system: 'SNOMED', code: '68496003', display: 'Ostre zapalenie wyrostka robaczkowego' },
     type: 'primary',
     status: 'active',
     diagnosedAt: daysAgo(1),

@@ -24,7 +24,7 @@ export interface Versioned {
   version?: number;
 }
 
-export type CodingSystem = 'ICD-10' | 'LOINC' | 'ATC' | 'ICD-9-PL' | 'local';
+export type CodingSystem = 'ICD-10' | 'LOINC' | 'ATC' | 'ICD-9-PL' | 'local' | 'SNOMED';
 
 /** FHIR-compatible gender code. */
 export type Gender = 'female' | 'male' | 'other' | 'unknown';

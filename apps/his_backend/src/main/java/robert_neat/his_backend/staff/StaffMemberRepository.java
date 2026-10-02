@@ -21,6 +21,11 @@ public interface StaffMemberRepository extends JpaRepository<StaffMember, UUID> 
 
     boolean existsByPwz(String pwz);
 
+    boolean existsByPwzAndIdNot(String pwz, UUID id);
+
     @Query("select count(s) > 0 from StaffMember s where lower(s.email) = lower(:email)")
     boolean existsByEmailIgnoreCase(@Param("email") String email);
+
+    @Query("select count(s) > 0 from StaffMember s where lower(s.email) = lower(:email) and s.id <> :id")
+    boolean existsByEmailIgnoreCaseAndIdNot(@Param("email") String email, @Param("id") UUID id);
 }

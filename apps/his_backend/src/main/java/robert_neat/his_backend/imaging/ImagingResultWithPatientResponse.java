@@ -26,12 +26,13 @@ public record ImagingResultWithPatientResponse(
         boolean critical,
         Instant reviewedAt,
         UUID reviewedById,
+        long version,
         PatientSummaryResponse patient) {
 
     static ImagingResultWithPatientResponse of(ImagingResultResponse r, PatientSummaryResponse patient) {
         return new ImagingResultWithPatientResponse(r.id(), r.patientId(), r.orderId(), r.modality(), r.examName(),
                 r.bodyRegion(), r.performedAt(), r.reportedAt(), r.radiologistName(), r.radiologistId(),
                 r.technique(), r.findings(), r.conclusion(), r.status(), r.imageCount(), r.critical(),
-                r.reviewedAt(), r.reviewedById(), patient);
+                r.reviewedAt(), r.reviewedById(), r.version(), patient);
     }
 }

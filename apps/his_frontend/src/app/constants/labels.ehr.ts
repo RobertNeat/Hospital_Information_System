@@ -56,6 +56,11 @@ export const ALLERGY_STATUS_LABELS: Record<'active' | 'resolved' | 'inactive', s
   resolved: 'Ustąpiła',
   inactive: 'Nieaktywna',
 };
+/** Only `active`/`inactive` are valid on write (`AllergyStatus` z kontraktu); `resolved` is display-only legacy. */
+export const ALLERGY_STATUS_WRITE_OPTIONS = toOptions({
+  active: ALLERGY_STATUS_LABELS.active,
+  inactive: ALLERGY_STATUS_LABELS.inactive,
+});
 
 export const ALLERGY_CATEGORY_LABELS: Record<'drug' | 'food' | 'environment' | 'other', string> = {
   drug: 'Lek',

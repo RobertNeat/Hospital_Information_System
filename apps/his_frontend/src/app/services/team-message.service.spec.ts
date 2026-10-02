@@ -20,7 +20,7 @@ import { MESSAGE_THREADS } from '../mock-data/message-threads.mock';
 import { MESSAGES } from '../mock-data/messages.mock';
 import { TASKS } from '../mock-data/tasks.mock';
 import type { MessageThread } from '../models';
-import type { Page } from '../models/api';
+import type { CursorPage, Page } from '../models/api';
 import { TeamMessageService } from './team-message.service';
 
 const page = (items: MessageThread[], n: number, totalPages: number): Page<MessageThread> => ({
@@ -30,6 +30,9 @@ const page = (items: MessageThread[], n: number, totalPages: number): Page<Messa
   totalElements: items.length,
   totalPages,
 });
+
+/** A single, last cursor page (`nextBefore: null`) for test flushes. */
+const cursorPage = <T>(items: T[]): CursorPage<T> => ({ items, nextBefore: null });
 
 describe('TeamMessageService', () => {
   let service: TeamMessageService;
@@ -75,14 +78,38 @@ describe('TeamMessageService', () => {
 
   it('getMessages and sendMessage use the thread messages endpoint', async () => {
     const list = firstValueFrom(service.getMessages('thr-001'));
-    http.expectOne({ method: 'GET', url: threadMessagesUrl('thr-001') }).flush(MESSAGES);
-    expect(await list).toEqual(MESSAGES);
+    http
+      .expectOne((r) => r.method === 'GET' && r.url === threadMessagesUrl('thr-001'))
+      .flush(cursorPage(MESSAGES));
+    expect(await list).toEqual([...MESSAGES].reverse());
 
     const sent = firstValueFrom(service.sendMessage('thr-001', 'Treść', 'high'));
     const req = http.expectOne({ method: 'POST', url: threadMessagesUrl('thr-001') });
     expect(req.request.body).toEqual({ body: 'Treść', priority: 'high' });
     req.flush(MESSAGES[0], { status: 201, statusText: 'Created' });
     await sent;
+  });
+
+  it('getMessages follows nextBefore across cursor pages', async () => {
+    const [newest, middle, oldest] = MESSAGES;
+    const list = firstValueFrom(service.getMessages('thr-001'));
+    const firstReq = http.expectOne(
+      (r) => r.url === threadMessagesUrl('thr-001') && !r.params.has('before'),
+    );
+    firstReq.flush({ items: [newest], nextBefore: newest.sentAt });
+    const secondReq = http.expectOne(
+      (r) => r.url === threadMessagesUrl('thr-001') && r.params.get('before') === newest.sentAt,
+    );
+    secondReq.flush({ items: [middle, oldest], nextBefore: null });
+    expect(await list).toEqual([oldest, middle, newest]);
+  });
+
+  it('getAlertsPage exposes a single page with its cursor for load-more UI', async () => {
+    const result = firstValueFrom(service.getAlertsPage({ acknowledged: false, size: 1 }));
+    const req = http.expectOne((r) => r.url === ALERTS_URL);
+    expect(req.request.params.get('size')).toBe('1');
+    req.flush({ items: [ALERTS[0]], nextBefore: ALERTS[0].createdAt });
+    expect(await result).toEqual({ items: [ALERTS[0]], nextBefore: ALERTS[0].createdAt });
   });
 
   it('createThread nests the first message', async () => {
@@ -173,7 +200,7 @@ describe('TeamMessageService', () => {
     const result = firstValueFrom(service.getAlerts({ acknowledged: false }));
     const req = http.expectOne((r) => r.url === ALERTS_URL);
     expect(req.request.params.get('acknowledged')).toBe('false');
-    req.flush(unacknowledged);
+    req.flush(cursorPage(unacknowledged));
     await result;
     expect(service.unacknowledgedAlertCount()).toBe(unacknowledged.length);
     expect(service.alerts()).toEqual(unacknowledged);
@@ -181,7 +208,7 @@ describe('TeamMessageService', () => {
 
   it('getAlerts for one patient does not replace the badge list', async () => {
     const result = firstValueFrom(service.getAlerts({ patientId: 'pat-002', acknowledged: false }));
-    http.expectOne((r) => r.url === ALERTS_URL).flush([ALERTS[0]]);
+    http.expectOne((r) => r.url === ALERTS_URL).flush(cursorPage([ALERTS[0]]));
     await result;
     expect(service.alerts()).toEqual([]);
   });
@@ -189,7 +216,7 @@ describe('TeamMessageService', () => {
   it('acknowledgeAlert POSTs an empty body and drops the alert from the badge list', async () => {
     const unacknowledged = ALERTS.filter((a) => !a.acknowledged);
     const load = firstValueFrom(service.getAlerts({ acknowledged: false }));
-    http.expectOne((r) => r.url === ALERTS_URL).flush(unacknowledged);
+    http.expectOne((r) => r.url === ALERTS_URL).flush(cursorPage(unacknowledged));
     await load;
 
     const target = unacknowledged[0];
@@ -206,7 +233,7 @@ describe('TeamMessageService', () => {
     http.expectOne((r) => r.url === MESSAGE_THREADS_URL).flush(page([], 0, 1));
     const alerts = http.expectOne((r) => r.url === ALERTS_URL);
     expect(alerts.request.params.get('acknowledged')).toBe('false');
-    alerts.flush([]);
+    alerts.flush(cursorPage([]));
   });
 
   it('applyPush upserts threads, dedupes alerts and drops acknowledged ones', () => {

@@ -1,9 +1,11 @@
 package robert_neat.his_backend.imaging;
 
+import java.net.URI;
 import java.util.List;
 import java.util.UUID;
 
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -18,8 +20,9 @@ import robert_neat.his_backend.lab.ResultAbnormalityFilter;
 import robert_neat.his_backend.lab.ResultAcknowledgeRequest;
 
 /**
- * Wyniki badan obrazowych (API.md, par. 5). Odczyt: `imaging-result:read`; potwierdzenie: `imaging-result:acknowledge`.
- * Wprowadzanie wynikow nie ma endpointu (poza kontraktem UI) - {@link ImagingResultRecordingService}.
+ * Wyniki badan obrazowych (API.md, par. 5). Odczyt: `imaging-result:read`; potwierdzenie:
+ * `imaging-result:acknowledge`; zapis: `imaging-result:write` ({@code POST /imaging-orders/{orderId}/results}, ta
+ * sama walidacja co `POST /fhir/DiagnosticReport` - {@link ImagingResultRecordingService}).
  */
 @RestController
 @RequestMapping("/api/v1")
@@ -53,11 +56,20 @@ public class ImagingResultController {
         return service.get(resultId);
     }
 
-    /** Idempotentne; cialo opcjonalne (`version` ignorowane - wynik nie ma wersji). */
+    /** Idempotentne; cialo opcjonalne. 409 gdy podana `version` nie zgadza sie z biezaca. */
     @PostMapping("/imaging-results/{resultId}/acknowledge")
     @PreAuthorize("hasAuthority('imaging-result:acknowledge')")
     public ImagingResultResponse acknowledge(@PathVariable String resultId,
             @RequestBody(required = false) ResultAcknowledgeRequest request) {
-        return service.acknowledge(resultId);
+        return service.acknowledge(resultId, request == null ? null : request.version());
+    }
+
+    /** Wprowadzenie wyniku przez radiologa (native REST, odpowiednik `POST /fhir/DiagnosticReport`). 201 + `Location`. */
+    @PostMapping("/imaging-orders/{orderId}/results")
+    @PreAuthorize("hasAuthority('imaging-result:write')")
+    public ResponseEntity<ImagingResultResponse> recordResult(@PathVariable String orderId,
+            @RequestBody ImagingResultCreateRequest request) {
+        ImagingResultResponse created = service.recordForOrder(orderId, request);
+        return ResponseEntity.created(URI.create("/api/v1/imaging-results/" + created.id())).body(created);
     }
 }

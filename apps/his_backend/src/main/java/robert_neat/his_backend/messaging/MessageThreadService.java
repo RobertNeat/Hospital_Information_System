@@ -12,6 +12,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.Limit;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -19,6 +20,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import robert_neat.his_backend.common.api.CursorPage;
 import robert_neat.his_backend.common.api.ForbiddenException;
 import robert_neat.his_backend.common.api.NotFoundException;
 import robert_neat.his_backend.common.api.PageResponse;
@@ -41,6 +43,9 @@ public class MessageThreadService {
 
     private static final SortWhitelist SORT = SortWhitelist.of(Sort.by(Sort.Direction.DESC, "lastMessageAt"),
             "lastMessageAt", "subject", "createdAt");
+
+    static final int DEFAULT_MESSAGE_PAGE_SIZE = 50;
+    static final int MAX_MESSAGE_PAGE_SIZE = 100;
 
     private final MessageThreadRepository threads;
     private final ThreadParticipantRepository participants;
@@ -87,13 +92,30 @@ public class MessageThreadService {
         return toResponse(thread, me);
     }
 
-    /** Wiadomosci rosnaco po `sentAt` (z `readByIds`). 404 brak watku, 403 nie-uczestnik. */
-    public List<MessageResponse> messages(String threadId) {
+    /**
+     * Strona wiadomosci malejaco po `sentAt` (z `readByIds`), kursor `before` (wylacznie starsze); `size`
+     * poza [1, {@link #MAX_MESSAGE_PAGE_SIZE}] jest przycinane do {@link #DEFAULT_MESSAGE_PAGE_SIZE}/maks.
+     * 404 brak watku, 403 nie-uczestnik.
+     */
+    public CursorPage<MessageResponse> messages(String threadId, Instant before, Integer size) {
         UUID me = actor(currentActor);
         MessageThread thread = requireAccessible(threadId, me);
         List<ThreadParticipant> members = participants.findByIdThreadIdIn(List.of(thread.getId()));
-        return messages.findByThreadIdOrderBySentAtAscIdAsc(thread.getId()).stream()
-                .map(m -> MessagingMapper.toResponse(m, members)).toList();
+        int pageSize = clampMessageSize(size);
+        Limit limit = Limit.of(pageSize + 1);
+        List<Message> fetched = before == null
+                ? messages.findByThreadIdOrderBySentAtDescIdDesc(thread.getId(), limit)
+                : messages.findByThreadIdAndSentAtBeforeOrderBySentAtDescIdDesc(thread.getId(), before, limit);
+        CursorPage<Message> page = CursorPage.of(fetched, pageSize, Message::getSentAt);
+        List<MessageResponse> items = page.items().stream().map(m -> MessagingMapper.toResponse(m, members)).toList();
+        return new CursorPage<>(items, page.nextBefore());
+    }
+
+    private static int clampMessageSize(Integer requested) {
+        if (requested == null || requested <= 0) {
+            return DEFAULT_MESSAGE_PAGE_SIZE;
+        }
+        return Math.min(requested, MAX_MESSAGE_PAGE_SIZE);
     }
 
     // --- zapis ---

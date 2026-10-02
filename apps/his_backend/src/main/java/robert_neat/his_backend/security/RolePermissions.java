@@ -67,7 +67,9 @@ public final class RolePermissions {
         grant("prescription:create", DOCTOR);
         grant("prescription:cancel", DOCTOR);
         grant("drug:read", DOCTOR, NURSE, PHARMACIST, ADMIN);
-        grant("drug-safety-check:run", DOCTOR);
+        // Jedyny endpoint (POST, bez skutkow ubocznych) sluzy zarowno uruchomieniu, jak i odczytowi wyniku;
+        // "R" dla pielegniarki/farmaceuty/admina (kontrakt) to po prostu dostep do tego samego wywolania.
+        grant("drug-safety-check:run", DOCTOR, NURSE, PHARMACIST, ADMIN);
 
         grant("vitals:read", DOCTOR, NURSE, ADMIN);
         grant("vitals:write", DOCTOR, NURSE);
@@ -85,6 +87,7 @@ public final class RolePermissions {
         grant("staff:write", ADMIN);
         grant("ward:read", ALL);
         grant("ward:write", ADMIN);
+        // vital-threshold:write juz istnialo w macierzy; endpoint PUT dodany w VitalThresholdController.
         grant("dashboard:read", ALL);
         grant("account:manage", ADMIN);
 

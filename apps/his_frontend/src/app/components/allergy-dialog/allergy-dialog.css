@@ -1,0 +1,13 @@
+.his-full-width {
+  width: 100%;
+}
+
+.his-form-grid__full {
+  grid-column: 1 / -1;
+}
+
+.his-dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}

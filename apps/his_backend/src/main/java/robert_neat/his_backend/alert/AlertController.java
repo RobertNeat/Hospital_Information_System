@@ -1,6 +1,6 @@
 package robert_neat.his_backend.alert;
 
-import java.util.List;
+import java.time.Instant;
 import java.util.UUID;
 
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import robert_neat.his_backend.common.api.CursorPage;
 
 /** Alerty kliniczne (API.md, par. 8). Uprawnienia wg par. 12: `alert:read` / `alert:acknowledge`. */
 @RestController
@@ -22,11 +24,13 @@ public class AlertController {
         this.service = service;
     }
 
+    /** Paginacja kursorowa: `before` (wylacznie starsze niz podany `createdAt`), `size` (domyslnie/maks. w serwisie). */
     @GetMapping("/alerts")
     @PreAuthorize("hasAuthority('alert:read')")
-    public List<AlertResponse> list(@RequestParam(required = false) UUID patientId,
-            @RequestParam(required = false) Boolean acknowledged) {
-        return service.list(patientId, acknowledged);
+    public CursorPage<AlertResponse> list(@RequestParam(required = false) UUID patientId,
+            @RequestParam(required = false) Boolean acknowledged, @RequestParam(required = false) Instant before,
+            @RequestParam(required = false) Integer size) {
+        return service.list(patientId, acknowledged, before, size);
     }
 
     /** Puste cialo (uzytkownik z sesji); idempotentne. */

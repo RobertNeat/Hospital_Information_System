@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import type { Signal } from '@angular/core';
-import { Subject, forkJoin, tap } from 'rxjs';
+import { Subject, forkJoin, map, tap } from 'rxjs';
 import type { Observable } from 'rxjs';
 import {
   ALERTS_URL,
@@ -27,6 +27,7 @@ import type {
 import type {
   AlertAcknowledgeRequest,
   AlertQuery,
+  CursorPage,
   HandoffNoteCreateRequest,
   HandoffNoteQuery,
   MessageSendRequest,
@@ -39,7 +40,7 @@ import type {
   ThreadQuery,
 } from '../models/api';
 import { toHttpParams } from '../utils/http-params';
-import { MAX_PAGE_SIZE, readAllPages } from '../utils/read-all-pages';
+import { MAX_PAGE_SIZE, readAllCursorPages, readAllPages } from '../utils/read-all-pages';
 
 /** Server push applied to the local state; pages subscribe to reload what they display. */
 export type TeamPush =
@@ -115,9 +116,21 @@ export class TeamMessageService {
     return this.http.get<MessageThread>(messageThreadUrl(threadId));
   }
 
-  /** Messages of a thread, oldest first. */
+  /**
+   * One cursor page of a thread's messages, newest first (see `CursorPage`). `before` fetches
+   * messages strictly older than that `sentAt`; omit for the newest page.
+   */
+  getMessagesPage(threadId: ID, before?: string, size?: number): Observable<CursorPage<Message>> {
+    return this.http.get<CursorPage<Message>>(threadMessagesUrl(threadId), {
+      params: toHttpParams({ before, size }),
+    });
+  }
+
+  /** All messages of a thread (every cursor page read), oldest first. */
   getMessages(threadId: ID): Observable<Message[]> {
-    return this.http.get<Message[]>(threadMessagesUrl(threadId));
+    return readAllCursorPages((before) =>
+      this.getMessagesPage(threadId, before, MAX_PAGE_SIZE),
+    ).pipe(map((messages) => [...messages].reverse()));
   }
 
   sendMessage(threadId: ID, body: string, priority: Priority): Observable<Message> {
@@ -187,20 +200,32 @@ export class TeamMessageService {
     return this.http.post<HandoffNote>(HANDOFF_NOTES_URL, draft);
   }
 
-  /** Alerts, newest first; `acknowledged` refers to the signed-in user. Not paged. */
+  /**
+   * One cursor page of alerts, newest first (see `CursorPage`). `before` fetches alerts strictly
+   * older than that `createdAt`; omit for the newest page. `acknowledged` refers to the signed-in user.
+   */
+  getAlertsPage(
+    filter?: AlertQuery & { before?: string; size?: number },
+  ): Observable<CursorPage<ClinicalAlert>> {
+    return this.http.get<CursorPage<ClinicalAlert>>(ALERTS_URL, {
+      params: toHttpParams({
+        patientId: filter?.patientId,
+        acknowledged: filter?.acknowledged,
+        before: filter?.before,
+        size: filter?.size,
+      }),
+    });
+  }
+
+  /** All alerts matching the filter (every cursor page read), newest first. */
   getAlerts(filter?: AlertQuery): Observable<ClinicalAlert[]> {
-    return this.http
-      .get<ClinicalAlert[]>(ALERTS_URL, {
-        params: toHttpParams({
-          patientId: filter?.patientId,
-          acknowledged: filter?.acknowledged,
-        }),
-      })
-      .pipe(
-        tap((list) => {
-          if (filter?.acknowledged === false && !filter.patientId) this.alertsState.set(list);
-        }),
-      );
+    return readAllCursorPages((before) =>
+      this.getAlertsPage({ ...filter, before, size: MAX_PAGE_SIZE }),
+    ).pipe(
+      tap((list) => {
+        if (filter?.acknowledged === false && !filter.patientId) this.alertsState.set(list);
+      }),
+    );
   }
 
   /** Per-user and idempotent; the acknowledging user comes from the token. */

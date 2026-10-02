@@ -67,4 +67,18 @@ public class StaffMember {
         member.email = email;
         return member;
     }
+
+    /** Edycja danych administratora (`employeeId` pozostaje bez zmian - to login konta). */
+    public void update(String title, String firstName, String lastName, StaffRole role, String specialization,
+            UUID wardId, String phone, String pwz, String email) {
+        this.title = title;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.role = role;
+        this.specialization = specialization;
+        this.wardId = wardId;
+        this.phone = phone;
+        this.pwz = pwz;
+        this.email = email;
+    }
 }

@@ -63,6 +63,6 @@ export const ALERTS: ClinicalAlert[] = [
     message: 'Zaległe zadanie: podanie Clexane 40 mg sc.',
     createdAt: hoursAgo(1),
     acknowledged: false,
-    target: { kind: 'task', id: 'tsk-003', patientId: 'pat-009' },
+    target: { kind: 'task', id: 'tsk-002', patientId: 'pat-009' },
   },
 ];

@@ -9,6 +9,7 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 
 import java.net.SocketTimeoutException;
 import java.time.Duration;
+import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -17,6 +18,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
+
+import robert_neat.his_backend.ehr.Coding;
+import robert_neat.his_backend.ehr.CodingSystem;
 
 class SnowstormClientTest {
 
@@ -204,6 +208,118 @@ class SnowstormClientTest {
                 .andRespond(withStatus(HttpStatus.SERVICE_UNAVAILABLE));
 
         assertThatThrownBy(() -> client.lookup("12345678"))
+                .isInstanceOf(TerminologyException.Unavailable.class);
+    }
+
+    // --- translateToIcd10 ($translate, refset 447562003) ---
+
+    // Ksztalt odpowiedzi ponizej zweryfikowany na zywym Snowstorm Lite 2.7.0 (20261001):
+    // $translate (w przeciwienstwie do $lookup) nie zwraca "display" w valueCoding, a dla
+    // nieznanego SCTID odpowiada HTTP 200 z {"result":false} - tak samo jak dla znanego kodu
+    // bez mapowania ICD-10 (brak rozroznienia tych dwoch przypadkow po stronie serwera).
+
+    @Test
+    void translateMapsMatchedIcd10CodingFallingBackToCodeAsDisplay() {
+        server.expect(request -> {
+                    assertThat(request.getURI().getRawPath()).isEqualTo("/fhir/ConceptMap/$translate");
+                    String raw = request.getURI().getRawQuery();
+                    assertThat(raw).contains("url=http%3A%2F%2Fsnomed.info%2Fsct%3Ffhir_cm%3D447562003")
+                            .contains("system=http%3A%2F%2Fsnomed.info%2Fsct").contains("code=38341003");
+                })
+                .andExpect(method(HttpMethod.GET))
+                .andRespond(withSuccess("""
+                        {"resourceType":"Parameters","parameter":[
+                          {"name":"result","valueBoolean":true},
+                          {"name":"message","valueString":"Please observe the following map advice."},
+                          {"name":"match","part":[
+                            {"name":"equivalence","valueCode":"unmatched"},
+                            {"name":"concept","valueCoding":{"system":"http://hl7.org/fhir/sid/icd-10","code":"I10"}},
+                            {"name":"source","valueString":"http://snomed.info/sct/900000000000207008/version/20261001?fhir_cm=447562003"}]}]}
+                        """, FHIR_JSON));
+
+        List<Coding> result = client.translateToIcd10("38341003");
+
+        assertThat(result).containsExactly(new Coding(CodingSystem.ICD_10, "I10", "I10"));
+        server.verify();
+    }
+
+    @Test
+    void translateWithMultipleMatchesReturnsAllDeduplicated() {
+        server.expect(requestTo(org.hamcrest.Matchers.startsWith(BASE + "/ConceptMap/$translate")))
+                .andRespond(withSuccess("""
+                        {"resourceType":"Parameters","parameter":[
+                          {"name":"result","valueBoolean":true},
+                          {"name":"match","part":[
+                            {"name":"concept","valueCoding":{"code":"I21.9"}}]},
+                          {"name":"match","part":[
+                            {"name":"concept","valueCoding":{"code":"I21.9"}}]},
+                          {"name":"match","part":[
+                            {"name":"concept","valueCoding":{"code":"I21.0"}}]}]}
+                        """, FHIR_JSON));
+
+        List<Coding> result = client.translateToIcd10("22298006");
+
+        assertThat(result).containsExactly(
+                new Coding(CodingSystem.ICD_10, "I21.9", "I21.9"),
+                new Coding(CodingSystem.ICD_10, "I21.0", "I21.0"));
+    }
+
+    @Test
+    void translateNoMappingReturnsEmptyList() {
+        server.expect(requestTo(org.hamcrest.Matchers.startsWith(BASE + "/ConceptMap/$translate")))
+                .andRespond(withSuccess("""
+                        {"resourceType":"Parameters","parameter":[
+                          {"name":"result","valueBoolean":false},
+                          {"name":"message","valueString":"No mappings could be found for 138875005 (http://snomed.info/sct)"}]}
+                        """, FHIR_JSON));
+
+        assertThat(client.translateToIcd10("138875005")).isEmpty();
+    }
+
+    // Snowstorm Lite nie zglasza bledu dla nieznanego SCTID na $translate (inaczej niz $lookup) -
+    // odpowiada HTTP 200 jak przy braku mapowania; traktujemy to tak samo, pustym wynikiem.
+    @Test
+    void translateUnknownCodeReturnsEmptyListLikeServerDoes() {
+        server.expect(requestTo(org.hamcrest.Matchers.startsWith(BASE + "/ConceptMap/$translate")))
+                .andRespond(withSuccess("""
+                        {"resourceType":"Parameters","parameter":[
+                          {"name":"result","valueBoolean":false},
+                          {"name":"message","valueString":"No mappings could be found for 999999999 (http://snomed.info/sct)"}]}
+                        """, FHIR_JSON));
+
+        assertThat(client.translateToIcd10("999999999")).isEmpty();
+    }
+
+    @Test
+    void translate5xxMapsToUnavailable() {
+        server.expect(requestTo(org.hamcrest.Matchers.startsWith(BASE + "/ConceptMap/$translate")))
+                .andRespond(withStatus(HttpStatus.BAD_GATEWAY));
+
+        assertThatThrownBy(() -> client.translateToIcd10("38341003"))
+                .isInstanceOf(TerminologyException.Unavailable.class);
+    }
+
+    @Test
+    void translate400MapsToInvalidRequest() {
+        server.expect(requestTo(org.hamcrest.Matchers.startsWith(BASE + "/ConceptMap/$translate")))
+                .andRespond(withStatus(HttpStatus.BAD_REQUEST));
+
+        assertThatThrownBy(() -> client.translateToIcd10("38341003"))
+                .isInstanceOf(TerminologyException.InvalidRequest.class);
+    }
+
+    @Test
+    void translateValidatesSctidWithoutCallingServer() {
+        assertThatThrownBy(() -> client.translateToIcd10("12ab"))
+                .isInstanceOf(TerminologyException.InvalidRequest.class);
+        server.verify();
+    }
+
+    @Test
+    void translateDisabledClientReportsUnavailable() {
+        SnowstormClient disabled = new SnowstormClient(props(false), RestClient.builder().baseUrl(BASE).build());
+
+        assertThatThrownBy(() -> disabled.translateToIcd10("38341003"))
                 .isInstanceOf(TerminologyException.Unavailable.class);
     }
 }

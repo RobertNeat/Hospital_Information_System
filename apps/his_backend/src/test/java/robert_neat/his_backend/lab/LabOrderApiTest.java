@@ -265,7 +265,7 @@ class LabOrderApiTest extends ApiIntegrationTest {
         String body = "{\"patientId\":\"" + KOWALSKI + "\",\"encounterId\":\"" + KOWALSKI_HOSPITALIZATION
                 + "\",\"orderedById\":\"" + NURSE_STAFF + "\",\"urgency\":\"urgent\",\"fasting\":false,"
                 + "\"plannedCollectionAt\":\"2030-01-02T08:00:00Z\","
-                + "\"diagnosisCode\":{\"system\":\"ICD-10\",\"code\":\" I50.0 \",\"display\":\"Niewydolność serca\"},"
+                + "\"diagnosisCode\":{\"system\":\"SNOMED\",\"code\":\" 84114007 \",\"display\":\"Niewydolność serca\"},"
                 + "\"clinicalInfo\":\"  Kontrola CRP.  \",\"notes\":\"Pobrać rano\","
                 + "\"status\":\"completed\",\"version\":9,"
                 + "\"items\":[{\"testCode\":\"CRP\",\"testName\":\"Nazwa od klienta\",\"specimenType\":\"blood\"},"
@@ -284,8 +284,8 @@ class LabOrderApiTest extends ApiIntegrationTest {
                 .andExpect(jsonPath("$.urgency").value("urgent"))
                 .andExpect(jsonPath("$.fasting").value(false))
                 .andExpect(jsonPath("$.plannedCollectionAt").value("2030-01-02T08:00:00Z"))
-                .andExpect(jsonPath("$.diagnosisCode.system").value("ICD-10"))
-                .andExpect(jsonPath("$.diagnosisCode.code").value("I50.0"))
+                .andExpect(jsonPath("$.diagnosisCode.system").value("SNOMED"))
+                .andExpect(jsonPath("$.diagnosisCode.code").value("84114007"))
                 .andExpect(jsonPath("$.diagnosisCode.display").value("Niewydolność serca"))
                 .andExpect(jsonPath("$.clinicalInfo").value("Kontrola CRP."))
                 .andExpect(jsonPath("$.notes").value("Pobrać rano"))
@@ -305,7 +305,7 @@ class LabOrderApiTest extends ApiIntegrationTest {
         assertThat(jdbc.queryForObject("select count(*) from lab_order_item where order_id = ?::uuid",
                 Integer.class, id)).isEqualTo(2);
         assertThat(jdbc.queryForMap("select diagnosis_code_system s, diagnosis_code_value v from lab_order "
-                + "where id = ?::uuid", id)).containsEntry("s", "ICD-10").containsEntry("v", "I50.0");
+                + "where id = ?::uuid", id)).containsEntry("s", "SNOMED").containsEntry("v", "84114007");
 
         // zmiana katalogu po zleceniu nie zmienia zapisanego snapshotu
         jdbc.update("update lab_test set name = 'Jeszcze inna' where code = 'CRP'");
@@ -415,7 +415,7 @@ class LabOrderApiTest extends ApiIntegrationTest {
                 .andExpect(jsonPath("$.errors[0].field").value("clinicalInfo"));
         create("doctor", KOWALSKI, orderBody(items, "false").replace("\"routine\"", "\"asap\""))
                 .andExpect(status().isUnprocessableContent()).andExpect(jsonPath("$.errors[0].field").value("urgency"));
-        create("doctor", KOWALSKI, orderBody(items, "false", ",\"diagnosisCode\":{\"system\":\"ICD-10\",\"code\":\"I50.0\"}")).andExpect(status().isUnprocessableContent())
+        create("doctor", KOWALSKI, orderBody(items, "false", ",\"diagnosisCode\":{\"system\":\"SNOMED\",\"code\":\"84114007\"}")).andExpect(status().isUnprocessableContent())
                 .andExpect(jsonPath("$.errors[0].field").value("diagnosisCode.display"));
         create("doctor", KOWALSKI, orderBody(items, "false", ",\"patientId\":\"" + SZYMANSKI + "\""))
                 .andExpect(status().isUnprocessableContent())

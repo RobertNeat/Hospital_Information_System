@@ -50,7 +50,7 @@ class MockDataMigrationTest {
                         + "WHERE table_schema = 'public' AND table_type = 'BASE TABLE' "
                         + "AND table_name NOT LIKE 'databasechangelog%'",
                 String.class);
-        assertThat(tables).hasSize(49);
+        assertThat(tables).hasSize(48);
         for (String table : tables) {
             assertThat(manifest.reference().containsKey(table) || manifest.mock().containsKey(table))
                     .as("tabela %s w manifescie", table).isTrue();

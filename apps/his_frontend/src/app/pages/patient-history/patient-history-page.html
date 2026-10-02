@@ -192,6 +192,17 @@
 
       <!-- Rozpoznania -->
       <p-tabpanel id="patient-history-p-tabpanel-4" value="diagnoses">
+        @if (canWriteDiagnosis()) {
+          <div id="patient-history-diagnoses-toolbar" class="his-toolbar">
+            <p-button
+              id="patient-history-add-diagnosis-button"
+              label="Dodaj rozpoznanie"
+              icon="pi pi-plus"
+              ariaLabel="Dodaj rozpoznanie"
+              (onClick)="openDiagnosisDialog()"
+            />
+          </div>
+        }
         @if (diagnoses().length) {
           <app-data-table
             id="patient-history-diagnoses-table"
@@ -269,6 +280,17 @@
 
       <!-- Alergie i przeciwwskazania -->
       <p-tabpanel id="patient-history-p-tabpanel-6" value="allergies">
+        @if (canWriteAllergy()) {
+          <div id="patient-history-allergies-toolbar" class="his-toolbar">
+            <p-button
+              id="patient-history-add-allergy-button"
+              label="Dodaj alergię"
+              icon="pi pi-plus"
+              ariaLabel="Dodaj alergię"
+              (onClick)="openAllergyDialog()"
+            />
+          </div>
+        }
         <app-history-allergies-panel
           id="patient-history-allergies-panel"
           [allergies]="allergies()"
@@ -287,4 +309,21 @@
   [authorId]="currentUserId()"
   (visibleChange)="noteDialogVisible.set($event)"
   (save)="onNoteSave($event)"
+/>
+
+<app-diagnosis-dialog
+  id="patient-history-app-diagnosis-dialog"
+  [visible]="diagnosisDialogVisible()"
+  [patientId]="patientId()"
+  [diagnoses]="diagnoses()"
+  (visibleChange)="diagnosisDialogVisible.set($event)"
+  (save)="onDiagnosisSave($event)"
+/>
+
+<app-allergy-dialog
+  id="patient-history-app-allergy-dialog"
+  [visible]="allergyDialogVisible()"
+  [patientId]="patientId()"
+  (visibleChange)="allergyDialogVisible.set($event)"
+  (save)="onAllergySave($event)"
 />

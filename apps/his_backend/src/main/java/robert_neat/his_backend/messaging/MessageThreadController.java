@@ -1,7 +1,7 @@
 package robert_neat.his_backend.messaging;
 
 import java.net.URI;
-import java.util.List;
+import java.time.Instant;
 import java.util.UUID;
 
 import org.springframework.data.domain.Pageable;
@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
+import robert_neat.his_backend.common.api.CursorPage;
 import robert_neat.his_backend.common.api.PageResponse;
 
 /** Watki i wiadomosci (API.md, par. 8). Uprawnienia wg par. 12: `message:read` / `message:write`. */
@@ -43,10 +44,12 @@ public class MessageThreadController {
         return service.get(threadId);
     }
 
+    /** Paginacja kursorowa: `before` (wylacznie starsze niz podany `sentAt`), `size` (domyslnie/maks. w serwisie). */
     @GetMapping("/message-threads/{threadId}/messages")
     @PreAuthorize("hasAuthority('message:read')")
-    public List<MessageResponse> messages(@PathVariable String threadId) {
-        return service.messages(threadId);
+    public CursorPage<MessageResponse> messages(@PathVariable String threadId,
+            @RequestParam(required = false) Instant before, @RequestParam(required = false) Integer size) {
+        return service.messages(threadId, before, size);
     }
 
     @PostMapping("/message-threads")

@@ -17,6 +17,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -24,8 +25,10 @@ import robert_neat.his_backend.catalog.LabCategory;
 
 /**
  * Wynik badania laboratoryjnego (`lab_result`). Niezmienny poza potwierdzeniem (`reviewedAt`/`reviewedById`, ustawiane
- * wylacznie przez {@link #acknowledge}); tabela nie ma kolumn audytu ani `version`. `testName`, `category` i
- * `performerName` to snapshoty z chwili wyniku. FK mapowane skalarnie. Tworzy go {@link LabResultRecordingService}.
+ * wylacznie przez {@link #acknowledge}); tabela nie ma kolumn audytu, ma tylko `version` (optymistyczne blokowanie,
+ * sprawdzane recznie w {@code acknowledge} wzgledem `version` z zadania - patrz {@link LabResultService}). `testName`,
+ * `category` i `performerName` to snapshoty z chwili wyniku. FK mapowane skalarnie. Tworzy go
+ * {@link LabResultRecordingService}.
  */
 @Entity
 @Table(name = "lab_result")
@@ -75,6 +78,10 @@ public class LabResult {
 
     @Column(name = "reviewed_by_id")
     private UUID reviewedById;
+
+    @Version
+    @Column(name = "version", nullable = false)
+    private long version;
 
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "result_id", nullable = false, updatable = false)

@@ -55,7 +55,6 @@ export const patientContraindicationsUrl = (patientId: string): string =>
   patientSubUrl(patientId, 'contraindications');
 export const patientTreatmentsUrl = (patientId: string): string =>
   patientSubUrl(patientId, 'treatments');
-export const ICD10_URL = `${API_BASE_URL}/dictionaries/icd-10`;
 
 // Laboratory.
 export const LAB_TESTS_URL = `${API_BASE_URL}/lab-tests`;
@@ -134,3 +133,6 @@ export const alertAcknowledgeUrl = (alertId: string): string =>
 // Terminology (SNOMED CT).
 export const SNOMED_CONCEPTS_URL = `${API_BASE_URL}/terminology/snomed/concepts`;
 export const snomedConceptUrl = (sctid: string): string => `${SNOMED_CONCEPTS_URL}/${enc(sctid)}`;
+export const SNOMED_SUGGESTIONS_URL = `${API_BASE_URL}/terminology/snomed/suggestions`;
+export const snomedIcd10Url = (sctid: string): string =>
+  `${API_BASE_URL}/terminology/snomed/${enc(sctid)}/icd-10`;

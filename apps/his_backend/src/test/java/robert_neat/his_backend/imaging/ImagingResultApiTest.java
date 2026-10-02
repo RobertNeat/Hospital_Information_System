@@ -47,7 +47,8 @@ import robert_neat.his_backend.imaging.events.ImagingResultRecorded;
 
 /**
  * Kontrakt wynikow obrazowych (API.md, par. 5) na danych mock: 5 wynikow (4 z zlecenia, 1 zewnetrzny; 2 krytyczne,
- * wszystkie `final`) oraz wewnetrzny zapis wynikow ({@link ImagingResultRecordingService}).
+ * wszystkie `final`) oraz zapis wynikow ({@link ImagingResultRecordingService}), bezposrednio i przez natywny
+ * endpoint REST (`POST /imaging-orders/{orderId}/results`).
  */
 @RecordApplicationEvents
 class ImagingResultApiTest extends ApiIntegrationTest {
@@ -189,7 +190,7 @@ class ImagingResultApiTest extends ApiIntegrationTest {
         Map<String, Object> result = JsonPath.read(json, "$");
         assertThat(result.keySet()).containsExactlyInAnyOrder("id", "patientId", "modality", "examName", "bodyRegion",
                 "performedAt", "reportedAt", "radiologistName", "technique", "findings", "conclusion", "status",
-                "imageCount", "critical"); // bez orderId, radiologistId, reviewedAt, reviewedById
+                "imageCount", "critical", "version"); // bez orderId, radiologistId, reviewedAt, reviewedById
     }
 
     @Test
@@ -234,11 +235,30 @@ class ImagingResultApiTest extends ApiIntegrationTest {
     }
 
     @Test
-    void acknowledgeAcceptsOptionalBodyAndIgnoresVersion() throws Exception {
+    void acknowledgeAcceptsOptionalBody() throws Exception {
         as("doctor", post("/api/v1/imaging-results/{id}/acknowledge", RES_MRI)).andExpect(status().isOk());
         as("doctor", post("/api/v1/imaging-results/{id}/acknowledge", RES_USG).contentType(JSON)
-                .content("{\"version\":7}")).andExpect(status().isOk())
+                .content("{\"version\":0}")).andExpect(status().isOk())
                 .andExpect(jsonPath("$.reviewedAt").exists());
+    }
+
+    @Test
+    void acknowledgeWithWrongVersionIs409AndDoesNotChangeResult() throws Exception {
+        as("doctor", post("/api/v1/imaging-results/{id}/acknowledge", RES_CT).contentType(JSON)
+                .content("{\"version\":7}")).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("CONFLICT"));
+        assertThat(reviewedBy(RES_CT)).isNull();
+    }
+
+    @Test
+    void acknowledgeWithMatchingVersionSucceedsAndBumpsVersion() throws Exception {
+        as("doctor", post("/api/v1/imaging-results/{id}/acknowledge", RES_CT).contentType(JSON)
+                .content("{\"version\":0}")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.version").value(1));
+        as("doctor", post("/api/v1/imaging-results/{id}/acknowledge", RES_CT).contentType(JSON)
+                .content("{\"version\":0}")).andExpect(status().isConflict());
+        as("doctor", post("/api/v1/imaging-results/{id}/acknowledge", RES_CT).contentType(JSON)
+                .content("{\"version\":1}")).andExpect(status().isOk());
     }
 
     @Test
@@ -305,6 +325,56 @@ class ImagingResultApiTest extends ApiIntegrationTest {
     void inboxShowsAcknowledgement() throws Exception {
         acknowledge("doctor", RES_USG).andExpect(status().isOk());
         inbox("patientId=" + PREOP).andExpect(jsonPath("$.items[0].reviewedById").value(DOCTOR_STAFF));
+    }
+
+    // --- zapis wyniku przez REST (radiolog) ---
+
+    @Test
+    void recordResultEndpointRequiresAuthenticationAndPermission() throws Exception {
+        mvc.perform(post("/api/v1/imaging-orders/{id}/results", ORD_USG_IP).contentType(JSON)
+                .content(resultBody(ImagingResultStatus.FINAL))).andExpect(status().isUnauthorized());
+        for (String login : new String[] {"doctor", "nurse", "admin", "lab-tech", "pharmacist", "registrar"}) {
+            as(login, post("/api/v1/imaging-orders/{id}/results", ORD_USG_IP).contentType(JSON)
+                    .content(resultBody(ImagingResultStatus.FINAL))).andExpect(status().isForbidden());
+        }
+    }
+
+    @Test
+    void radiologistRecordsResultViaRestAndItCompletesOrder() throws Exception {
+        String location = as("radiologist", post("/api/v1/imaging-orders/{id}/results", ORD_USG_IP).contentType(JSON)
+                .content(resultBody(ImagingResultStatus.FINAL))).andExpect(status().isCreated())
+                .andExpect(jsonPath("$.orderId").value(ORD_USG_IP))
+                .andExpect(jsonPath("$.modality").value("USG")) // snapshot ze zlecenia
+                .andExpect(jsonPath("$.radiologistName").exists())
+                .andReturn().getResponse().getHeader("Location");
+        assertThat(location).startsWith("/api/v1/imaging-results/");
+        as("doctor", get(location)).andExpect(status().isOk()).andExpect(jsonPath("$.status").value("final"));
+        assertThat(orderStatus(ORD_USG_IP)).isEqualTo("completed");
+    }
+
+    @Test
+    void recordResultEndpointUnknownOrOrderedOrderBehavesAsRecordingService() throws Exception {
+        as("radiologist", post("/api/v1/imaging-orders/{id}/results", UUID.randomUUID()).contentType(JSON)
+                .content(resultBody(ImagingResultStatus.FINAL))).andExpect(status().isNotFound());
+        as("radiologist", post("/api/v1/imaging-orders/{id}/results", "to-nie-uuid").contentType(JSON)
+                .content(resultBody(ImagingResultStatus.FINAL))).andExpect(status().isNotFound());
+        // ORD_RTG: jeszcze "ordered" -> 409
+        as("radiologist", post("/api/v1/imaging-orders/{id}/results", ORD_RTG).contentType(JSON)
+                .content(resultBody(ImagingResultStatus.FINAL))).andExpect(status().isConflict());
+    }
+
+    private String resultBody(ImagingResultStatus status) {
+        Instant performed = Instant.now().minusSeconds(3600);
+        Instant reported = Instant.now();
+        return "{"
+                + "\"performedAt\":\"" + performed + "\","
+                + "\"reportedAt\":\"" + reported + "\","
+                + "\"findings\":\"Bez zmian.\","
+                + "\"conclusion\":\"Prawidlowy obraz.\","
+                + "\"status\":\"" + status.wire() + "\","
+                + "\"imageCount\":3,"
+                + "\"critical\":false"
+                + "}";
     }
 
     // --- zapis wyniku: wynik zewnetrzny, snapshoty, zdarzenie ---

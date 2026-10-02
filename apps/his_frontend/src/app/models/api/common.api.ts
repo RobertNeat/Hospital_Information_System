@@ -7,6 +7,15 @@ export interface Page<T> {
   totalPages: number;
 }
 
+/**
+ * Cursor-based page, newest first. `nextBefore` is the timestamp of the oldest item on this page (pass
+ * as `before` to fetch the next page), or absent/`null` on the last page.
+ */
+export interface CursorPage<T> {
+  items: T[];
+  nextBefore?: string | null;
+}
+
 export type SortDirection = 'asc' | 'desc';
 
 export interface PageQuery {

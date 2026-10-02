@@ -225,6 +225,13 @@ export const routes: Routes = [
         title: 'Komunikacja zespołowa',
       },
       {
+        path: 'admin/staff',
+        canActivate: [permissionGuard(PERMISSIONS.ACCOUNT_MANAGE)],
+        loadComponent: () =>
+          import('./pages/admin-staff/admin-staff-page').then((m) => m.AdminStaffPage),
+        title: 'Pracownicy',
+      },
+      {
         path: '**',
         loadComponent: () => import('./pages/not-found/not-found-page').then((m) => m.NotFoundPage),
         title: 'Nie znaleziono',

@@ -280,7 +280,7 @@ class ImagingOrderApiTest extends ApiIntegrationTest {
                 + "\",\"orderedById\":\"" + NURSE_STAFF + "\",\"examCode\":\"RTG-KOL\",\"examName\":\"Od klienta\","
                 + "\"modality\":\"USG\",\"bodyRegion\":\"Inna\",\"laterality\":\"left\",\"contrast\":false,"
                 + "\"clinicalIndication\":\"  Ból po urazie.  \",\"clinicalQuestion\":\" Złamanie? \","
-                + "\"diagnosisCode\":{\"system\":\"ICD-10\",\"code\":\" S83.5 \",\"display\":\"Uraz więzadeł\"},"
+                + "\"diagnosisCode\":{\"system\":\"SNOMED\",\"code\":\" 239720000 \",\"display\":\"Uraz więzadeł\"},"
                 + "\"urgency\":\"urgent\",\"slotId\":\"" + slot + "\",\"scheduledAt\":\"2030-01-01T08:00:00Z\","
                 + "\"status\":\"completed\",\"version\":9,"
                 + "\"safety\":{\"pregnancy\":\"unknown\",\"pacemakerOrImplant\":true,\"metalFragments\":false,"
@@ -305,8 +305,8 @@ class ImagingOrderApiTest extends ApiIntegrationTest {
                 .andExpect(jsonPath("$.contrast").value(false))
                 .andExpect(jsonPath("$.clinicalIndication").value("Ból po urazie."))
                 .andExpect(jsonPath("$.clinicalQuestion").value("Złamanie?"))
-                .andExpect(jsonPath("$.diagnosisCode.system").value("ICD-10"))
-                .andExpect(jsonPath("$.diagnosisCode.code").value("S83.5"))
+                .andExpect(jsonPath("$.diagnosisCode.system").value("SNOMED"))
+                .andExpect(jsonPath("$.diagnosisCode.code").value("239720000"))
                 .andExpect(jsonPath("$.diagnosisCode.display").value("Uraz więzadeł"))
                 .andExpect(jsonPath("$.urgency").value("urgent"))
                 .andExpect(jsonPath("$.slotId").value(slot))
@@ -329,7 +329,7 @@ class ImagingOrderApiTest extends ApiIntegrationTest {
         assertThat(jdbc.queryForObject("select count(*) from imaging_order_status_change where order_id = ?::uuid",
                 Integer.class, id)).isEqualTo(2);
         assertThat(jdbc.queryForMap("select diagnosis_code_value v, safety_pregnancy p, safety_egfr e "
-                + "from imaging_order where id = ?::uuid", id)).containsEntry("v", "S83.5")
+                + "from imaging_order where id = ?::uuid", id)).containsEntry("v", "239720000")
                 .containsEntry("p", "unknown");
         as("doctor", get("/api/v1/imaging-orders/{id}", id)).andExpect(jsonPath("$.scheduledAt").exists());
         list("patientId=" + KOWALSKI + "&status=scheduled").andExpect(jsonPath("$.items[0].id").value(id));
@@ -505,7 +505,7 @@ class ImagingOrderApiTest extends ApiIntegrationTest {
         create("doctor", KOWALSKI, orderBody("USG-JB", "", false, null, SAFETY_OK)
                 .replace("\"urgency\"", "\"urgencyX\"")).andExpect(status().isUnprocessableContent())
                 .andExpect(jsonPath("$.errors[0].field").value("urgency"));
-        create("doctor", KOWALSKI, orderBody("USG-JB", "\"diagnosisCode\":{\"system\":\"ICD-10\",\"code\":\"I50.0\"},",
+        create("doctor", KOWALSKI, orderBody("USG-JB", "\"diagnosisCode\":{\"system\":\"SNOMED\",\"code\":\"84114007\"},",
                 false, null, SAFETY_OK)).andExpect(status().isUnprocessableContent())
                 .andExpect(jsonPath("$.errors[0].field").value("diagnosisCode.display"));
         create("doctor", KOWALSKI, orderBody("USG-JB", "\"patientId\":\"" + SZYMANSKI + "\",", false, null, SAFETY_OK))

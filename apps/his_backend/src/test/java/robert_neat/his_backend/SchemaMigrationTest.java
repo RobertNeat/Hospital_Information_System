@@ -22,7 +22,7 @@ class SchemaMigrationTest {
             "ward", "staff_member", "user_account",
             "patient", "patient_flag", "treatment_episode", "encounter", "admission",
             "clinical_note", "clinical_note_symptom", "diagnosis", "episode_diagnosis",
-            "allergy", "allergy_atc_code", "contraindication", "treatment", "icd10_code",
+            "allergy", "allergy_atc_code", "contraindication", "treatment",
             "lab_test", "lab_test_specimen", "lab_analyte_definition", "lab_panel", "lab_panel_test",
             "imaging_exam", "schedule_slot",
             "drug", "drug_route", "drug_reimbursement_option", "drug_interacts_with_atc",
@@ -44,6 +44,15 @@ class SchemaMigrationTest {
                         + "WHERE table_schema = 'public' AND table_type = 'BASE TABLE'",
                 String.class);
         assertThat(tables).containsAll(EXPECTED_TABLES);
+    }
+
+    @Test
+    void icd10CodeTableIsDropped() {
+        List<String> tables = jdbc.queryForList(
+                "SELECT table_name FROM information_schema.tables "
+                        + "WHERE table_schema = 'public' AND table_name = 'icd10_code'",
+                String.class);
+        assertThat(tables).isEmpty();
     }
 
     @Test

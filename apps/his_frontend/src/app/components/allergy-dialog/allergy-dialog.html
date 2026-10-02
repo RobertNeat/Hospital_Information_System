@@ -1,0 +1,134 @@
+<p-dialog
+  id="allergy-dialog-p-dialog"
+  header="Dodaj alergię"
+  [visible]="visible()"
+  [modal]="true"
+  [style]="{ width: '32rem' }"
+  (visibleChange)="visibleChange.emit($event)"
+  (onHide)="onHide()"
+>
+  <form id="allergy-dialog-form-grid" [formGroup]="form" class="his-form-grid">
+    <app-form-field
+      id="allergy-dialog-app-form-field"
+      label="Substancja"
+      [required]="true"
+      [control]="form.controls.substance"
+    >
+      <input
+        id="allergy-dialog-substance"
+        pInputText
+        formControlName="substance"
+        class="his-full-width"
+      />
+    </app-form-field>
+
+    <app-form-field
+      id="allergy-dialog-app-form-field-2"
+      label="Kategoria"
+      [required]="true"
+      [control]="form.controls.category"
+    >
+      <p-select
+        id="allergy-dialog-category"
+        [options]="categoryOptions"
+        formControlName="category"
+        optionLabel="label"
+        optionValue="value"
+        class="his-full-width"
+      />
+    </app-form-field>
+
+    <div id="allergy-dialog-form-grid-full" class="his-form-grid__full">
+      <app-form-field
+        id="allergy-dialog-app-form-field-3"
+        label="Reakcja"
+        [required]="true"
+        [control]="form.controls.reaction"
+      >
+        <input
+          id="allergy-dialog-reaction"
+          pInputText
+          formControlName="reaction"
+          class="his-full-width"
+        />
+      </app-form-field>
+    </div>
+
+    <app-form-field
+      id="allergy-dialog-app-form-field-4"
+      label="Nasilenie"
+      [required]="true"
+      [control]="form.controls.severity"
+    >
+      <p-select
+        id="allergy-dialog-severity"
+        [options]="severityOptions"
+        formControlName="severity"
+        optionLabel="label"
+        optionValue="value"
+        class="his-full-width"
+      />
+    </app-form-field>
+
+    <app-form-field
+      id="allergy-dialog-app-form-field-5"
+      label="Status"
+      [required]="true"
+      [control]="form.controls.status"
+    >
+      <p-select
+        id="allergy-dialog-status"
+        [options]="statusOptions"
+        formControlName="status"
+        optionLabel="label"
+        optionValue="value"
+        class="his-full-width"
+      />
+    </app-form-field>
+
+    <app-form-field id="allergy-dialog-app-form-field-6" label="Data odnotowania">
+      <p-datepicker
+        id="allergy-dialog-recorded-at"
+        formControlName="recordedAt"
+        [showTime]="true"
+        dateFormat="dd.mm.yy"
+        [showIcon]="true"
+        class="his-full-width"
+      />
+    </app-form-field>
+
+    <div id="allergy-dialog-form-grid-full-2" class="his-form-grid__full">
+      <app-form-field
+        id="allergy-dialog-app-form-field-7"
+        label="Kody ATC"
+        [control]="form.controls.atcCodes"
+        hint="Oddziel przecinkami, np. N02BE01"
+      >
+        <input
+          id="allergy-dialog-atc-codes"
+          pInputText
+          formControlName="atcCodes"
+          class="his-full-width"
+        />
+      </app-form-field>
+    </div>
+  </form>
+
+  <ng-template #footer>
+    <div id="allergy-dialog-dialog-footer" class="his-dialog-footer">
+      <p-button
+        id="allergy-dialog-p-button"
+        label="Anuluj"
+        severity="secondary"
+        [text]="true"
+        (onClick)="onCancel()"
+      />
+      <p-button
+        id="allergy-dialog-p-button-2"
+        label="Zapisz alergię"
+        icon="pi pi-check"
+        (onClick)="onSave()"
+      />
+    </div>
+  </ng-template>
+</p-dialog>
