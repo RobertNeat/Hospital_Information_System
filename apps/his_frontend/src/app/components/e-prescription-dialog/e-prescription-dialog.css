@@ -10,7 +10,7 @@
   align-items: center;
   gap: 0.25rem;
   padding: 1rem;
-  background: var(--p-surface-100, #f1f5f9);
+  background: var(--his-content-bg);
   border-radius: 6px;
 }
 

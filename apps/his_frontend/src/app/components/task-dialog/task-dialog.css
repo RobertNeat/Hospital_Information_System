@@ -16,7 +16,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
-  border: 1px solid var(--p-surface-200);
+  border: 1px solid var(--his-card-border);
   border-radius: var(--his-radius);
   padding: 0.4rem 0.6rem;
 }

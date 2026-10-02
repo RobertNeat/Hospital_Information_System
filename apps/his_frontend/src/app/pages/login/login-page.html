@@ -4,6 +4,54 @@
       <img id="login-cover-img" src="entry_image.png" alt="" />
     </div>
     <div id="login-body" class="his-auth__body">
+      <button
+        id="login-demo-accounts-btn"
+        type="button"
+        class="his-auth__info-btn"
+        aria-label="Konta demo"
+        pTooltip="Konta w systemie (demo)"
+        tooltipPosition="left"
+        (click)="accountsPopover.toggle($event)"
+      >
+        <i id="login-demo-accounts-icon" class="pi pi-info-circle"></i>
+      </button>
+      <p-popover id="login-demo-accounts-popover" #accountsPopover>
+        <div id="login-demo-accounts" class="his-auth__accounts">
+          <h4 id="login-demo-accounts-title">Konta w systemie</h4>
+          <p id="login-demo-accounts-hint" class="his-muted">
+            Kliknij wiersz, aby wypełnić formularz.
+          </p>
+          <table id="login-demo-accounts-table">
+            <thead>
+              <tr>
+                <th>Login</th>
+                <th>Hasło</th>
+                <th>Użytkownik</th>
+                <th>Rola</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (account of demoAccounts; track account.employeeId) {
+                <tr
+                  [id]="'login-demo-account-' + account.employeeId"
+                  tabindex="0"
+                  (click)="fillAccount(account, accountsPopover)"
+                  (keydown.enter)="fillAccount(account, accountsPopover)"
+                >
+                  <td>
+                    <code>{{ account.employeeId }}</code>
+                  </td>
+                  <td>
+                    <code>{{ account.password }}</code>
+                  </td>
+                  <td>{{ account.name }}</td>
+                  <td>{{ roleLabels[account.role] }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </p-popover>
       <div id="login-brand" class="his-auth__brand">
         <img id="login-logo" src="logo.png" alt="" />
         <span id="login-brand-name">Hospital Information System</span>

@@ -48,9 +48,9 @@
   cursor: pointer;
   padding: 0.35rem;
   border-radius: var(--his-radius);
-  color: var(--his-navy-700);
+  color: var(--his-text-muted);
 }
 
 .his-data-table__toggle:hover {
-  background: var(--p-surface-100);
+  background: var(--his-content-bg);
 }

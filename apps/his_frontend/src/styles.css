@@ -233,10 +233,53 @@ p-tabs {
 }
 
 .his-auth__body {
+  position: relative;
   padding: 2rem;
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
+}
+
+.his-auth__info-btn {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--his-text-muted);
+  cursor: pointer;
+}
+
+.his-auth__info-btn:hover,
+.his-auth__info-btn:focus-visible {
+  background: var(--his-content-bg);
+}
+
+.his-auth__accounts table {
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.his-auth__accounts th,
+.his-auth__accounts td {
+  padding: 0.25rem 0.75rem 0.25rem 0;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.his-auth__accounts tbody tr {
+  cursor: pointer;
+}
+
+.his-auth__accounts tbody tr:hover,
+.his-auth__accounts tbody tr:focus-visible {
+  background: var(--his-content-bg);
 }
 
 .his-auth__brand {

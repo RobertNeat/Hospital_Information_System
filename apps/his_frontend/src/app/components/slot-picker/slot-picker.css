@@ -8,7 +8,7 @@
   margin: 0 0 0.25rem;
   font-size: 0.9rem;
   font-weight: 600;
-  color: var(--his-navy-700);
+  color: var(--his-text);
 }
 
 .his-slot-picker__grid {
