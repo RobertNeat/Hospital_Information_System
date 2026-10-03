@@ -51,6 +51,10 @@ public class UserAccount {
     @Column(name = "last_login_at")
     private Instant lastLoginAt;
 
+    /** Stempel wersji tokenu JWT (claim `tv`); bump uniewaznia natychmiast wszystkie wydane tokeny. */
+    @Column(name = "token_version", nullable = false)
+    private int tokenVersion;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -97,5 +101,11 @@ public class UserAccount {
 
     public void lock() {
         accountStatus = StaffAccountStatus.LOCKED;
+        bumpTokenVersion();
+    }
+
+    /** Uniewaznia natychmiast wszystkie wydane tokeny tego konta (blokada, zmiana roli, logout-everywhere). */
+    public void bumpTokenVersion() {
+        tokenVersion++;
     }
 }

@@ -8,20 +8,15 @@ Dokument zawiera wyłącznie prace niedokończone oraz stałe informacje operacy
 
 - SQL przechowuje wyłącznie SCTID; treść serwuje Snowstorm Lite (ECL). Dane licencjonowane nie są w danych początkowych.
 - Konta demo (login = hasło) także na produkcji; ryzyko słabych haseł w LAN zaakceptowane.
-- Biblioteki: HAPI FHIR 8.12.1 (klient HTTP: Spring `RestClient`), Testcontainers `postgres:17-alpine`, vitest dla generatora mocków (`pnpm export:mocks`).
+- Biblioteki: HAPI FHIR 8.12.1 (klient HTTP: Spring `RestClient`), springdoc-openapi 3.1.1 (Swagger UI/OpenAPI dla `/api/**`), Testcontainers `postgres:17-alpine`, vitest dla generatora mocków (`pnpm export:mocks`).
 
 ## Kontrakty (różnicowe)
 
-Katalogi `docs/*_contract` przechowują wyłącznie kontrakty **jeszcze niezaimplementowane** (po wdrożeniu pozycja jest usuwana, bez opisu zaimplementowanych kontraktów):
-
-- `docs/his_backend_contract/README.md` - braki oferty backendu względem oczekiwań frontendu (endpointy zapisu, uprawnienia nieegzekwowane, sesja/STOMP, integracje FHIR, zdarzenia bez konsumenta, terminologia, paginacja).
-- `docs/his_frontend_contract/README.md` - luki UI względem backendu, oczekiwania bez pokrycia, porządki w modelach.
-
-Po zaimplementowaniu pozycji z kontraktu usunąć ją z odpowiedniego README w tej samej zmianie. Nowy kontrakt między modułami dopisywać tam, dopóki nie jest zrealizowany.
+Katalogi `docs/*_contract` przechowują wyłącznie kontrakty **jeszcze niezaimplementowane** (po wdrożeniu pozycja jest usuwana, bez opisu zaimplementowanych kontraktów). Obecnie żaden taki katalog nie istnieje (`docs/his_backend_contract/` i `docs/his_frontend_contract/` usunięte, 2026-10-03) - brak niezaimplementowanych pozycji po obu stronach. Konwencja pozostaje w użyciu: nowy kontrakt między modułami, jeśli powstanie, dopisywać we własnym `docs/<modul>_contract/README.md`, dopóki nie jest zrealizowany.
 
 ## Do dokończenia
 
-1. **Ograniczenia symulatorów `e-receipt`, `e-laboratory`, `e-imaging`:** bez ponawiania wysyłki z his_backend (nieudana wysyłka nie jest powtarzana; w e-receipt zostaje klucz lokalny, zlecenie lab/obrazowe nie trafia do usługi), stan w pamięci, UI niedostępne na produkcji (brak publikacji portów `e-*`).
+Świadomie zrzucone (bez implementacji, decyzja z 2026-10-03): demo konta na produkcji (ryzyko już zaakceptowane wyżej), wielo-instancyjny broker STOMP z trwałymi kolejkami (architektura jednoinstancyjna), wygasanie recept liczone przy odczycie (brak obejścia w kodzie), walidacja SNOMED wg specjalizacji (złamałaby zasadne rozpoznania międzyspecjalizacyjne), załączniki DICOM, serwerowy PDF (obecnie brak PDF w ogóle, tylko txt/csv), pełny generator klienta OpenAPI/test zgodności TS<->API.
 
 Uwaga: po zalogowaniu na konto demo (`stf-*` w mockach vs UUID w bazie) część widoków może być pusta; do testów używać kont `EMP-0001..EMP-0010`.
 
@@ -48,7 +43,7 @@ Logowanie: konta demo `admin/admin`, `user/user` (lekarz), `doctor`, `nurse`, `l
 
 ## Odnośniki
 
-- `docs/his_frontend_contract/`, `docs/his_backend_contract/` - niezaimplementowane kontrakty (różnicowo).
+- Katalogi `docs/*_contract/` (kontrakty różnicowe między modułami) obecnie nie istnieją - brak niezaimplementowanych pozycji.
 - `docs/deployment-and-config.md`, `docs/database-and-data.md` - wdrożenie, konfiguracja, baza.
 - `apps/his_frontend/scripts/export-mocks/README.md` - generator danych mock i polityka zmian changesetów.
 - `.github/pipeline_docs/production_deployment.md` - deploy, zmienne środowiskowe, Postgres, Snowstorm, konta demo.

@@ -18,19 +18,25 @@ import org.springframework.security.oauth2.server.resource.InvalidBearerTokenExc
 
 import robert_neat.his_backend.security.HisJwtAuthenticationConverter;
 import robert_neat.his_backend.security.HisUserPrincipal;
+import robert_neat.his_backend.security.TokenClaims;
+import robert_neat.his_backend.security.TokenVersionLookup;
 import robert_neat.his_backend.staff.StaffRole;
 
 /**
  * Bezpieczenstwo kanalu wejsciowego STOMP (handshake `/ws` jest publiczny, cala ochrona jest tutaj):
  * <ul>
  *   <li>CONNECT: wymagany naglowek `Authorization: Bearer <JWT>`; token jest weryfikowany tym samym
- *       {@link JwtDecoder} i konwerterem claimow co REST. Brak/zly/wygasly token = odrzucenie CONNECT (ERROR);</li>
- *   <li>SUBSCRIBE: tylko `/user/queue/{alerts,messages,threads,tasks}` (dla uwierzytelnionego) oraz
- *       `/topic/alerts/{wardId}` (uprawnienie `alert:read` i wlasny oddzial; `admin` - kazdy oddzial);</li>
+ *       {@link JwtDecoder} i konwerterem claimow co REST (wlacznie z wersja tokenu, patrz
+ *       {@link HisJwtAuthenticationConverter}). Brak/zly/wygasly/uniewazniony token = odrzucenie CONNECT (ERROR);</li>
+ *   <li>SUBSCRIBE: tylko `/user/queue/{alerts,messages,threads,tasks}` i `/topic/presence` (dla kazdego
+ *       uwierzytelnionego) oraz `/topic/alerts/{wardId}` (uprawnienie `alert:read` i wlasny oddzial;
+ *       `admin` - kazdy oddzial);</li>
  *   <li>SEND (takze `/app/**`) jest zawsze zabroniony - kontrakt nie przewiduje komunikatow klient -> serwer
  *       (bez tego klient moglby publikowac na `/topic/**`); inne polecenia poza UNSUBSCRIBE/DISCONNECT tez.</li>
  * </ul>
- * Ramki bez polecenia (heartbeat) przechodza. Waznosc tokenu jest sprawdzana tylko przy CONNECT.
+ * Ramki bez polecenia (heartbeat) przechodza. Waznosc tokenu (w tym wersja) jest sprawdzana przy CONNECT;
+ * poza CONNECT re-check robi okresowo {@link StompTokenVersionSweeper} (sesje rzadko wysylaja ramki po
+ * subskrypcji, wiec sam re-check "przy okazji" ramki nie wystarczyby).
  */
 class StompSecurityInterceptor implements ChannelInterceptor {
 
@@ -38,10 +44,13 @@ class StompSecurityInterceptor implements ChannelInterceptor {
     private static final String ALERT_READ = "alert:read";
 
     private final JwtDecoder jwtDecoder;
-    private final HisJwtAuthenticationConverter converter = new HisJwtAuthenticationConverter();
+    private final HisJwtAuthenticationConverter converter;
+    private final StompSessionRegistry sessions;
 
-    StompSecurityInterceptor(JwtDecoder jwtDecoder) {
+    StompSecurityInterceptor(JwtDecoder jwtDecoder, TokenVersionLookup tokenVersions, StompSessionRegistry sessions) {
         this.jwtDecoder = jwtDecoder;
+        this.converter = new HisJwtAuthenticationConverter(tokenVersions);
+        this.sessions = sessions;
     }
 
     @Override
@@ -75,6 +84,12 @@ class StompSecurityInterceptor implements ChannelInterceptor {
             if (auth == null || !(auth.getPrincipal() instanceof HisUserPrincipal principal)) {
                 throw new InvalidBearerTokenException("Niepoprawny token");
             }
+            // Nimbus/Jackson deserializuje liczby calkowite z JWT jako Long (patrz HisJwtAuthenticationConverter)
+            Number tokenVersion = jwt.getClaim(TokenClaims.TOKEN_VERSION);
+            String sessionId = accessor.getSessionId();
+            if (tokenVersion != null && sessionId != null) {
+                sessions.register(sessionId, principal, tokenVersion.intValue());
+            }
             return new StompUserAuthentication(principal, auth.getAuthorities());
         } catch (JwtException | InvalidBearerTokenException e) {
             throw deny(message, "Nieprawidlowy lub wygasly token");
@@ -85,6 +100,9 @@ class StompSecurityInterceptor implements ChannelInterceptor {
         StompUserAuthentication user = requireAuthenticated(message, accessor);
         String destination = accessor.getDestination();
         if (destination != null && StompDestinations.USER_QUEUES.contains(destination)) {
+            return;
+        }
+        if (StompDestinations.TOPIC_PRESENCE.equals(destination)) {
             return;
         }
         if (destination != null && destination.startsWith(StompDestinations.TOPIC_ALERTS_PREFIX)

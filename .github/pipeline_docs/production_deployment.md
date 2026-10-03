@@ -221,18 +221,20 @@ Dev: `docker compose -f deploy/compose.yml -f deploy/compose.dev.yml --env-file 
 
 ## Uwierzytelnianie i konta proste
 
-Backend używa tokenów JWT (HS256, bezstanowo): frontend loguje się przez `POST /api/v1/auth/login`, domyślnie trzyma
-token w `localStorage` (przeżywa przeładowanie strony; `AuthService.restoreSession()` weryfikuje go przy starcie
-przez `GET /auth/me`) i wysyła `Authorization: Bearer ...`; wylogowanie = usunięcie tokenu (token wygasa po
-`HIS_JWT_TTL`, domyślnie 8h; brak serwerowej listy unieważnień, więc zablokowanie konta działa dopiero po
-wygaśnięciu tokenu).
+Backend używa tokenów JWT (HS256, prawie bezstanowo): frontend loguje się przez `POST /api/v1/auth/login`, domyślnie
+trzyma token w `localStorage` (przeżywa przeładowanie strony; `AuthService.restoreSession()` weryfikuje go przy
+starcie przez `GET /auth/me`) i wysyła `Authorization: Bearer ...`; wylogowanie = usunięcie tokenu. Token ma krótkie
+TTL (`HIS_JWT_TTL`, domyślnie 15m) i jest odświeżany proaktywnie przez `POST /api/v1/auth/refresh` przed
+wygaśnięciem; każde konto ma w bazie licznik `token_version` zapisany w tokenie - zablokowanie konta lub zmiana
+roli bumpuje licznik i natychmiast unieważnia już wydane tokeny (sprawdzane przy każdym żądaniu i okresowo dla
+połączeń STOMP), bez czekania na `exp`.
 
 Zmienne w zdalnym `config.env` (istniejący plik nie jest nadpisywany - dopisać ręcznie):
 
 - `HIS_JWT_SECRET` - WYMAGANE, min. 32 bajty (np. `openssl rand -base64 48`). Bez niego backend nie startuje.
   Losowe klucze JWT generuje `python utilities/secret_generator.py`.
   Zmiana klucza unieważnia wszystkie wystawione tokeny.
-- `HIS_JWT_TTL` - opcjonalnie (domyślnie `8h`).
+- `HIS_JWT_TTL` - opcjonalnie (domyślnie `15m`).
 - `HIS_PERSIST_SESSION` - zmienna *build-time* frontendu (nie backendu; ustawiana przy `pnpm build`, nie w
   `config.env`), domyślnie `true`. Ustawienie na `false` przebudowuje frontend tak, by trzymał token tylko w pamięci
   (sesja kończy się przy każdym przeładowaniu strony).

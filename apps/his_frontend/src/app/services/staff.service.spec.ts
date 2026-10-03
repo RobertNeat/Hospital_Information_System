@@ -160,6 +160,20 @@ describe('StaffService', () => {
     await expect(result).rejects.toBeTruthy();
   });
 
+  it('applyPresence() updates the online flag of a known, cached member', () => {
+    service.load().subscribe();
+    http.expectOne(STAFF_URL).flush([ANNA, EWA]);
+    service.applyPresence('s-2', true);
+    expect(service.staff().find((s) => s.id === 's-2')?.online).toBe(true);
+  });
+
+  it('applyPresence() is a no-op for an unknown staff id', () => {
+    service.load().subscribe();
+    http.expectOne(STAFF_URL).flush([ANNA]);
+    service.applyPresence('s-unknown', true);
+    expect(service.staff()).toEqual([ANNA]);
+  });
+
   it('clear() empties the cache so the next load refetches', () => {
     service.load().subscribe();
     http.expectOne(STAFF_URL).flush([ANNA]);

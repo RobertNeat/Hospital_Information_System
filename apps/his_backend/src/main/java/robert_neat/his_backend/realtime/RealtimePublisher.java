@@ -6,6 +6,7 @@ import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.event.EventListener;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
@@ -21,12 +22,14 @@ import robert_neat.his_backend.messaging.events.MessageSent;
 import robert_neat.his_backend.messaging.events.TaskAssigned;
 import robert_neat.his_backend.messaging.events.TaskStatusChanged;
 import robert_neat.his_backend.messaging.events.ThreadMarkedRead;
+import robert_neat.his_backend.staff.events.PresenceChanged;
 
 /**
- * Push STOMP wg API.md, par. 10: zdarzenia domenowe -> tematy, WYLACZNIE po commit transakcji zrodlowej
- * (`AFTER_COMMIT`; rollback nic nie wysyla, a klient po odebraniu pushu zastaje juz zapisane dane). Payloady to
- * te same DTO co w REST (serializacja Jackson jak REST, bez kopert). Blad pushu jest logowany i nie wplywa na
- * wynik zapisu, ktory juz zostal zatwierdzony.
+ * Push STOMP: zdarzenia domenowe -> tematy. Zdarzenia zwiazane z zapisem w transakcji ida po jej commit
+ * (`AFTER_COMMIT`; rollback nic nie wysyla, a klient po odebraniu pushu zastaje juz zapisane dane) i niosa te
+ * same DTO co REST (serializacja Jackson jak REST, bez kopert); obecnosc ({@link PresenceChanged}) pochodzi z
+ * sesji STOMP, wiec jest obslugiwana zwyklym `@EventListener`. Blad pushu jest logowany i nie wplywa na wynik
+ * zapisu, ktory juz zostal zatwierdzony.
  */
 @Component
 class RealtimePublisher {
@@ -90,6 +93,15 @@ class RealtimePublisher {
 
     private void pushTask(UUID taskId, UUID assignedToId) {
         guarded(() -> projection.task(taskId).ifPresent(t -> toUser(assignedToId, StompDestinations.QUEUE_TASKS, t)));
+    }
+
+    /**
+     * `/topic/presence` dla wszystkich. Zwykly `@EventListener` (nie `@TransactionalEventListener`): zdarzenie
+     * pochodzi z sesji STOMP, nie z transakcji zapisu - `AFTER_COMMIT` nigdy by sie nie uruchomil.
+     */
+    @EventListener
+    void on(PresenceChanged e) {
+        send(StompDestinations.TOPIC_PRESENCE, e);
     }
 
     /** Alert dla adresata (`ClinicalAlert`): `acknowledged:false`, bez danych `acknowledgedBy*`. */

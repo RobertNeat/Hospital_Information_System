@@ -54,7 +54,6 @@ export class ClinicalNoteDialog {
 
   readonly visible = input.required<boolean>();
   readonly patientId = input.required<ID>();
-  readonly authorId = input.required<ID>();
 
   readonly visibleChange = output<boolean>();
   readonly save = output<ClinicalNoteDialogSave>();
@@ -88,7 +87,6 @@ export class ClinicalNoteDialog {
     this.save.emit({
       draft: {
         patientId: this.patientId(),
-        authorId: this.authorId(),
         category: value.category,
         title: value.title,
         content: value.content,

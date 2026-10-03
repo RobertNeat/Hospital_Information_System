@@ -14,8 +14,8 @@ import {
 } from '../config/api.config';
 import { LAB_CATALOG, LAB_PANELS } from '../mock-data/lab-catalog.mock';
 import { LAB_ORDERS } from '../mock-data/lab-orders.mock';
-import type { LabOrder, LabOrderDraft } from '../models';
-import type { Page } from '../models/api';
+import type { LabOrder } from '../models';
+import type { LabOrderCreateRequest, Page } from '../models/api';
 import { LabOrderService } from './lab-order.service';
 
 const page = (items: LabOrder[], n: number, totalPages: number): Page<LabOrder> => ({
@@ -26,10 +26,9 @@ const page = (items: LabOrder[], n: number, totalPages: number): Page<LabOrder> 
   totalPages,
 });
 
-function draft(): LabOrderDraft {
+function draft(): LabOrderCreateRequest {
   return {
     patientId: 'pat-003',
-    orderedById: 'stf-001',
     items: [{ testCode: 'MORF', testName: 'Morfologia krwi z rozmazem', specimenType: 'blood' }],
     urgency: 'routine',
     fasting: false,

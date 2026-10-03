@@ -4,8 +4,9 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Zdarzenie domenowe: anulowano recepte (publikowane w transakcji; konsument: `EReceiptIntegration`, tylko z `actorId`).
- * `actorId` = null oznacza zmiane przychodzaca z e-receipt (bez odsylania). `reason` moze byc `null`.
+ * Zdarzenie domenowe: anulowano recepte (publikowane w transakcji; konsumenci: `EReceiptIntegration` (tylko z
+ * `actorId`, bez odsylania zmian przychodzacych) i `alert/AlertEventListener` (alert `system`/`warning`, niezaleznie
+ * od `actorId`)). `actorId` = null oznacza zmiane przychodzaca z e-receipt. `reason` moze byc `null`.
  */
 public record PrescriptionCancelled(
         UUID prescriptionId,

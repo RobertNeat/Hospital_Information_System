@@ -81,23 +81,6 @@ export interface Prescription extends Versioned, Partial<Auditable> {
   cancelReason?: string;
 }
 
-/** @deprecated Use `PrescriptionCreateRequest` from `models/api`. */
-export type PrescriptionDraft = Omit<
-  Prescription,
-  | 'id'
-  | 'issuedAt'
-  | 'status'
-  | 'accessCode'
-  | 'eRxKey'
-  | 'version'
-  | 'createdAt'
-  | 'createdById'
-  | 'updatedAt'
-  | 'updatedById'
-  | 'cancelledAt'
-  | 'cancelReason'
->;
-
 export type DrugSafetyWarningType = 'allergy' | 'interaction' | 'duplicate' | 'max_dose';
 
 export type DrugSafetySeverity = 'warn' | 'danger';

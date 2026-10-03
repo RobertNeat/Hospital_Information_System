@@ -12,7 +12,7 @@ Porty z `.github/ci/projects.json` (host = kontener):
 | --- | --- | --- | --- | --- | --- |
 | `postgres` | `postgres:17-alpine` | 5432 | tylko overlay dev: `127.0.0.1:${HIS_DB_HOST_PORT:-5432}` | `his-internal` (+ `default` w dev) | wolumen `postgres-data`; healthcheck `pg_isready` |
 | `his-backend` | `${REGISTRY}/${HIS_BACKEND_IMAGE}:${IMAGE_TAG}` | **10420** (API, `/ws`; HTTP), **10424** (FHIR; HTTPS, mTLS), **10440** (zarządzanie; HTTP) | prod: `0.0.0.0:${HIS_BACKEND_HOST_PORT:-10420}`; dev: `127.0.0.1:...` i `127.0.0.1:10424`; 10440 nie jest publikowany | `default` + `his-internal` | `depends_on: postgres (healthy)`; certyfikaty `${HIS_CERTS_DIR}/his_backend` -> `/certs` (ro); healthcheck `curl http://localhost:10440/actuator/health/readiness` (start_period 60 s) |
-| `his-frontend` | `.../his-frontend` | **10400** | prod: `0.0.0.0:${HIS_FRONTEND_HOST_PORT:-10400}`; dev: `127.0.0.1:...` | `default` | nginx; proxy `/api/` i `/ws` do `http://his-backend:10420` (Docker DNS `127.0.0.11`, host rozwiązywany per żądanie) |
+| `his-frontend` | `.../his-frontend` | **10400** | prod: `0.0.0.0:${HIS_FRONTEND_HOST_PORT:-10400}`; dev: `127.0.0.1:...` | `default` | nginx; proxy `/api/` i `/ws` do `http://his-backend:10420` (Docker DNS `127.0.0.11`, host rozwiązywany per żądanie); limit żądań per IP (`limit_req`, status 429): `/api/v1/auth/login` 5/min (burst 5), `/api/` ogólnie 15/s (burst 30); `/ws` bez limitu; dev (`proxy.conf.json`, Angular dev server) nie przechodzi przez nginx, więc limitów nie ma |
 | `e-receipt` | `.../e-receipt` | **10421** (FHIR; HTTPS, mTLS), **10431** (UI; HTTP), **10441** (zarządzanie; HTTP) | tylko overlay dev (loopback): 10421 i 10431; 10441 nie jest publikowany | `his-internal` (+ `default` w dev) | UI Thymeleaf `/ui/prescriptions`, FHIR `/fhir/MedicationRequest`; certyfikaty `${HIS_CERTS_DIR}/e_receipt` -> `/certs` (ro); healthcheck na porcie zarządzania |
 | `e-laboratory` | `.../e-laboratory` | **10422** (FHIR; HTTPS, mTLS), **10432** (UI; HTTP), **10442** (zarządzanie; HTTP) | tylko overlay dev (loopback): 10422 i 10432 | j.w. | UI Thymeleaf `/ui/orders`, FHIR `/fhir/ServiceRequest`; certyfikaty `${HIS_CERTS_DIR}/e_laboratory`; healthcheck na porcie zarządzania |
 | `e-imaging` | `.../e-imaging` | **10423** (FHIR; HTTPS, mTLS), **10433** (UI; HTTP), **10443** (zarządzanie; HTTP) | tylko overlay dev (loopback): 10423 i 10433 | j.w. | UI Thymeleaf `/ui/orders`, FHIR `/fhir/ServiceRequest`; certyfikaty `${HIS_CERTS_DIR}/e_imaging`; healthcheck na porcie zarządzania |
@@ -43,7 +43,7 @@ Rozdział portów (klasa `MtlsConnectors` w każdej aplikacji, rozróżnienie po
 
 | Aplikacja | Port HTTPS (mTLS, `client-auth=need`) | Port HTTP | Port zarządzania (HTTP, bez TLS) |
 | --- | --- | --- | --- |
-| `his-backend` | `server.port` = **10424** (`HIS_FHIR_PORT`), tylko `/fhir/**` | **10420**: `/api/**`, `/ws`, bez `/fhir/**` (przeglądarka przez nginx) | **10440** (`HIS_MANAGEMENT_PORT`) |
+| `his-backend` | `server.port` = **10424** (`HIS_FHIR_PORT`), tylko `/fhir/**` | **10420**: `/api/**`, `/ws`, `/v3/api-docs`, `/swagger-ui.html`, `/swagger-ui/**`, bez `/fhir/**` (przeglądarka przez nginx) | **10440** (`HIS_MANAGEMENT_PORT`) |
 | `e-receipt` / `e-laboratory` / `e-imaging` | `server.port` = **10421** / **10422** / **10423**, tylko `/fhir/**` | **10431** / **10432** / **10433** (`*_UI_PORT`): tylko `/` i `/ui/**` (UI dostępne z przeglądarki bez certyfikatu), bez `/fhir/**` | **10441** / **10442** / **10443** (`*_MANAGEMENT_PORT`) |
 
 Żądanie niezgodne z portem (np. `/fhir/**` na HTTP, `/api/**` na HTTPS, `/ui/**` na HTTPS) dostaje 404. Port zarządzania (`management.server.port`, `management.server.ssl.enabled=false`) serwuje wyłącznie `/actuator/health/**` i nie jest publikowany na host; healthchecki compose używają tego portu. Bez mTLS (`HIS_MTLS_ENABLED=false`) wszystko jest na jednym porcie aplikacji (10420-10423) i zarządzania nie ma osobnego portu; `/fhir/**` w `his-backend` odrzuca wtedy każde żądanie (401), a `e-*` wystawiają FHIR bez uwierzytelniania (wyłącznie tryb testowy/IDE).
@@ -63,7 +63,7 @@ Kolumny: **Aplikacja** = wartość domyślna w `application.properties`; **dev**
 | `HIS_DB_PASSWORD` | hasło DB | brak | `his` | `${HIS_DB_PASSWORD:-his}` | tak |
 | `HIS_LIQUIBASE_CONTEXTS` | konteksty Liquibase | `reference` | `reference,mock` | `${HIS_LIQUIBASE_CONTEXTS:-reference}` | nie |
 | `HIS_JWT_SECRET` | klucz HS256, min. 32 bajty | **pusty = błąd startu** | jawny klucz deweloperski | `${HIS_JWT_SECRET:-}` (pusty = backend nie wystartuje) | **tak** |
-| `HIS_JWT_TTL` | czas życia tokenu | `8h` | - | `${HIS_JWT_TTL:-8h}` | nie |
+| `HIS_JWT_TTL` | czas życia tokenu dostępu | `15m` | - | `${HIS_JWT_TTL:-15m}` | nie |
 | `HIS_JWT_ISSUER` | issuer JWT | `his-backend` | - | `${HIS_JWT_ISSUER:-his-backend}` | nie |
 | `HIS_LOCKOUT_MAX_ATTEMPTS` | próby do blokady | `5` | - | `${HIS_LOCKOUT_MAX_ATTEMPTS:-5}` | nie |
 | `HIS_LOCKOUT_DURATION` | czas blokady | `15m` | - | `${HIS_LOCKOUT_DURATION:-15m}` | nie |
@@ -98,6 +98,8 @@ Kolumny: **Aplikacja** = wartość domyślna w `application.properties`; **dev**
 
 Stałe ustawienia (bez zmiennej): `server.port=10420` (bez mTLS; z mTLS `10424` + HTTP `10420`), paginacja domyślnie 20 / maks. 100, `management.endpoints.web.exposure.include=health` (probes włączone, brak szczegółów), `spring.jpa.open-in-view=false`, `spring.jpa.hibernate.ddl-auto=validate`.
 
+Zadania w tle (`@EnableScheduling` w `realtime/WebSocketConfig`, jedna współdzielona pula wątków Springa): sweep wersji tokenu STOMP (`his.websocket.token-version-sweep-interval`, domyślnie `30s`) oraz `IntegrationOutboxScheduler` - co 30s ponawia nieudane `POST` zlecenia/recepty do e-receipt/e-laboratory/e-imaging (`integration_outbox`, do 20 wpisów na przebieg, maks. 8 prób na wpis zanim wpis trafi w stan `failed`; bez zmiennej konfiguracyjnej).
+
 Zmienne `e-receipt` (`ereceipt.his.*`; compose przekazuje je do kontenera `e-receipt`): `ERECEIPT_HIS_ENABLED` (domyślnie `false`; wywołanie zwrotne do his_backend), `ERECEIPT_HIS_URL` (domyślnie `https://localhost:10424/fhir`; w compose `https://his-backend:10424/fhir`), `ERECEIPT_HIS_CONNECT_TIMEOUT` (`1s`), `ERECEIPT_HIS_READ_TIMEOUT` (`3s`), `ERECEIPT_HIS_SSL_BUNDLE` (domyślnie `mtls`), `ERECEIPT_UI_PORT` (port UI HTTP), `ERECEIPT_MANAGEMENT_PORT` (port zarządzania).
 
 Zmienne `e-laboratory` (`elaboratory.his.*`; compose przekazuje je do kontenera `e-laboratory`): `E_LABORATORY_HIS_ENABLED` (domyślnie `false`; wywołanie zwrotne do his_backend), `E_LABORATORY_HIS_URL` (domyślnie `https://localhost:10424/fhir`; w compose `https://his-backend:10424/fhir`), `E_LABORATORY_HIS_CONNECT_TIMEOUT` (`1s`), `E_LABORATORY_HIS_READ_TIMEOUT` (`3s`), `E_LABORATORY_HIS_SSL_BUNDLE` (domyślnie `mtls`), `E_LABORATORY_UI_PORT` (port UI HTTP), `E_LABORATORY_MANAGEMENT_PORT` (port zarządzania).
@@ -111,7 +113,7 @@ Uwagi:
 - `--env-file deploy/local.env` służy do **interpolacji** zmiennych w plikach compose; do kontenera `his-backend` trafia lista `environment:` (wszystkie zmienne `HIS_*` z tabeli) oraz `config.env` przez `env_file`. Domyślne wartości `${VAR:-...}` w compose są identyczne z `application.properties` (pusta zmienna środowiskowa nadpisałaby wartość domyślną Springa).
 - `HIS_ERECEIPT_ENABLED`, `ERECEIPT_HIS_ENABLED`, `HIS_ELAB_ENABLED`, `E_LABORATORY_HIS_ENABLED`, `HIS_EIMG_ENABLED` i `E_IMAGING_HIS_ENABLED`: lokalnie ustawione w `deploy/local.env.example` (`true`); na produkcji dopisać do `config.env`. Hasła mTLS (osiem zmiennych `*_KEYSTORE_PASSWORD`/`*_TRUSTSTORE_PASSWORD`) są wymagane w `deploy/local.env` i `config.env` (wartości z `.certs/passwords.env`); certyfikat spoza zaufanego CA lub z CN spoza listy daje błąd połączenia / 401, a e-* pokazują stan synchronizacji `PENDING`.
 - `HIS_SNOWSTORM_ENABLED`: domyślnie `false` w aplikacji i w compose; bez zaimportowanego RF2 integracja zwraca 503. `SnowstormProperties` skonstruowane programowo bez wartości (np. w testach jednostkowych) przyjmuje `enabled=true`.
-- Wartości przykładowe produkcji: `.env.example` (`HIS_DB_*`, `HIS_LIQUIBASE_CONTEXTS=reference`, `HIS_SNOWSTORM_*`, `HIS_JWT_SECRET`, `HIS_JWT_TTL=8h`; pozostałe zmienne `HIS_*` jako zakomentowane opcje); `deploy/local.env.example` (wartości deweloperskie, `reference,mock`). Na serwerze zmienić `HIS_DB_PASSWORD`, `HIS_JWT_SECRET`, `HIS_SNOWSTORM_ADMIN_PASSWORD` i ustawić hasła mTLS. Istniejący `config.env` na hoście nie jest nadpisywany przez deploy - nowe zmienne dopisać ręcznie.
+- Wartości przykładowe produkcji: `.env.example` (`HIS_DB_*`, `HIS_LIQUIBASE_CONTEXTS=reference`, `HIS_SNOWSTORM_*`, `HIS_JWT_SECRET`, `HIS_JWT_TTL=15m`; pozostałe zmienne `HIS_*` jako zakomentowane opcje); `deploy/local.env.example` (wartości deweloperskie, `reference,mock`). Na serwerze zmienić `HIS_DB_PASSWORD`, `HIS_JWT_SECRET`, `HIS_SNOWSTORM_ADMIN_PASSWORD` i ustawić hasła mTLS. Istniejący `config.env` na hoście nie jest nadpisywany przez deploy - nowe zmienne dopisać ręcznie.
 - Wygenerowanie klucza: `openssl rand -base64 48` (komentarz w `.env.example`).
 
 ## Uruchamianie lokalne
@@ -130,6 +132,10 @@ Overlay `compose.dev.yml`: budowanie obrazów z źródeł (te same build-args co
 Produkcja: `deploy_compose_ssh.sh` kopiuje na host tylko `deploy/compose.yml` (+ `config.env`, `projects.env`), obrazy z rejestru (bez `build:`); host i rejestr w `.github/ci/projects.json`.
 
 Po zakończeniu pracy lokalnej zatrzymać stos (`docker compose ... down`), aby zwolnić porty 5432, 10400, 10420-10424, 10431-10433, 8080.
+
+## API docs (Swagger UI)
+
+`his-backend` wystawia żywą specyfikację OpenAPI (springdoc) z aktualnych kontrolerów `/api/**`: `GET /v3/api-docs` (JSON) i `GET /swagger-ui.html` (UI), port 10420 (jak `/api/**`). `/fhir/**` (mTLS, zasoby HAPI) poza specyfikacją (`springdoc.paths-to-match=/api/**`). Dostęp publiczny (bez logowania, `SecurityConfig`) - ten sam poziom ryzyka jak już publiczny `/actuator/health/**`, uzasadniony wewnętrznym wdrożeniem LAN.
 
 ## Health
 

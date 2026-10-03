@@ -18,6 +18,7 @@ import { ToggleSwitch } from 'primeng/toggleswitch';
 import { DatePicker } from 'primeng/datepicker';
 import { Textarea } from 'primeng/textarea';
 import { ButtonDirective } from 'primeng/button';
+import { AutoComplete, type AutoCompleteCompleteEvent } from 'primeng/autocomplete';
 import { FhirIntegrationNote } from '../../components/fhir-integration-note/fhir-integration-note';
 import { ImagingSafetyForm } from '../../components/imaging-safety-form/imaging-safety-form';
 import { FormField } from '../../components/form-field/form-field';
@@ -45,7 +46,7 @@ import {
   findNearestSlot,
 } from './imaging-order-wizard.forms';
 import {
-  buildImagingOrderDraft,
+  buildImagingOrderCreateRequest,
   buildImagingSummary,
   injectImagingPatientData,
   createSafetyState,
@@ -55,7 +56,6 @@ import { rawValueSignal } from '../../utils/form-signals';
 import { tryAdvance } from '../../utils/wizard';
 import { PatientContextService } from '../../services/patient-context.service';
 import { ImagingOrderService } from '../../services/imaging-order.service';
-import { StaffService } from '../../services/staff.service';
 
 @Component({
   selector: 'app-imaging-order-wizard-page',
@@ -73,6 +73,7 @@ import { StaffService } from '../../services/staff.service';
     ToggleSwitch,
     DatePicker,
     Textarea,
+    AutoComplete,
     FormField,
     ImagingSafetyForm,
     SummaryList,
@@ -87,7 +88,6 @@ import { StaffService } from '../../services/staff.service';
 export class ImagingOrderWizardPage implements HasUnsavedChanges {
   private readonly fb = inject(FormBuilder).nonNullable;
   private readonly imagingOrderService = inject(ImagingOrderService);
-  private readonly staffService = inject(StaffService);
   private readonly ctx = inject(PatientContextService);
   private readonly router = inject(Router);
   private readonly toast = inject(MessageService);
@@ -113,6 +113,10 @@ export class ImagingOrderWizardPage implements HasUnsavedChanges {
   protected readonly diagnosisOptions = this.patientData.diagnosisOptions;
   protected readonly hasContrastAllergy = this.patientData.hasContrastAllergy;
   protected readonly latestCreatinineEgfr = this.patientData.latestCreatinineEgfr;
+
+  protected searchDiagnosis(event: AutoCompleteCompleteEvent): void {
+    this.patientData.searchDiagnosis(event.query);
+  }
 
   protected readonly step1Form = createStep1Form(this.fb);
 
@@ -218,8 +222,7 @@ export class ImagingOrderWizardPage implements HasUnsavedChanges {
   );
 
   private selectedDiagnosis(): DiagnosisOption | undefined {
-    const { diagnosisCode } = this.step2Value();
-    return this.diagnosisOptions().find((o) => o.value === diagnosisCode);
+    return this.step2Value().diagnosisCode ?? undefined;
   }
 
   hasUnsavedChanges(): boolean {
@@ -274,9 +277,8 @@ export class ImagingOrderWizardPage implements HasUnsavedChanges {
     this.submitting.set(true);
     this.imagingOrderService
       .createOrder(
-        buildImagingOrderDraft({
+        buildImagingOrderCreateRequest({
           patientId: this.patientId(),
-          orderedById: this.staffService.currentUser().id,
           exam,
           laterality: this.step1Form.controls.laterality.value,
           contrast: this.step1Form.controls.contrast.value,

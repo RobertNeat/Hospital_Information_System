@@ -48,9 +48,10 @@ export function createImagingOrderServiceStub(): Partial<
       const order: ImagingOrder = {
         ...draft,
         id: `test-iord-${orders.length + 1}`,
+        orderedById: 'test-staff',
         orderedAt: at,
         status,
-        statusHistory: [{ status, at, byId: draft.orderedById }],
+        statusHistory: [{ status, at, byId: 'test-staff' }],
       };
       orders.push(order);
       return of(order);

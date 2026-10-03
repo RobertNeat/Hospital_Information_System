@@ -1,17 +1,19 @@
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpContext, HttpHeaders } from '@angular/common/http';
 import { Injectable, Injector, computed, inject, signal } from '@angular/core';
 import type { Signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { MessageService } from 'primeng/api';
-import { catchError, map, of, tap } from 'rxjs';
+import { catchError, map, of, tap, throwError } from 'rxjs';
 import type { Observable } from 'rxjs';
 import {
   AUTH_LOGIN_URL,
   AUTH_LOGOUT_URL,
   AUTH_ME_URL,
+  AUTH_REFRESH_URL,
   AUTH_REGISTER_URL,
   AUTH_REGISTER_WARDS_URL,
 } from '../config/api.config';
+import { SKIP_SESSION_HANDLING } from '../config/http-context.tokens';
 import { PERSIST_SESSION } from '../config/session.config';
 import type {
   CurrentUser,
@@ -27,6 +29,12 @@ import { PatientContextService } from './patient-context.service';
 const MAX_TIMEOUT_MS = 2_147_483_647;
 const EXPIRED_MESSAGE = 'Sesja wygasła. Zaloguj się ponownie.';
 const STORAGE_KEY = 'his.session';
+/**
+ * How long before `expiresAt` to proactively call `/auth/refresh` (access tokens are short-lived,
+ * see `HIS_JWT_TTL`). Kept well under the TTL so one failed attempt still leaves time for the
+ * 401-triggered fallback in `errorInterceptor` before the token actually expires.
+ */
+const REFRESH_MARGIN_MS = 60_000;
 
 interface StoredSession {
   accessToken: string;
@@ -113,6 +121,24 @@ export class AuthService {
     return this.http.get<CurrentUser>(AUTH_ME_URL).pipe(tap((user) => this._user.set(user)));
   }
 
+  /**
+   * Calls `POST /auth/refresh` and applies the new token in place (does NOT call `clearSession`/
+   * `startSession`: that would wipe `PatientContextService` on every silent renewal). Used both
+   * proactively (see `scheduleExpiry`) and reactively, once, from `errorInterceptor` on a 401.
+   */
+  refresh(): Observable<CurrentUser> {
+    const token = this._token();
+    if (token === null) return throwError(() => new Error('No active session to refresh'));
+    return this.http
+      .post<LoginResponse>(AUTH_REFRESH_URL, null, {
+        headers: new HttpHeaders({ Authorization: `Bearer ${token}` }),
+      })
+      .pipe(
+        tap((res) => this.applyRefreshedToken(res)),
+        map((res) => res.user),
+      );
+  }
+
   /** Best-effort `POST /auth/logout` (stateless), then clears the local session. Never errors. */
   logout(): Observable<void> {
     const token = this._token();
@@ -163,17 +189,21 @@ export class AuthService {
     }
     this._token.set(stored.accessToken);
     this._expiresAt.set(expiresAt);
-    return this.http.get<CurrentUser>(AUTH_ME_URL).pipe(
-      tap((user) => {
-        this._user.set(user);
-        this.scheduleExpiry(expiresAt);
-      }),
-      map(() => undefined),
-      catchError(() => {
-        this.clearSession();
-        return of(undefined);
-      }),
-    );
+    return this.http
+      .get<CurrentUser>(AUTH_ME_URL, {
+        context: new HttpContext().set(SKIP_SESSION_HANDLING, true),
+      })
+      .pipe(
+        tap((user) => {
+          this._user.set(user);
+          this.scheduleExpiry(expiresAt);
+        }),
+        map(() => undefined),
+        catchError(() => {
+          this.clearSession();
+          return of(undefined);
+        }),
+      );
   }
 
   private readStoredSession(): StoredSession | null {
@@ -222,16 +252,47 @@ export class AuthService {
     this.scheduleExpiry(expiresAt);
   }
 
+  /** Applies a renewed token/expiry in place; used by `refresh()`, never by `login()`. */
+  private applyRefreshedToken(res: LoginResponse): void {
+    if (!res.accessToken) return;
+    const expiresAt = new Date(res.expiresAt);
+    this._token.set(res.accessToken);
+    this._user.set(res.user);
+    this._expiresAt.set(expiresAt);
+    this.writeStoredSession({ accessToken: res.accessToken, expiresAt: res.expiresAt });
+    clearTimeout(this.expiryTimer);
+    this.scheduleExpiry(expiresAt);
+  }
+
+  /**
+   * Schedules a proactive `/auth/refresh` shortly before `expiresAt` (short TTL, see
+   * `REFRESH_MARGIN_MS`); the hard expiry timer remains as a fallback if the refresh call fails
+   * (network issue, revoked token) and the 401 path in `errorInterceptor` does not catch it first.
+   */
   private scheduleExpiry(expiresAt: Date): void {
-    const delay = expiresAt.getTime() - Date.now();
-    if (Number.isNaN(delay)) return;
-    if (delay <= 0) {
+    const untilExpiry = expiresAt.getTime() - Date.now();
+    if (Number.isNaN(untilExpiry)) return;
+    if (untilExpiry <= 0) {
       this.expireSession();
       return;
     }
+    const untilRefresh = untilExpiry - REFRESH_MARGIN_MS;
+    if (untilRefresh <= 0) {
+      // Too close to expiry for a proactive refresh: fall back to the hard expiry timer.
+      this.expiryTimer = setTimeout(
+        () => this.expireSession(),
+        Math.min(untilExpiry, MAX_TIMEOUT_MS),
+      );
+      return;
+    }
     this.expiryTimer = setTimeout(
-      () => this.scheduleExpiry(expiresAt),
-      Math.min(delay, MAX_TIMEOUT_MS),
+      () => {
+        this.refresh().subscribe({
+          // On failure, re-arm a short fallback timer so the hard expiry still fires on schedule.
+          error: () => this.scheduleExpiry(expiresAt),
+        });
+      },
+      Math.min(untilRefresh, MAX_TIMEOUT_MS),
     );
   }
 }

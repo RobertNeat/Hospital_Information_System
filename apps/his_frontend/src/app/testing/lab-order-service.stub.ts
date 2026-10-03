@@ -42,9 +42,10 @@ export function createLabOrderServiceStub(): Partial<Record<keyof LabOrderServic
       const order: LabOrder = {
         ...draft,
         id: `test-lord-${orders.length + 1}`,
+        orderedById: 'test-staff',
         orderedAt: at,
         status: 'ordered',
-        statusHistory: [{ status: 'ordered', at, byId: draft.orderedById }],
+        statusHistory: [{ status: 'ordered', at, byId: 'test-staff' }],
       };
       orders.push(order);
       return of(order);

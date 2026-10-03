@@ -1,13 +1,29 @@
 import type { ID } from '../common.model';
 import type {
   DosageInstruction,
-  PrescriptionDraft,
+  Prescription,
   PrescriptionKind,
   PrescriptionStatus,
 } from '../prescription.model';
 import type { PageQuery } from './common.api';
 
-export type PrescriptionCreateRequest = PrescriptionDraft;
+/** `prescriberId` is omitted: the actor always comes from the session (anti-spoofing). */
+export type PrescriptionCreateRequest = Omit<
+  Prescription,
+  | 'id'
+  | 'prescriberId'
+  | 'issuedAt'
+  | 'status'
+  | 'accessCode'
+  | 'eRxKey'
+  | 'version'
+  | 'createdAt'
+  | 'createdById'
+  | 'updatedAt'
+  | 'updatedById'
+  | 'cancelledAt'
+  | 'cancelReason'
+>;
 
 export interface PrescriptionQuery extends PageQuery {
   patientId?: ID;

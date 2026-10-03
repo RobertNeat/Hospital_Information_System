@@ -46,7 +46,9 @@ import robert_neat.his_backend.vitals.events.VitalAnomalyDetected;
  *       wartosc poza `min`/`max` progu, pomiar nie-calkowity (poza temperatura: max 1 miejsce po przecinku),
  *       `painScore` poza 0-10, `deviceId` bez `source=monitor`, niezgodny `patientId`, nieznany `encounterId`;</li>
  *   <li>anomalie liczone serwerowo z `vital_threshold` przy zapisie i odczycie ({@link VitalAnomalyEvaluator});
- *       zdarzenie {@link VitalAnomalyDetected} tylko dla anomalii `critical`;</li>
+ *       zdarzenie {@link VitalAnomalyDetected} dla kazdego zapisu z co najmniej jedna anomalia (`warning` lub
+ *       `critical`) - alert {@link robert_neat.his_backend.alert.AlertType#VITAL_ANOMALY} rozgalezia sie wg
+ *       najwyzszej z nich;</li>
  *   <li>przeglad oddzialu: pacjenci `admitted` z aktywnym przyjeciem (na oddzial `wardId` albo wszystkich), z ostatnim
  *       pomiarem i jego anomaliami; kolejnosc: krytyczne, ostrzezenia, bez anomalii (potem wiecej anomalii, nazwisko).</li>
  * </ul>
@@ -188,10 +190,8 @@ public class VitalsService {
                 painScore, blankToNull(request.notes())));
 
         List<VitalAnomaly> anomalies = VitalAnomalyEvaluator.evaluate(saved, table);
-        List<VitalAnomaly> critical = anomalies.stream().filter(a -> a.severity() == AnomalySeverity.CRITICAL)
-                .toList();
-        if (!critical.isEmpty()) {
-            events.publishEvent(new VitalAnomalyDetected(id, saved.getId(), critical, saved.getRecordedAt(), actor));
+        if (!anomalies.isEmpty()) {
+            events.publishEvent(new VitalAnomalyDetected(id, saved.getId(), anomalies, saved.getRecordedAt(), actor));
         }
         return new VitalsRecordResponse(VitalsMapper.toResponse(saved), anomalies);
     }

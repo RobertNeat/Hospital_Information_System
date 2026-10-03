@@ -5,6 +5,7 @@ import type { IMessage, StompConfig } from '@stomp/stompjs';
 import { AuthService } from './auth.service';
 import { REALTIME_CLIENT_FACTORY, RealtimeService } from './realtime.service';
 import type { RealtimeClient } from './realtime.service';
+import { StaffService } from './staff.service';
 import { TeamMessageService } from './team-message.service';
 
 const WARD = '123e4567-e89b-42d3-a456-426614174000';
@@ -38,6 +39,11 @@ describe('RealtimeService', () => {
   let clients: FakeClient[];
   const team = { refresh: vi.fn(), applyPush: vi.fn() };
   const loadCurrentUser = vi.fn(() => ({ subscribe: vi.fn() }));
+  const staff = {
+    staff: vi.fn((): string[] => []),
+    load: vi.fn(() => ({ subscribe: vi.fn() })),
+    applyPresence: vi.fn(),
+  };
 
   function create(): RealtimeService {
     return TestBed.inject(RealtimeService);
@@ -52,6 +58,9 @@ describe('RealtimeService', () => {
     team.refresh.mockClear();
     team.applyPush.mockClear();
     loadCurrentUser.mockClear();
+    staff.staff.mockClear();
+    staff.load.mockClear();
+    staff.applyPresence.mockClear();
     TestBed.configureTestingModule({
       providers: [
         {
@@ -68,6 +77,7 @@ describe('RealtimeService', () => {
           },
         },
         { provide: TeamMessageService, useValue: team },
+        { provide: StaffService, useValue: staff },
         {
           provide: REALTIME_CLIENT_FACTORY,
           useValue: (config: StompConfig) => {
@@ -119,6 +129,7 @@ describe('RealtimeService', () => {
         '/user/queue/messages',
         '/user/queue/tasks',
         '/user/queue/threads',
+        '/topic/presence',
         `/topic/alerts/${WARD}`,
       ].sort(),
     );
@@ -154,6 +165,29 @@ describe('RealtimeService', () => {
       'task',
     ]);
     expect(team.applyPush).toHaveBeenCalledWith({ kind: 'message', message });
+  });
+
+  it('applies presence pushes to the staff service', () => {
+    create();
+    authenticated.set(true);
+    TestBed.tick();
+    clients[0].connect();
+    clients[0].push('/topic/presence', { staffId: 's1', online: true });
+    expect(staff.applyPresence).toHaveBeenCalledWith('s1', true);
+  });
+
+  it('reloads the staff cache after a reconnect when staff was already loaded', () => {
+    staff.staff.mockReturnValue(['s1']);
+    create();
+    authenticated.set(true);
+    TestBed.tick();
+    const [client] = clients;
+    client.connect();
+    expect(staff.load).not.toHaveBeenCalled();
+
+    client.config.onWebSocketClose?.({} as never);
+    client.connect();
+    expect(staff.load).toHaveBeenCalledWith(true);
   });
 
   it('refreshes after a reconnect but not after the first connect', () => {

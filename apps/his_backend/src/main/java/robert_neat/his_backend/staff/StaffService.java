@@ -72,6 +72,7 @@ public class StaffService {
         if (currentActor.staffId().filter(member.getId()::equals).isPresent() && request.role() != member.getRole()) {
             throw new ConflictException("Nie mozna zmienic wlasnej roli");
         }
+        boolean roleChanged = request.role() != member.getRole();
         String pwz = blankToNull(request.pwz());
         String email = blankToNull(request.email());
         List<String> duplicates = new ArrayList<>();
@@ -87,6 +88,10 @@ public class StaffService {
         member.update(request.title().trim(), request.firstName().trim(), request.lastName().trim(), request.role(),
                 blankToNull(request.specialization()), request.wardId(), blankToNull(request.phone()), pwz, email);
         staff.saveAndFlush(member);
+        // rola jest zapisana w tokenie (claim `role`/`authorities`): zmiana musi uniewaznic juz wydane tokeny
+        if (roleChanged) {
+            accounts.findByStaffId(member.getId()).ifPresent(UserAccount::bumpTokenVersion);
+        }
         return get(id);
     }
 

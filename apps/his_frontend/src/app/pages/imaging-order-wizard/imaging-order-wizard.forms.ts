@@ -9,6 +9,7 @@ import type {
   PregnancyStatus,
   ScheduleSlot,
 } from '../../models';
+import type { DiagnosisOption } from '../../utils/diagnosis-options';
 import { toLocalIsoDate } from '../../utils/date-utils';
 
 export function createStep1Form(fb: NonNullableFormBuilder) {
@@ -26,7 +27,7 @@ export function createStep2Form(fb: NonNullableFormBuilder) {
       validators: [Validators.required, Validators.minLength(20)],
     }),
     clinicalQuestion: fb.control(''),
-    diagnosisCode: fb.control<string | null>(null),
+    diagnosisCode: fb.control<DiagnosisOption | null>(null),
     urgency: fb.control<OrderUrgency>('routine', { validators: [Validators.required] }),
   });
 }

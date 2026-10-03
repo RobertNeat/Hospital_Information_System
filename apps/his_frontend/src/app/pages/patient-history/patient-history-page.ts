@@ -45,7 +45,6 @@ import { LabelPipe } from '../../pipes/label.pipe';
 import { StaffNamePipe } from '../../pipes/staff-name.pipe';
 import { AuthService } from '../../services/auth.service';
 import { EhrService } from '../../services/ehr.service';
-import { StaffService } from '../../services/staff.service';
 import { WardService } from '../../services/ward.service';
 
 type HistoryTab = 'overview' | 'encounters' | 'notes' | 'diagnoses' | 'treatments' | 'allergies';
@@ -101,7 +100,6 @@ const FULL_ONLY_TABS: HistoryTab[] = ['overview', 'encounters', 'notes'];
 })
 export class PatientHistoryPage {
   private readonly ehrService = inject(EhrService);
-  private readonly staffService = inject(StaffService);
   private readonly wardService = inject(WardService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
@@ -110,8 +108,6 @@ export class PatientHistoryPage {
 
   readonly patientId = input.required<string>();
   readonly tab = input<string>();
-
-  protected readonly currentUserId = computed(() => this.staffService.currentUser().id);
 
   /** Full chart (`ehr:read`); otherwise only the limited sections are requested and shown. */
   protected readonly canReadFull = computed(() => this.auth.hasPermission('ehr:read'));

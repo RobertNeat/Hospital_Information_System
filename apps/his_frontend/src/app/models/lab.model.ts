@@ -82,20 +82,6 @@ export interface LabOrder extends Versioned, Partial<Auditable> {
   statusHistory: StatusChange[];
 }
 
-/** @deprecated Use `LabOrderCreateRequest` from `models/api`. */
-export type LabOrderDraft = Omit<
-  LabOrder,
-  | 'id'
-  | 'orderedAt'
-  | 'status'
-  | 'statusHistory'
-  | 'version'
-  | 'createdAt'
-  | 'createdById'
-  | 'updatedAt'
-  | 'updatedById'
->;
-
 export type ResultFlag = 'N' | 'L' | 'H' | 'LL' | 'HH' | 'A';
 
 export interface ReferenceRange {

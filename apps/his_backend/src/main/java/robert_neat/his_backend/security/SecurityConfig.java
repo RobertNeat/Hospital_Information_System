@@ -53,7 +53,7 @@ public class SecurityConfig {
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http, JwtDecoder jwtDecoder,
-            ProblemSecurityHandlers problems, CorsProperties cors) throws Exception {
+            ProblemSecurityHandlers problems, CorsProperties cors, TokenVersionLookup tokenVersions) throws Exception {
         http.sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .requestCache(c -> c.requestCache(new NullRequestCache()))
                 .csrf(AbstractHttpConfigurer::disable)
@@ -69,6 +69,11 @@ public class SecurityConfig {
                 .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                 .requestMatchers("/api/v1/auth/login", "/api/v1/auth/register", "/actuator/health/**").permitAll()
                 .requestMatchers(HttpMethod.GET, PUBLIC_WARDS_PATH).permitAll()
+                // Swagger UI/OpenAPI: tresc jest tylko odbiciem istniejacego, jawnie udokumentowanego REST API
+                // (/api/**, scope: springdoc.paths-to-match) - LAN-wewnetrzny system, ten sam poziom ryzyka jak
+                // juz publiczny /actuator/health/**; bez logowania, zgodnie z uzyciem przez personel i narzedzia
+                .requestMatchers("/v3/api-docs", "/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/**")
+                .permitAll()
                 // handshake WebSocket bez Authorization (przegladarka nie doda naglowka): uwierzytelnienie jest
                 // w ramce STOMP CONNECT (StompSecurityInterceptor); CONNECT bez waznego JWT jest odrzucany,
                 // a po samym handshake nie da sie nic subskrybowac ani wyslac
@@ -80,7 +85,8 @@ public class SecurityConfig {
                 .bearerTokenResolver(publicPathsIgnoringResolver())
                 .authenticationEntryPoint(problems)
                 .accessDeniedHandler(problems)
-                .jwt(j -> j.decoder(jwtDecoder).jwtAuthenticationConverter(new HisJwtAuthenticationConverter())));
+                .jwt(j -> j.decoder(jwtDecoder)
+                        .jwtAuthenticationConverter(new HisJwtAuthenticationConverter(tokenVersions))));
         return http.build();
     }
 

@@ -63,7 +63,7 @@ services:
       # `compose config` na hostach bez wpisu); pusty = backend nie wystartuje.
       # Wartość musi być w config.env (produkcja) lub deploy/local.env (lokalnie).
       HIS_JWT_SECRET: ${HIS_JWT_SECRET:-}
-      HIS_JWT_TTL: ${HIS_JWT_TTL:-8h}
+      HIS_JWT_TTL: ${HIS_JWT_TTL:-15m}
       HIS_JWT_ISSUER: ${HIS_JWT_ISSUER:-his-backend}
       # Blokada konta po kolejnych nieudanych logowaniach.
       HIS_LOCKOUT_MAX_ATTEMPTS: ${HIS_LOCKOUT_MAX_ATTEMPTS:-5}

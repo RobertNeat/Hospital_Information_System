@@ -40,7 +40,7 @@ import robert_neat.his_backend.patient.EncounterRepository;
 import robert_neat.his_backend.patient.PatientRepository;
 
 /**
- * Zlecenia badan obrazowych. Aktor zawsze z sesji (`orderedById` z zadania jest ignorowany); `patientId` w ciele
+ * Zlecenia badan obrazowych. Aktor zawsze z sesji (pole `orderedById` nie wystepuje w zadaniu); `patientId` w ciele
  * musi byc zgodny ze sciezka (422). Nazwa, modalnosc i okolica badania zapisywane jako snapshot z katalogu. Podanie
  * slotu rezerwuje go (`available=false`, zlecenie od razu `scheduled`); zajety slot = 409. Status zmieniaja
  * wylacznie akcje `status` i `cancel` wg {@link ImagingOrderStateMachine} (niedozwolone przejscie lub niezgodna

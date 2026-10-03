@@ -36,7 +36,7 @@ import robert_neat.his_backend.prescription.events.PrescriptionCancelled;
 import robert_neat.his_backend.prescription.events.PrescriptionIssued;
 
 /**
- * Recepty. Aktor zawsze z sesji (`prescriberId` z zadania jest ignorowany); `patientId` w ciele musi byc zgodny ze
+ * Recepty. Aktor zawsze z sesji (pole `prescriberId` nie wystepuje w zadaniu); `patientId` w ciele musi byc zgodny ze
  * sciezka (422). Nazwa, substancja, moc i postac leku sa kopiowane z katalogu (snapshot); `accessCode` i `eRxKey`
  * generuje serwer ({@link PrescriptionCodeGenerator}). Ostrzezenia bezpieczenstwa sa doradcze - wystawienie ich nie
  * blokuje. Anulowanie recepty "dispensed"/"cancelled"/"expired" (takze wygaslej wg terminu) lub przy niezgodnej

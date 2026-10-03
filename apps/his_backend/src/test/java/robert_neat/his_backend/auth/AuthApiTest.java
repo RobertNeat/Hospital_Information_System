@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -111,7 +112,9 @@ class AuthApiTest extends ApiIntegrationTest {
         assertThat(jwt.getClaimAsString("wardId")).isEqualTo(DemoAccounts.WARD_ID);
         assertThat(jwt.getClaimAsStringList("authorities")).contains("ROLE_DOCTOR", "lab-order:create");
         assertThat(jwt.getClaimAsString("iss")).isEqualTo("his-backend");
-        assertThat(jwt.getExpiresAt()).isAfter(Instant.now().plusSeconds(7 * 3600 + 3000));
+        assertThat(((Number) jwt.getClaim("tv")).intValue()).isEqualTo(0);
+        assertThat(jwt.getExpiresAt()).isAfter(Instant.now().plusSeconds(10 * 60));
+        assertThat(jwt.getExpiresAt()).isBefore(Instant.now().plusSeconds(20 * 60));
     }
 
     @Test
@@ -326,10 +329,13 @@ class AuthApiTest extends ApiIntegrationTest {
     void publicAndClosedEndpoints() throws Exception {
         mvc.perform(get("/actuator/health/readiness")).andExpect(status().isOk());
         mvc.perform(get("/actuator/health")).andExpect(status().isOk());
-        // reszta zamknieta: anonim 401, uwierzytelniony 403
+        // reszta zamknieta (anyRequest().denyAll()): anonim lub zly token -> 401, uwierzytelniony -> 403
         expectUnauthorized(get("/actuator/env"));
         expectUnauthorized(get("/cokolwiek"));
+        expectUnauthorized(get("/cokolwiek").header(HttpHeaders.AUTHORIZATION, "Bearer smieci"));
         mvc.perform(get("/actuator/env").header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenOf("admin")))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/cokolwiek").header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenOf("admin")))
                 .andExpect(status().isForbidden());
         expectUnauthorized(get("/api/v1/wards"));
     }
@@ -343,6 +349,94 @@ class AuthApiTest extends ApiIntegrationTest {
         mvc.perform(get("/api/v1/auth/me").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
                 .andExpect(status().isOk());
         expectUnauthorized(post("/api/v1/auth/logout"));
+    }
+
+    // --- token_version: odwolanie tokenu przed exp ---
+
+    @Test
+    void lockBumpsTokenVersionAndInvalidatesOutstandingTokenImmediately() throws Exception {
+        registerAndActivate("tv-lock-1");
+        String token = JsonPath.read(login("tv-lock-1", "Haslo-test-1").andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8), "$.accessToken");
+        mvc.perform(get("/api/v1/auth/me").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk());
+
+        String id = jdbc.queryForObject("SELECT staff_id FROM user_account WHERE employee_id = 'tv-lock-1'",
+                String.class);
+        String admin = tokenOf("admin");
+        mvc.perform(post("/api/v1/staff/{id}/lock", id).header(HttpHeaders.AUTHORIZATION, "Bearer " + admin))
+                .andExpect(status().isOk());
+
+        // token wydany przed blokada jest teraz odrzucany, mimo ze formalnie jeszcze nie wygasl
+        expectUnauthorized(get("/api/v1/auth/me").header(HttpHeaders.AUTHORIZATION, "Bearer " + token));
+    }
+
+    @Test
+    void roleChangeBumpsTokenVersionAndInvalidatesOutstandingToken() throws Exception {
+        String nurseId = jdbc.queryForObject("SELECT staff_id FROM user_account WHERE employee_id = 'nurse'",
+                String.class);
+        String oldToken = tokenOf("nurse");
+        String admin = tokenOf("admin");
+
+        mvc.perform(put("/api/v1/staff/{id}", nurseId).header(HttpHeaders.AUTHORIZATION, "Bearer " + admin)
+                        .contentType(PL_JSON).content(("{\"title\":\"piel.\",\"firstName\":\"X\",\"lastName\":\"Y\","
+                                + "\"role\":\"doctor\",\"wardId\":\"%s\"}").formatted(DemoAccounts.WARD_ID)))
+                .andExpect(status().isOk());
+
+        expectUnauthorized(get("/api/v1/auth/me").header(HttpHeaders.AUTHORIZATION, "Bearer " + oldToken));
+        // nowy token (po zmianie) dziala normalnie
+        login("nurse", "nurse").andExpect(status().isOk()).andExpect(jsonPath("$.user.role").value("doctor"));
+    }
+
+    @Test
+    void updateWithoutRoleChangeDoesNotBumpTokenVersion() throws Exception {
+        String nurseId = jdbc.queryForObject("SELECT staff_id FROM user_account WHERE employee_id = 'nurse'",
+                String.class);
+        String oldToken = tokenOf("nurse");
+        String admin = tokenOf("admin");
+
+        mvc.perform(put("/api/v1/staff/{id}", nurseId).header(HttpHeaders.AUTHORIZATION, "Bearer " + admin)
+                        .contentType(PL_JSON).content(("{\"title\":\"piel.\",\"firstName\":\"Nowe\",\"lastName\":\"Y\","
+                                + "\"role\":\"nurse\",\"wardId\":\"%s\"}").formatted(DemoAccounts.WARD_ID)))
+                .andExpect(status().isOk());
+
+        mvc.perform(get("/api/v1/auth/me").header(HttpHeaders.AUTHORIZATION, "Bearer " + oldToken))
+                .andExpect(status().isOk());
+    }
+
+    // --- /auth/refresh ---
+
+    @Test
+    void refreshIssuesNewWorkingTokenWithFreshRoleAndRejectsAfterTokenVersionBump() throws Exception {
+        String token = tokenOf("doctor");
+        String refreshed = mvc.perform(post("/api/v1/auth/refresh")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.accessToken").isNotEmpty())
+                .andExpect(jsonPath("$.user.role").value("doctor"))
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        // Uwaga: nowy token moze byc identyczny jako string, jesli login+refresh traifaja w ta sama sekunde
+        // (JwtTokenService obcina `iat`/`exp` do sekund) - test sprawdza dzialanie, nie literalna nowosc tokenu.
+        String newToken = JsonPath.read(refreshed, "$.accessToken");
+
+        mvc.perform(get("/api/v1/auth/me").header(HttpHeaders.AUTHORIZATION, "Bearer " + newToken))
+                .andExpect(status().isOk());
+
+        // zablokowanie konta po wydaniu starego tokenu: odswiezenie (nawet starym tokenem) jest juz 401
+        String doctorId = jdbc.queryForObject("SELECT staff_id FROM user_account WHERE employee_id = 'doctor'",
+                String.class);
+        String admin = tokenOf("admin");
+        mvc.perform(post("/api/v1/staff/{id}/lock", doctorId).header(HttpHeaders.AUTHORIZATION, "Bearer " + admin))
+                .andExpect(status().isOk());
+        expectUnauthorized(post("/api/v1/auth/refresh").header(HttpHeaders.AUTHORIZATION, "Bearer " + newToken));
+
+        mvc.perform(post("/api/v1/staff/{id}/activate", doctorId).header(HttpHeaders.AUTHORIZATION, "Bearer " + admin))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void refreshWithoutTokenIsUnauthorized() throws Exception {
+        expectUnauthorized(post("/api/v1/auth/refresh"));
     }
 
     // --- pomocnicze ---
@@ -399,14 +493,22 @@ class AuthApiTest extends ApiIntegrationTest {
                 .andExpect(jsonPath("$.type").exists());
     }
 
+    /** Realne konto (nurse): token z wlasciwym `sub`/`tv`, zeby przeszedl przez porownanie wersji tokenu. */
     private String tokenWithAuthorities(List<String> authorities) {
         Instant now = Instant.now();
+        String accountId = jdbc.queryForObject("SELECT id FROM user_account WHERE employee_id = 'nurse'",
+                String.class);
+        String staffId = jdbc.queryForObject("SELECT staff_id FROM user_account WHERE employee_id = 'nurse'",
+                String.class);
+        Integer tokenVersion = jdbc.queryForObject(
+                "SELECT token_version FROM user_account WHERE employee_id = 'nurse'", Integer.class);
         JwtClaimsSet claims = JwtClaimsSet.builder().issuer("his-backend")
-                .subject(UUID.randomUUID().toString())
+                .subject(accountId)
                 .issuedAt(now).expiresAt(now.plusSeconds(3600))
-                .claim("staffId", UUID.randomUUID().toString())
+                .claim("staffId", staffId)
                 .claim("employeeId", "bez-uprawnien").claim("role", "nurse")
-                .claim("wardId", DemoAccounts.WARD_ID).claim("authorities", authorities).build();
+                .claim("wardId", DemoAccounts.WARD_ID).claim("authorities", authorities)
+                .claim("tv", tokenVersion).build();
         return jwtEncoder.encode(JwtEncoderParameters.from(JwsHeader.with(MacAlgorithm.HS256).build(), claims))
                 .getTokenValue();
     }

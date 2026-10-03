@@ -124,15 +124,18 @@
             </app-form-field>
 
             <app-form-field id="imaging-order-wizard-app-form-field-7" label="Rozpoznanie">
-              <p-select
+              <p-autocomplete
                 id="imaging-order-wizard-diagnosis-code"
-                [options]="diagnosisOptions()"
+                [suggestions]="diagnosisOptions()"
+                (completeMethod)="searchDiagnosis($event)"
                 formControlName="diagnosisCode"
                 optionLabel="label"
-                optionValue="value"
-                [filter]="true"
+                [dropdown]="true"
+                [forceSelection]="true"
                 [showClear]="true"
+                appendTo="body"
                 placeholder="Wybierz rozpoznanie"
+                class="his-full-width"
               />
             </app-form-field>
 

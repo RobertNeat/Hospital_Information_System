@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import robert_neat.his_backend.common.api.ForbiddenException;
 import robert_neat.his_backend.common.api.NotFoundException;
+import robert_neat.his_backend.security.HisJwtAuthenticationConverter;
 import robert_neat.his_backend.security.JwtTokenService;
 import robert_neat.his_backend.security.JwtTokenService.IssuedToken;
 import robert_neat.his_backend.security.LockoutProperties;
@@ -90,7 +91,30 @@ public class AuthService {
 
         StaffMember member = details.staff();
         IssuedToken token = tokens.issue(account.getId(), member.getId(), account.getEmployeeId(), member.getRole(),
-                member.getWardId());
+                member.getWardId(), account.getTokenVersion());
+        return new LoginResponse(token.value(), currentUser(member, account.getAccountStatus()), token.expiresAt());
+    }
+
+    /**
+     * Odswieza token (sliding renewal): wydaje nowy JWT dla juz uwierzytelnionego wywolania (filtr JWT
+     * sprawdzil podpis, `exp` i wersje tokenu, zanim zadanie tu dotarlo - patrz {@link HisJwtAuthenticationConverter}).
+     * Decyzja projektowa: zamiast osobnego, dlugozyjacego tokenu odswiezajacego (dodatkowy stan/typ tokenu
+     * do pilnowania) po prostu re-wydajemy token dostepu na nowo, pod warunkiem ze stary jest wciaz wazny -
+     * prostsze przy bezstanowym JWT i wystarczajace, bo token_version juz daje natychmiastowe odwolanie
+     * (blokada/zmiana roli). Rola/oddzial sa czytane na nowo z bazy (mogly sie zmienic), status musi byc
+     * nadal `active`. Wersja tokenu NIE jest bumpowana (inaczej refresh z jednej karty wylogowalby inne).
+     */
+    @Transactional(readOnly = true)
+    public LoginResponse refresh(UUID accountId) {
+        UserAccount account = accounts.findById(accountId)
+                .orElseThrow(() -> new ForbiddenException("Konto nie istnieje"));
+        if (account.getAccountStatus() != StaffAccountStatus.ACTIVE) {
+            throw new ForbiddenException("Konto nie jest aktywne");
+        }
+        StaffMember member = staff.findById(account.getStaffId())
+                .orElseThrow(() -> NotFoundException.of("Pracownik", account.getStaffId()));
+        IssuedToken token = tokens.issue(account.getId(), member.getId(), account.getEmployeeId(), member.getRole(),
+                member.getWardId(), account.getTokenVersion());
         return new LoginResponse(token.value(), currentUser(member, account.getAccountStatus()), token.expiresAt());
     }
 

@@ -121,15 +121,18 @@
         <ng-template #content let-activateCallback="activateCallback">
           <form id="lab-order-wizard-card-3" [formGroup]="step3Form" class="his-card his-form-grid">
             <app-form-field id="lab-order-wizard-app-form-field-5" label="Rozpoznanie">
-              <p-select
+              <p-autocomplete
                 id="lab-order-wizard-diagnosis-code"
-                [options]="diagnosisOptions()"
+                [suggestions]="diagnosisOptions()"
+                (completeMethod)="searchDiagnosis($event)"
                 formControlName="diagnosisCode"
                 optionLabel="label"
-                optionValue="value"
-                [filter]="true"
+                [dropdown]="true"
+                [forceSelection]="true"
                 [showClear]="true"
+                appendTo="body"
                 placeholder="Wybierz rozpoznanie"
+                class="his-full-width"
               />
             </app-form-field>
 

@@ -45,6 +45,7 @@ export function createPrescriptionServiceStub(): Partial<
       const prescription: Prescription = {
         ...draft,
         id: `test-rx-${prescriptions.length + 1}`,
+        prescriberId: 'test-staff',
         issuedAt: new Date().toISOString(),
         status: 'issued',
         accessCode: '1234',

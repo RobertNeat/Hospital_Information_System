@@ -12,19 +12,32 @@ import org.springframework.stereotype.Component;
 /**
  * Obecnosc pracownikow (`StaffMember.online`): pracownik jest online, gdy ma co najmniej jedna otwarta sesje STOMP
  * (po udanym CONNECT, do DISCONNECT/zamkniecia). Stan wylacznie w pamieci tej instancji (bez persystencji); przy
- * wielu instancjach backendu wymagalby wspolnego magazynu. Zasilany z pakietu `realtime`.
+ * wielu instancjach backendu wymagalby wspolnego magazynu. Zasilany z pakietu `realtime`, ktory tez rozglasza
+ * zwrocone przejscia (`PresenceChanged`) - stad metody zwracaja, czy dany pracownik faktycznie zmienil stan
+ * (pierwsza sesja / ostatnia sesja), a nie tylko sukces operacji na mapie.
  */
 @Component
 public class PresenceRegistry {
 
     private final Map<String, UUID> staffBySession = new ConcurrentHashMap<>();
 
-    public void connected(String sessionId, UUID staffId) {
+    /** @return true, jesli to pierwsza sesja tego pracownika (przejscie offline -> online). */
+    public synchronized boolean connected(String sessionId, UUID staffId) {
+        boolean wasOffline = !staffBySession.containsValue(staffId);
         staffBySession.put(sessionId, staffId);
+        return wasOffline;
     }
 
-    public void disconnected(String sessionId) {
-        staffBySession.remove(sessionId);
+    /**
+     * @return identyfikator pracownika, jesli to byla jego ostatnia sesja (przejscie online -> offline);
+     *         {@code null}, gdy sesja juz byla usunieta (np. podwojny DISCONNECT) albo pracownik ma inne sesje.
+     */
+    public synchronized UUID disconnected(String sessionId) {
+        UUID staffId = staffBySession.remove(sessionId);
+        if (staffId == null || staffBySession.containsValue(staffId)) {
+            return null;
+        }
+        return staffId;
     }
 
     public boolean isOnline(UUID staffId) {

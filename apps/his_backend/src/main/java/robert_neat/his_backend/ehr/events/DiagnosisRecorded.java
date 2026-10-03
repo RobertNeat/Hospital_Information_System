@@ -6,7 +6,7 @@ import java.util.UUID;
 import robert_neat.his_backend.ehr.Coding;
 import robert_neat.his_backend.ehr.DiagnosisType;
 
-/** Zdarzenie domenowe: zapisano diagnoze (publikowane w transakcji, brak konsumenta). */
+/** Zdarzenie domenowe: zapisano diagnoze (publikowane w transakcji; konsument: `alert/AlertEventListener`, alert `system`). */
 public record DiagnosisRecorded(
         UUID diagnosisId,
         UUID patientId,

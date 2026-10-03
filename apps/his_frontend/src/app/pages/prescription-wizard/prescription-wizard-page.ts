@@ -30,7 +30,7 @@ import { createDrugSafetyState } from './prescription-wizard.safety';
 import {
   LONG_TERM_DURATION_THRESHOLD_DAYS,
   MAX_ITEMS,
-  buildPrescriptionDraft,
+  buildPrescriptionCreateRequest,
   buildPrescriptionItem,
   buildPrescriptionSummary,
   computeValidUntil,
@@ -247,9 +247,8 @@ export class PrescriptionWizardPage implements HasUnsavedChanges {
     if (this.items().length === 0 || this.issuing()) return;
     this.issuing.set(true);
 
-    const draft = buildPrescriptionDraft({
+    const draft = buildPrescriptionCreateRequest({
       patientId: this.patientId(),
-      prescriberId: this.prescriber().id,
       validFrom: this.prescriptionDatesForm.controls.validFrom.value,
       validUntil: this.validUntil(),
       items: this.items(),

@@ -11,8 +11,8 @@ import {
   prescriptionUrl,
 } from '../config/api.config';
 import { PRESCRIPTIONS } from '../mock-data/prescriptions.mock';
-import type { Prescription, PrescriptionDraft } from '../models';
-import type { Page } from '../models/api';
+import type { Prescription } from '../models';
+import type { Page, PrescriptionCreateRequest } from '../models/api';
 import { PrescriptionService } from './prescription.service';
 
 const page = (items: Prescription[], n: number, totalPages: number): Page<Prescription> => ({
@@ -23,10 +23,9 @@ const page = (items: Prescription[], n: number, totalPages: number): Page<Prescr
   totalPages,
 });
 
-function draft(): PrescriptionDraft {
+function draft(): PrescriptionCreateRequest {
   return {
     patientId: 'pat-003',
-    prescriberId: 'stf-001',
     validFrom: '2026-01-01',
     validUntil: '2026-01-31',
     kind: 'e_prescription',

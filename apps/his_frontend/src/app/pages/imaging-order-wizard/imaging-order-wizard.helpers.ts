@@ -23,7 +23,11 @@ import { ageFromBirthDate } from '../../utils/date-utils';
 import { rawValueSignal } from '../../utils/form-signals';
 import { EhrService } from '../../services/ehr.service';
 import { LabResultService } from '../../services/lab-result.service';
-import { buildDiagnosisOptions, type DiagnosisOption } from '../../utils/diagnosis-options';
+import {
+  buildDiagnosisOptions,
+  injectDiagnosisSearch,
+  type DiagnosisOption,
+} from '../../utils/diagnosis-options';
 
 const PREGNANCY_MODALITIES: ImagingModality[] = ['RTG', 'CT', 'MMG', 'ANGIOGRAPHY'];
 
@@ -114,7 +118,7 @@ export function buildImagingSummary(i: ImagingSummaryInput): SummaryItem[] {
 
 export type ImagingOrderPayloadInput = Pick<
   ImagingOrderCreateRequest,
-  'patientId' | 'orderedById' | 'laterality' | 'contrast' | 'clinicalIndication' | 'urgency'
+  'patientId' | 'laterality' | 'contrast' | 'clinicalIndication' | 'urgency'
 > & {
   exam: ImagingExam;
   clinicalQuestion: string;
@@ -125,7 +129,9 @@ export type ImagingOrderPayloadInput = Pick<
   creatinineEgfr: CreatinineEgfr | null;
 };
 
-export function buildImagingOrderDraft(i: ImagingOrderPayloadInput): ImagingOrderCreateRequest {
+export function buildImagingOrderCreateRequest(
+  i: ImagingOrderPayloadInput,
+): ImagingOrderCreateRequest {
   return {
     patientId: i.patientId,
     examCode: i.exam.code,
@@ -149,7 +155,6 @@ export function buildImagingOrderDraft(i: ImagingOrderPayloadInput): ImagingOrde
       egfr: i.creatinineEgfr?.egfr,
     },
     slotId: i.slot?.id,
-    orderedById: i.orderedById,
   };
 }
 
@@ -170,11 +175,16 @@ export function injectImagingPatientData(patientId: Signal<string>) {
         labResults: labResultService.getResults(pid),
       }),
   });
+  const baseDiagnosisOptions = computed<DiagnosisOption[]>(() => {
+    const data = resource.value();
+    return data ? buildDiagnosisOptions(data.diagnoses, data.suggestions.concepts) : [];
+  });
+  const patientDiagnoses = computed(() => resource.value()?.diagnoses ?? []);
+  const diagnosisSearch = injectDiagnosisSearch(baseDiagnosisOptions, patientDiagnoses);
+
   return {
-    diagnosisOptions: computed<DiagnosisOption[]>(() => {
-      const data = resource.value();
-      return data ? buildDiagnosisOptions(data.diagnoses, data.suggestions.concepts) : [];
-    }),
+    diagnosisOptions: diagnosisSearch.options,
+    searchDiagnosis: diagnosisSearch.search,
     hasContrastAllergy: computed(() => {
       const data = resource.value();
       return data ? hasActiveContrastAllergy(data.allergies) : false;

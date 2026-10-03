@@ -60,7 +60,7 @@ export class LabOrderService {
     return this.http.get<LabOrder>(labOrderUrl(id));
   }
 
-  /** The orderer comes from the token (`orderedById` is ignored); `testName` is a catalog snapshot. */
+  /** The orderer always comes from the token (the request carries no actor field); `testName` is a catalog snapshot. */
   createOrder(draft: LabOrderCreateRequest): Observable<LabOrder> {
     return this.http.post<LabOrder>(patientLabOrdersUrl(draft.patientId), draft);
   }

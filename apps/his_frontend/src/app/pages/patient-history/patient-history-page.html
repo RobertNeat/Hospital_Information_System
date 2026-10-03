@@ -306,7 +306,6 @@
   id="patient-history-app-clinical-note-dialog"
   [visible]="noteDialogVisible()"
   [patientId]="patientId()"
-  [authorId]="currentUserId()"
   (visibleChange)="noteDialogVisible.set($event)"
   (save)="onNoteSave($event)"
 />

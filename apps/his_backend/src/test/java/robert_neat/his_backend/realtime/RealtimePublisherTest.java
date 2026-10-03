@@ -31,6 +31,7 @@ import robert_neat.his_backend.messaging.MessagingPushProjection;
 import robert_neat.his_backend.messaging.Priority;
 import robert_neat.his_backend.messaging.events.MessageSent;
 import robert_neat.his_backend.messaging.events.ThreadMarkedRead;
+import robert_neat.his_backend.staff.events.PresenceChanged;
 
 /** Mapowanie zdarzen domenowych na tematy STOMP (API.md, par. 10) - bez brokera. */
 class RealtimePublisherTest {
@@ -119,6 +120,16 @@ class RealtimePublisherTest {
         publisher.on(new ThreadMarkedRead(doctor, thread));
 
         verify(template).convertAndSendToUser(doctor.toString(), "/queue/threads", thread);
+    }
+
+    @Test
+    void presenceChangeIsBroadcastOnPresenceTopic() {
+        UUID staffId = UUID.randomUUID();
+        PresenceChanged event = new PresenceChanged(staffId, true, Instant.parse("2026-05-01T10:00:00Z"));
+
+        publisher.on(event);
+
+        verify(template).convertAndSend("/topic/presence", event);
     }
 
     @Test

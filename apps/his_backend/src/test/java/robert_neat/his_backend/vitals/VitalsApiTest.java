@@ -278,7 +278,7 @@ class VitalsApiTest extends ApiIntegrationTest {
     }
 
     @Test
-    void warningAnomalyIsReturnedButDoesNotPublishEvent() throws Exception {
+    void warningAnomalyIsReturnedAndPublishesEventWithWarningAnomalies() throws Exception {
         String json = record("nurse", KOWALSKI, "{\"context\":\"ward_round\",\"heartRate\":105,\"temperature\":38.2}")
                 .andExpect(status().isCreated()).andExpect(jsonPath("$.anomalies", hasSize(2)))
                 .andExpect(jsonPath("$.anomalies[*].type", contains("heartRate", "temperature")))
@@ -290,11 +290,13 @@ class VitalsApiTest extends ApiIntegrationTest {
                 .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
         assertThat((String) JsonPath.read(json, "$.anomalies[0].recordedAt"))
                 .isEqualTo(JsonPath.read(json, "$.saved.recordedAt"));
-        assertThat(events.stream(VitalAnomalyDetected.class).count()).isZero();
+        List<VitalAnomalyDetected> published = events.stream(VitalAnomalyDetected.class).toList();
+        assertThat(published).hasSize(1);
+        assertThat(published.getFirst().anomalies()).allMatch(a -> a.severity() == AnomalySeverity.WARNING);
     }
 
     @Test
-    void criticalAnomalyPublishesEventWithOnlyCriticalAnomalies() throws Exception {
+    void criticalAnomalyPublishesEventWithAllAnomalies() throws Exception {
         String json = record("nurse", KOWALSKI, "{\"context\":\"ward_round\",\"systolic\":75,\"heartRate\":105,"
                 + "\"spo2\":85,\"respiratoryRate\":16}")
                 .andExpect(status().isCreated()).andExpect(jsonPath("$.anomalies", hasSize(3)))
@@ -310,8 +312,11 @@ class VitalsApiTest extends ApiIntegrationTest {
         assertThat(event.patientId()).hasToString(KOWALSKI);
         assertThat(event.vitalsId()).hasToString(JsonPath.<String>read(json, "$.saved.id"));
         assertThat(event.actorId()).hasToString(NURSE_STAFF);
-        assertThat(event.anomalies()).extracting(a -> a.type().wire()).containsExactly("systolic", "spo2");
-        assertThat(event.anomalies()).allMatch(a -> a.severity() == AnomalySeverity.CRITICAL);
+        // zdarzenie niesie teraz WSZYSTKIE anomalie zapisu (takze warning), nie tylko krytyczne
+        assertThat(event.anomalies()).extracting(a -> a.type().wire())
+                .containsExactly("systolic", "heartRate", "spo2");
+        assertThat(event.anomalies()).filteredOn(a -> a.severity() == AnomalySeverity.CRITICAL)
+                .extracting(a -> a.type().wire()).containsExactly("systolic", "spo2");
     }
 
     /** Granice progow: wartosc rowna progowi jest jeszcze "w normie" / "jeszcze nie krytyczna" (porownania scisle). */
@@ -341,7 +346,8 @@ class VitalsApiTest extends ApiIntegrationTest {
         result.andExpect(jsonPath("$.anomalies", hasSize(1))).andExpect(jsonPath("$.anomalies[0].type").value(type))
                 .andExpect(jsonPath("$.anomalies[0].severity").value(parts[0]))
                 .andExpect(jsonPath("$.anomalies[0].direction").value(parts[1]));
-        assertThat(events.stream(VitalAnomalyDetected.class).count()).isEqualTo(parts[0].equals("critical") ? 1 : 0);
+        // zdarzenie publikowane dla kazdej anomalii (warning i critical), nie tylko critical
+        assertThat(events.stream(VitalAnomalyDetected.class).count()).isEqualTo(1);
     }
 
     @Test

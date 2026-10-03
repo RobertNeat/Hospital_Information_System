@@ -12,6 +12,7 @@ public final class StompDestinations {
     public static final String QUEUE_ALERTS = "/queue/alerts";
     public static final String QUEUE_TASKS = "/queue/tasks";
     public static final String TOPIC_ALERTS_PREFIX = "/topic/alerts/";
+    public static final String TOPIC_PRESENCE = "/topic/presence";
 
     /** Pelne tematy, na ktore klient subskrybuje (`/user/queue/...`). */
     static final Set<String> USER_QUEUES = Set.of(USER_PREFIX + QUEUE_MESSAGES, USER_PREFIX + QUEUE_THREADS,

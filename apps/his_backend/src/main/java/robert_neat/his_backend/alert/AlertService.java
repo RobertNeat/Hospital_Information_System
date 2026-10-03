@@ -122,6 +122,18 @@ public class AlertService {
     @Transactional(propagation = Propagation.MANDATORY)
     public ClinicalAlert raise(AlertType type, AlertSeverity severity, UUID patientId, String message,
             AlertTarget target, List<UUID> directRecipients, boolean notifyAttending) {
+        return raise(type, severity, patientId, message, target, directRecipients, notifyAttending, null);
+    }
+
+    /**
+     * Jak {@link #raise(AlertType, AlertSeverity, UUID, String, AlertTarget, List, boolean)}, ale z jawnym
+     * `fallbackWardId` dla tematu `/topic/alerts/{wardId}`, gdy zrodlo zdarzenia zna oddzial, a przyjecie pacjenta
+     * nie jest juz (lub jeszcze) `ACTIVE` w chwili wywolania (np. wypis: status jest zapisywany przed publikacja
+     * zdarzenia, wiec `findByPatientIdAndStatus(..., ACTIVE)` nic by nie znalazl).
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public ClinicalAlert raise(AlertType type, AlertSeverity severity, UUID patientId, String message,
+            AlertTarget target, List<UUID> directRecipients, boolean notifyAttending, UUID fallbackWardId) {
         Instant now = Instant.now();
         ClinicalAlert saved = alerts
                 .saveAndFlush(ClinicalAlert.raise(type, severity, patientId, message, now, target));
@@ -132,8 +144,9 @@ public class AlertService {
         if (notifyAttending) {
             active.map(Admission::getAttendingPhysicianId).ifPresent(recipients::add);
         }
+        UUID wardId = active.map(Admission::getWardId).orElse(fallbackWardId);
         events.publishEvent(new AlertCreated(saved.getId(), type, severity, patientId, message, now, target,
-                active.map(Admission::getWardId).orElse(null), List.copyOf(recipients)));
+                wardId, List.copyOf(recipients)));
         return saved;
     }
 

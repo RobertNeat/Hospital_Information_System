@@ -95,6 +95,13 @@ export class StaffService {
     return s ? `${s.title} ${s.firstName} ${s.lastName}` : id;
   }
 
+  /** Applies a live presence push (`/topic/presence`); a no-op for staff not yet known/cached. */
+  applyPresence(staffId: string, online: boolean): void {
+    const current = this.known().get(staffId);
+    if (!current || current.online === online) return;
+    this.remember([{ ...current, online }]);
+  }
+
   /** Drops cached data (e.g. on logout). */
   clear(): void {
     this.cache.set(null);

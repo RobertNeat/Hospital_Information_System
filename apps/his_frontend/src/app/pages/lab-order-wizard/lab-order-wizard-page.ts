@@ -18,6 +18,7 @@ import { ToggleSwitch } from 'primeng/toggleswitch';
 import { DatePicker } from 'primeng/datepicker';
 import { Textarea } from 'primeng/textarea';
 import { Message } from 'primeng/message';
+import { AutoComplete, type AutoCompleteCompleteEvent } from 'primeng/autocomplete';
 import { CatalogPicker, type CatalogPanel } from '../../components/catalog-picker/catalog-picker';
 import { FhirIntegrationNote } from '../../components/fhir-integration-note/fhir-integration-note';
 import { FormField } from '../../components/form-field/form-field';
@@ -31,9 +32,12 @@ import type { LabTest, OrderUrgency, SpecimenType } from '../../models';
 import { PatientContextService } from '../../services/patient-context.service';
 import { EhrService } from '../../services/ehr.service';
 import { LabOrderService } from '../../services/lab-order.service';
-import { StaffService } from '../../services/staff.service';
 import { toApiError } from '../../utils/api-error';
-import { buildDiagnosisOptions, type DiagnosisOption } from '../../utils/diagnosis-options';
+import {
+  buildDiagnosisOptions,
+  injectDiagnosisSearch,
+  type DiagnosisOption,
+} from '../../utils/diagnosis-options';
 import { rawValueSignal } from '../../utils/form-signals';
 import { orderSubmitObserver, warnIncompleteOrder } from '../../utils/order-wizard';
 import { tryAdvance } from '../../utils/wizard';
@@ -56,6 +60,7 @@ import { tryAdvance } from '../../utils/wizard';
     DatePicker,
     Textarea,
     Message,
+    AutoComplete,
     FormField,
     SummaryList,
     FhirIntegrationNote,
@@ -68,7 +73,6 @@ export class LabOrderWizardPage implements HasUnsavedChanges {
   private readonly fb = inject(FormBuilder).nonNullable;
   private readonly ehrService = inject(EhrService);
   private readonly labOrderService = inject(LabOrderService);
-  private readonly staffService = inject(StaffService);
   private readonly ctx = inject(PatientContextService);
   private readonly router = inject(Router);
   private readonly toast = inject(MessageService);
@@ -112,10 +116,24 @@ export class LabOrderWizardPage implements HasUnsavedChanges {
       }),
   });
 
-  protected readonly diagnosisOptions = computed<DiagnosisOption[]>(() => {
+  private readonly baseDiagnosisOptions = computed<DiagnosisOption[]>(() => {
     const data = this.diagnosesResource.value();
     return data ? buildDiagnosisOptions(data.diagnoses, data.suggestions.concepts) : [];
   });
+
+  private readonly patientDiagnoses = computed(
+    () => this.diagnosesResource.value()?.diagnoses ?? [],
+  );
+
+  private readonly diagnosisSearch = injectDiagnosisSearch(
+    this.baseDiagnosisOptions,
+    this.patientDiagnoses,
+  );
+  protected readonly diagnosisOptions = this.diagnosisSearch.options;
+
+  protected searchDiagnosis(event: AutoCompleteCompleteEvent): void {
+    this.diagnosisSearch.search(event.query);
+  }
 
   // ---- Step 1: Wybór badań ----
   protected readonly selectedCodes = signal<string[]>([]);
@@ -196,7 +214,7 @@ export class LabOrderWizardPage implements HasUnsavedChanges {
 
   // ---- Step 3: Informacje kliniczne ----
   protected readonly step3Form = this.fb.group({
-    diagnosisCode: this.fb.control<string | null>(null),
+    diagnosisCode: this.fb.control<DiagnosisOption | null>(null),
     clinicalInfo: this.fb.control('', {
       validators: [Validators.required, Validators.minLength(10)],
     }),
@@ -216,7 +234,7 @@ export class LabOrderWizardPage implements HasUnsavedChanges {
     const step2Value = this.step2Value();
     const step3Value = this.step3Value();
     const urgencyLabel = URGENCY_OPTIONS.find((o) => o.value === step2Value.urgency)?.label ?? '';
-    const diag = this.diagnosisOptions().find((o) => o.value === step3Value.diagnosisCode);
+    const diag = step3Value.diagnosisCode;
     return [
       { label: 'Badania', value: tests.map((t) => t.name).join(', ') || '—' },
       { label: 'Materiał', value: specimens || '—' },
@@ -263,14 +281,12 @@ export class LabOrderWizardPage implements HasUnsavedChanges {
       return;
     }
 
-    const diagCode = this.step3Form.controls.diagnosisCode.value;
-    const diag = this.diagnosisOptions().find((o) => o.value === diagCode);
+    const diag = this.step3Form.controls.diagnosisCode.value;
 
     this.submitting.set(true);
     this.labOrderService
       .createOrder({
         patientId: this.patientId(),
-        orderedById: this.staffService.currentUser().id,
         items: this.selectedTests().map((t) => ({
           testCode: t.code,
           testName: t.name,

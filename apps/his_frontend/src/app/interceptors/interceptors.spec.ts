@@ -3,7 +3,7 @@ import { HttpClient, provideHttpClient, withInterceptors } from '@angular/common
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
-import { AUTH_LOGIN_URL, AUTH_REGISTER_URL } from '../config/api.config';
+import { AUTH_LOGIN_URL, AUTH_REFRESH_URL, AUTH_REGISTER_URL } from '../config/api.config';
 import { AuthService } from '../services/auth.service';
 import { ApiError } from '../utils/api-error';
 import { authInterceptor } from './auth.interceptor';
@@ -88,7 +88,7 @@ describe('HTTP interceptors', () => {
     req.flush('');
   });
 
-  it('401 on an API call clears the session and redirects to /login with returnUrl', () => {
+  it('401 on an API call attempts a refresh, and clears the session and redirects to /login with returnUrl when it also fails', () => {
     signIn();
     let error: unknown;
     http.get('/api/v1/patients').subscribe({ error: (e: unknown) => (error = e) });
@@ -98,6 +98,7 @@ describe('HTTP interceptors', () => {
         { type: 'about:blank', title: 'Unauthorized', status: 401, code: 'UNAUTHENTICATED' },
         { status: 401, statusText: 'Unauthorized' },
       );
+    ctrl.expectOne(AUTH_REFRESH_URL).flush({}, { status: 401, statusText: 'Unauthorized' });
     expect(auth.isAuthenticated()).toBe(false);
     expect(navigate).toHaveBeenCalledWith(['/login'], {
       queryParams: { returnUrl: '/patients/pat-1/orders' },
@@ -106,13 +107,31 @@ describe('HTTP interceptors', () => {
     expect((error as ApiError).status).toBe(401);
   });
 
-  it('parallel 401s redirect only once', () => {
+  it('a successful refresh retries the original request with the new token instead of logging out', () => {
+    signIn();
+    let result: unknown;
+    http.get('/api/v1/patients').subscribe({ next: (r) => (result = r) });
+    ctrl.expectOne('/api/v1/patients').flush({}, { status: 401, statusText: 'Unauthorized' });
+    ctrl.expectOne(AUTH_REFRESH_URL).flush({
+      accessToken: 'tok-2',
+      expiresAt: new Date(Date.now() + 3600_000).toISOString(),
+    });
+    const retried = ctrl.expectOne('/api/v1/patients');
+    expect(retried.request.headers.get('Authorization')).toBe('Bearer tok-2');
+    retried.flush([]);
+    expect(result).toEqual([]);
+    expect(auth.isAuthenticated()).toBe(true);
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it('parallel 401s share a single refresh and redirect only once if it fails', () => {
     signIn();
     http.get('/api/v1/a').subscribe({ error: () => undefined });
     http.get('/api/v1/b').subscribe({ error: () => undefined });
     for (const url of ['/api/v1/a', '/api/v1/b']) {
       ctrl.expectOne(url).flush({}, { status: 401, statusText: 'Unauthorized' });
     }
+    ctrl.expectOne(AUTH_REFRESH_URL).flush({}, { status: 401, statusText: 'Unauthorized' });
     expect(navigate).toHaveBeenCalledTimes(1);
   });
 

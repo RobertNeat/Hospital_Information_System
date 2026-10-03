@@ -5,7 +5,7 @@ import java.util.UUID;
 
 import robert_neat.his_backend.patient.DischargeDisposition;
 
-/** Zdarzenie domenowe: pacjent wypisany (publikowane w transakcji wypisu, brak konsumenta). */
+/** Zdarzenie domenowe: pacjent wypisany (publikowane w transakcji wypisu; konsument: `alert/AlertEventListener`, alert `system`). */
 public record PatientDischarged(
         UUID patientId,
         UUID admissionId,

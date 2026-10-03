@@ -15,8 +15,8 @@ import {
 import { IMAGING_CATALOG } from '../mock-data/imaging-catalog.mock';
 import { IMAGING_ORDERS } from '../mock-data/imaging-orders.mock';
 import { generateSlots } from '../mock-data/schedule-slots.mock';
-import type { ImagingOrder, ImagingOrderDraft } from '../models';
-import type { Page } from '../models/api';
+import type { ImagingOrder } from '../models';
+import type { ImagingOrderCreateRequest, Page } from '../models/api';
 import { ImagingOrderService } from './imaging-order.service';
 
 const page = (items: ImagingOrder[], n: number, totalPages: number): Page<ImagingOrder> => ({
@@ -27,7 +27,7 @@ const page = (items: ImagingOrder[], n: number, totalPages: number): Page<Imagin
   totalPages,
 });
 
-function draft(slotId?: string): ImagingOrderDraft {
+function draft(slotId?: string): ImagingOrderCreateRequest {
   return {
     patientId: 'pat-003',
     examCode: 'USG-JB',
@@ -47,7 +47,6 @@ function draft(slotId?: string): ImagingOrderDraft {
       confirmed: true,
     },
     slotId,
-    orderedById: 'stf-001',
   };
 }
 

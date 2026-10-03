@@ -14,6 +14,7 @@ export const AUTH_REGISTER_URL = `${API_BASE_URL}/auth/register`;
 export const AUTH_REGISTER_WARDS_URL = `${AUTH_REGISTER_URL}/wards`;
 export const AUTH_LOGOUT_URL = `${API_BASE_URL}/auth/logout`;
 export const AUTH_ME_URL = `${API_BASE_URL}/auth/me`;
+export const AUTH_REFRESH_URL = `${API_BASE_URL}/auth/refresh`;
 
 // Path ids are opaque to the backend; encode them defensively.
 const enc = encodeURIComponent;

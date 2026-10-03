@@ -41,7 +41,7 @@ describe('DiagnosisDialog', () => {
     let emitted: unknown;
     component.save.subscribe((event) => (emitted = event));
 
-    component['form'].controls.code.setValue(option.value);
+    component['form'].controls.code.setValue(option);
     component['form'].controls.type.setValue('primary');
     component['form'].controls.status.setValue('active');
     component['onSave']();
@@ -69,7 +69,7 @@ describe('DiagnosisDialog', () => {
     component.save.subscribe((event) => (emitted = event));
 
     const date = new Date('2026-01-15T10:00:00Z');
-    component['form'].controls.code.setValue(option.value);
+    component['form'].controls.code.setValue(option);
     component['form'].controls.diagnosedAt.setValue(date);
     component['onSave']();
 

@@ -59,7 +59,8 @@ import tools.jackson.databind.json.JsonMapper;
  * sprzatane w {@code @AfterEach}; konta demo (login = haslo) sa tylko czytane.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-        properties = "spring.liquibase.contexts=reference,mock")
+        properties = {"spring.liquibase.contexts=reference,mock",
+                "his.websocket.token-version-sweep-interval=300ms"})
 @Import(TestcontainersConfiguration.class)
 class StompWebSocketTest {
 
@@ -160,6 +161,21 @@ class StompWebSocketTest {
 
         assertThatThrownBy(() -> client.connectAsync(url(), headers, bearer(login("nurse").token()), session)
                 .get(WAIT.toSeconds(), TimeUnit.SECONDS)).hasMessageContaining("403");
+    }
+
+    @Test
+    void sessionIsDroppedWhenTokenVersionBecomesStale() throws Exception {
+        // `pharmacist` (nie uzywany w innych testach tego pliku - bump wersji nie wplywa na nic innego)
+        Login pharmacist = login("pharmacist");
+        TestSession session = connect(pharmacist);
+
+        jdbc.update("UPDATE user_account SET token_version = token_version + 1 WHERE employee_id = 'pharmacist'");
+        try {
+            await().atMost(WAIT).untilAsserted(() -> assertThat(session.session.isConnected()).isFalse());
+        } finally {
+            // odwroc bump, zeby nie zostawic konta demo w stanie z podbita wersja po tym tescie
+            jdbc.update("UPDATE user_account SET token_version = token_version - 1 WHERE employee_id = 'pharmacist'");
+        }
     }
 
     // --- push po commit ---
@@ -311,6 +327,29 @@ class StompWebSocketTest {
 
         second.session.disconnect();
         await().atMost(WAIT).untilAsserted(() -> assertThat(online(doctor, nurse.staffId())).isFalse());
+    }
+
+    @Test
+    void presenceChangesAreBroadcastOnPresenceTopic() throws Exception {
+        Login doctor = login("doctor");
+        Login nurse = login("nurse");
+        TestSession doctorSession = connect(doctor);
+        doctorSession.subscribe("/topic/presence");
+
+        TestSession first = connect(nurse);
+        JsonNode onlinePush = doctorSession.next("/topic/presence");
+        assertThat(onlinePush.get("staffId").asString()).isEqualTo(nurse.staffId());
+        assertThat(onlinePush.get("online").asBoolean()).isTrue();
+
+        // druga sesja tego samego pracownika nie zmienia stanu obecnosci -> brak kolejnego pushu
+        TestSession second = connect(nurse);
+        first.session.disconnect();
+        assertThat(doctorSession.poll("/topic/presence", QUIET)).isNull();
+
+        second.session.disconnect();
+        JsonNode offlinePush = doctorSession.next("/topic/presence");
+        assertThat(offlinePush.get("staffId").asString()).isEqualTo(nurse.staffId());
+        assertThat(offlinePush.get("online").asBoolean()).isFalse();
     }
 
     @Test

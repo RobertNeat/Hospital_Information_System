@@ -31,6 +31,7 @@ import robert_neat.his_backend.ehr.Coding;
 import robert_neat.his_backend.ehr.CodingSystem;
 import robert_neat.his_backend.security.HisUserPrincipal;
 import robert_neat.his_backend.security.SecurityConfig;
+import robert_neat.his_backend.security.TokenVersionLookup;
 import robert_neat.his_backend.staff.StaffRole;
 
 @WebMvcTest(TerminologyController.class)
@@ -42,6 +43,10 @@ class TerminologyControllerTest {
 
     @MockitoBean
     private SnowstormClient client;
+
+    /** Wymagany przez `SecurityConfig` (filtr JWT); testy uzywaja `@WithMockUser`, wiec nie jest wywolywany. */
+    @MockitoBean
+    private TokenVersionLookup tokenVersionLookup;
 
     @MockitoBean
     private TerminologySuggestionService suggestions;

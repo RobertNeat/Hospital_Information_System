@@ -8,13 +8,12 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 /**
- * ClinicalNoteCreateRequest z kontraktu. patientId (jesli podany) musi byc zgodny ze sciezka, a authorId jest
- * ignorowany - autorem jest zalogowany pracownik (sesja).
+ * ClinicalNoteCreateRequest z kontraktu. patientId (jesli podany) musi byc zgodny ze sciezka; autorem jest zawsze
+ * zalogowany pracownik (sesja), wiec pole authorId nie wystepuje w zadaniu.
  */
 public record ClinicalNoteCreateRequest(
         UUID patientId,
         UUID encounterId,
-        UUID authorId,
         @NotNull NoteCategory category,
         @NotBlank @Size(max = 200) String title,
         @NotBlank String content,

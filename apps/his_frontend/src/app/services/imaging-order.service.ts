@@ -73,8 +73,8 @@ export class ImagingOrderService {
   }
 
   /**
-   * The orderer comes from the token (`orderedById` is ignored); exam name/modality/body region are
-   * taken from the catalog. With `slotId` the order is `scheduled` at once and the slot is reserved.
+   * The orderer always comes from the token (the request carries no actor field); exam name/modality/body
+   * region are taken from the catalog. With `slotId` the order is `scheduled` at once and the slot is reserved.
    */
   createOrder(draft: ImagingOrderCreateRequest): Observable<ImagingOrder> {
     return this.http.post<ImagingOrder>(patientImagingOrdersUrl(draft.patientId), draft);

@@ -7,7 +7,8 @@ import java.util.UUID;
 import robert_neat.his_backend.prescription.PrescriptionKind;
 
 /**
- * Zdarzenie domenowe: wystawiono recepte (publikowane w transakcji zapisu; konsument: `EReceiptIntegration`, AFTER_COMMIT).
+ * Zdarzenie domenowe: wystawiono recepte (publikowane w transakcji zapisu; konsumenci: `EReceiptIntegration`
+ * (AFTER_COMMIT) i `alert/AlertEventListener` (synchronicznie, alert `system`)).
  */
 public record PrescriptionIssued(
         UUID prescriptionId,

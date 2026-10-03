@@ -68,20 +68,6 @@ export interface ImagingOrder extends Versioned, Partial<Auditable> {
   statusHistory: StatusChange[];
 }
 
-/** @deprecated Use `ImagingOrderCreateRequest` from `models/api`. */
-export type ImagingOrderDraft = Omit<
-  ImagingOrder,
-  | 'id'
-  | 'orderedAt'
-  | 'status'
-  | 'statusHistory'
-  | 'version'
-  | 'createdAt'
-  | 'createdById'
-  | 'updatedAt'
-  | 'updatedById'
->;
-
 export type ImagingResultStatus = 'preliminary' | 'final';
 
 export interface ImagingResult {

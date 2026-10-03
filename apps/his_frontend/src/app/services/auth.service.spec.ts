@@ -7,6 +7,7 @@ import {
   AUTH_LOGIN_URL,
   AUTH_LOGOUT_URL,
   AUTH_ME_URL,
+  AUTH_REFRESH_URL,
   AUTH_REGISTER_URL,
 } from '../config/api.config';
 import { authInterceptor } from '../interceptors/auth.interceptor';
@@ -185,8 +186,22 @@ describe('AuthService', () => {
     doLogin(loginResponse(new Date(Date.now() + max + 5_000)));
     vi.advanceTimersByTime(max);
     expect(auth.isAuthenticated()).toBe(true);
+    // Proactive refresh fires ~60s before expiresAt, which falls inside this window; fail it so
+    // the hard expiry timer (re-armed on refresh failure) is what ends the session below.
+    http.expectOne(AUTH_REFRESH_URL).flush(null, { status: 401, statusText: 'err' });
     vi.advanceTimersByTime(6_000);
     expect(auth.isAuthenticated()).toBe(false);
+  });
+
+  it('proactively refreshes the token shortly before expiry and reschedules around the new expiresAt', () => {
+    vi.useFakeTimers();
+    doLogin(loginResponse(new Date(Date.now() + 70_000)));
+    vi.advanceTimersByTime(9_000); // 70s - 60s margin = refresh fires at 10s; just short of it
+    http.expectNone(AUTH_REFRESH_URL);
+    vi.advanceTimersByTime(1_500);
+    http.expectOne(AUTH_REFRESH_URL).flush(loginResponse(new Date(Date.now() + 70_000)));
+    expect(auth.isAuthenticated()).toBe(true);
+    expect(auth.token).toBe('tok-123');
   });
 
   it('does not keep a session whose expiresAt is already in the past', () => {

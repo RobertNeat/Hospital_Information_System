@@ -41,8 +41,19 @@ public class AuthController {
     }
 
     /**
-     * Bezstanowe: serwer nie przechowuje sesji ani listy uniewaznionych tokenow. Wylogowanie polega na usunieciu
-     * tokenu przez frontend; token wygasa sam po TTL. Endpoint istnieje dla symetrii kontraktu.
+     * Odswieza token dostepu (uwierzytelnione: wymaga wciaz waznego Bearer, patrz {@link AuthService#refresh}
+     * co do wybranego mechanizmu). Krotkie TTL ({@code HIS_JWT_TTL}) zaklada, ze frontend wola ten endpoint
+     * proaktywnie przed wygasnieciem.
+     */
+    @PostMapping("/refresh")
+    public LoginResponse refresh(@AuthenticationPrincipal HisUserPrincipal principal) {
+        return auth.refresh(principal.accountId());
+    }
+
+    /**
+     * Wylogowanie biezacej sesji: usuniecie tokenu przez frontend (token i tak wygasa sam po krotkim TTL).
+     * Nie bumpuje `token_version` (to by wylogowalo wszystkie inne sesje/karty tego konta) - "wyloguj
+     * wszedzie" nie jest osobna akcja w API; najblizszy odpowiednik to blokada konta przez administratora.
      */
     @PostMapping("/logout")
     @ResponseStatus(HttpStatus.NO_CONTENT)

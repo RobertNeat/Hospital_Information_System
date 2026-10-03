@@ -7,9 +7,10 @@ import java.util.UUID;
 import robert_neat.his_backend.vitals.VitalAnomaly;
 
 /**
- * Zdarzenie domenowe: zapisany odczyt ma anomalie `critical` (publikowane w transakcji zapisu, tylko gdy jest co
- * najmniej jedna anomalia krytyczna; konsument: `alert/AlertEventListener` - synchronicznie w transakcji zrodlowej, alert `vital_anomaly`). `anomalies` zawiera
- * wylacznie anomalie krytyczne; `actorId` = rejestrujacy.
+ * Zdarzenie domenowe: zapisany odczyt ma co najmniej jedna anomalie (`warning` lub `critical`), publikowane w
+ * transakcji zapisu; konsument: `alert/AlertEventListener` - synchronicznie w transakcji zrodlowej, alert
+ * `vital_anomaly` z severity wg najwyzszej anomalii w zdarzeniu. `anomalies` zawiera wszystkie anomalie zapisu
+ * (nie tylko krytyczne); `actorId` = rejestrujacy.
  */
 public record VitalAnomalyDetected(
         UUID patientId,

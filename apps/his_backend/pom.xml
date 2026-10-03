@@ -29,6 +29,8 @@
     <properties>
         <java.version>25</java.version>
         <hapi-fhir.version>8.12.1</hapi-fhir.version>
+        <!-- springdoc 3.x targets Spring Boot v4 (2.x targets Boot 3, incompatible with the Boot 4.1 parent used here) -->
+        <springdoc.version>3.1.1</springdoc.version>
     </properties>
     <dependencies>
         <dependency>
@@ -76,6 +78,11 @@
             <groupId>ca.uhn.hapi.fhir</groupId>
             <artifactId>hapi-fhir-structures-r4</artifactId>
             <version>${hapi-fhir.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>${springdoc.version}</version>
         </dependency>
         <dependency>
             <groupId>org.postgresql</groupId>

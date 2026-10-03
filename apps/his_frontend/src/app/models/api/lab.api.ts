@@ -1,10 +1,5 @@
 import type { ID } from '../common.model';
-import type {
-  LabOrderDraft,
-  OrderStatus,
-  OrderUrgency,
-  ResultAbnormalityFilter,
-} from '../lab.model';
+import type { LabOrder, OrderStatus, OrderUrgency, ResultAbnormalityFilter } from '../lab.model';
 import type { PatientSummary } from '../patient.model';
 import type { PageQuery } from './common.api';
 
@@ -14,7 +9,20 @@ export interface LabAnalyteRef {
   name: string;
 }
 
-export type LabOrderCreateRequest = LabOrderDraft;
+/** `orderedById` is omitted: the actor always comes from the session (anti-spoofing). */
+export type LabOrderCreateRequest = Omit<
+  LabOrder,
+  | 'id'
+  | 'orderedById'
+  | 'orderedAt'
+  | 'status'
+  | 'statusHistory'
+  | 'version'
+  | 'createdAt'
+  | 'createdById'
+  | 'updatedAt'
+  | 'updatedById'
+>;
 
 export interface LabOrderQuery extends PageQuery {
   patientId?: ID;

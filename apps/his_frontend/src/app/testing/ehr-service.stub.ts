@@ -39,6 +39,7 @@ export function createEhrServiceStub(): Partial<Record<keyof EhrService, unknown
       const note: ClinicalNote = {
         ...draft,
         id: `test-note-${notes.length + 1}`,
+        authorId: 'test-staff',
         createdAt: new Date().toISOString(),
       };
       notes.push(note);
@@ -52,7 +53,7 @@ export function createEhrServiceStub(): Partial<Record<keyof EhrService, unknown
         patientId: pid,
         status: draft.status ?? 'active',
         diagnosedAt: draft.diagnosedAt ?? new Date().toISOString(),
-        diagnosedById: draft.diagnosedById ?? 'test-staff',
+        diagnosedById: 'test-staff',
       };
       diagnoses.push(diagnosis);
       return of(diagnosis);

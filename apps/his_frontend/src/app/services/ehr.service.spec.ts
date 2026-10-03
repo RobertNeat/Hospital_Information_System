@@ -76,7 +76,6 @@ describe('EhrService', () => {
   it('addNote POSTs to the patient of the draft and returns the saved note', async () => {
     const draft: ClinicalNoteCreateRequest = {
       patientId: 'p-1',
-      authorId: 's-1',
       category: 'progress',
       title: 'Wizyta',
       content: 'Opis',

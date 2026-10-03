@@ -12,13 +12,12 @@ import robert_neat.his_backend.common.order.Urgency;
 import robert_neat.his_backend.ehr.Coding;
 
 /**
- * LabOrderCreateRequest z kontraktu. `orderedById` jest ignorowany (aktor z sesji); `patientId` (opcjonalny) musi byc
- * zgodny ze sciezka (422).
+ * LabOrderCreateRequest z kontraktu. Aktor zawsze z sesji, wiec pole orderedById nie wystepuje w zadaniu;
+ * `patientId` (opcjonalny) musi byc zgodny ze sciezka (422).
  */
 public record LabOrderCreateRequest(
         UUID patientId,
         UUID encounterId,
-        UUID orderedById,
         @NotEmpty List<@NotNull @Valid LabOrderItemRequest> items,
         @NotNull Urgency urgency,
         @NotNull Boolean fasting,

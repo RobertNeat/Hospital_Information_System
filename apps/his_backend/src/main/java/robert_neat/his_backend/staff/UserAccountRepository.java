@@ -24,4 +24,22 @@ public interface UserAccountRepository extends JpaRepository<UserAccount, UUID> 
     Optional<UserAccount> findByEmployeeIdForUpdate(@Param("employeeId") String employeeId);
 
     boolean existsByEmployeeId(String employeeId);
+
+    /**
+     * Rzutowanie skalarne (bez hydratacji encji/cache poziomu 1): uzywane przy kazdym zadaniu do
+     * porownania z claimem `tv` tokenu. `findById(...).getTokenVersion()` moglby zwrocic stara wartosc
+     * z cache sesji po zewnetrznym (JDBC) bumpie w tej samej transakcji testowej.
+     */
+    @Query("select a.tokenVersion from UserAccount a where a.id = :accountId")
+    Optional<Integer> findTokenVersionById(@Param("accountId") UUID accountId);
+
+    /** Rzutowanie `id -> tokenVersion` dla wsadowego sweepu sesji STOMP. */
+    interface IdAndTokenVersion {
+        UUID getId();
+
+        int getTokenVersion();
+    }
+
+    @Query("select a.id as id, a.tokenVersion as tokenVersion from UserAccount a where a.id in :accountIds")
+    List<IdAndTokenVersion> findTokenVersionsByIdIn(@Param("accountIds") Collection<UUID> accountIds);
 }

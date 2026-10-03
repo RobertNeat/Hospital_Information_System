@@ -12,7 +12,11 @@ import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 
 import robert_neat.his_backend.staff.StaffRole;
 
-/** Wystawia podpisane tokeny dostepu (HS256); stan sesji nie jest przechowywany po stronie serwera. */
+/**
+ * Wystawia podpisane tokeny dostepu (HS256). Sesja jest bezstanowa poza jednym licznikiem w bazie
+ * ({@code UserAccount.tokenVersion}, claim {@value TokenClaims#TOKEN_VERSION}): token niesie wersje
+ * z chwili wydania, a kazde zadanie porownuje ja z biezaca wartoscia (odwolanie = bump licznika).
+ */
 public class JwtTokenService {
 
     /** Token wraz z momentem wygasniecia (sekundowa precyzja, zgodna z claimem `exp`). */
@@ -27,7 +31,8 @@ public class JwtTokenService {
         this.properties = properties;
     }
 
-    public IssuedToken issue(UUID accountId, UUID staffId, String employeeId, StaffRole role, UUID wardId) {
+    public IssuedToken issue(UUID accountId, UUID staffId, String employeeId, StaffRole role, UUID wardId,
+            int tokenVersion) {
         Instant issuedAt = Instant.now().truncatedTo(ChronoUnit.SECONDS);
         Instant expiresAt = issuedAt.plus(properties.ttl());
         JwtClaimsSet claims = JwtClaimsSet.builder()
@@ -40,6 +45,7 @@ public class JwtTokenService {
                 .claim(TokenClaims.ROLE, role.wire())
                 .claim(TokenClaims.WARD_ID, wardId.toString())
                 .claim(TokenClaims.AUTHORITIES, RolePermissions.authoritiesOf(role))
+                .claim(TokenClaims.TOKEN_VERSION, tokenVersion)
                 .build();
         String token = encoder.encode(
                 JwtEncoderParameters.from(JwsHeader.with(MacAlgorithm.HS256).build(), claims)).getTokenValue();

@@ -8,6 +8,8 @@ public final class TokenClaims {
     public static final String ROLE = "role";
     public static final String WARD_ID = "wardId";
     public static final String AUTHORITIES = "authorities";
+    /** Stempel wersji tokenu konta w chwili wystawienia (patrz {@code UserAccount.tokenVersion}). */
+    public static final String TOKEN_VERSION = "tv";
 
     private TokenClaims() {
     }

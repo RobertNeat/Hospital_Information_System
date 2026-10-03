@@ -1,9 +1,22 @@
 import type { ID, ISODate } from '../common.model';
-import type { ImagingModality, ImagingOrderDraft } from '../imaging.model';
+import type { ImagingModality, ImagingOrder } from '../imaging.model';
 import type { OrderStatus, OrderUrgency, ResultAbnormalityFilter } from '../lab.model';
 import type { PageQuery } from './common.api';
 
-export type ImagingOrderCreateRequest = ImagingOrderDraft;
+/** `orderedById` is omitted: the actor always comes from the session (anti-spoofing). */
+export type ImagingOrderCreateRequest = Omit<
+  ImagingOrder,
+  | 'id'
+  | 'orderedById'
+  | 'orderedAt'
+  | 'status'
+  | 'statusHistory'
+  | 'version'
+  | 'createdAt'
+  | 'createdById'
+  | 'updatedAt'
+  | 'updatedById'
+>;
 
 export interface ImagingOrderQuery extends PageQuery {
   patientId?: ID;

@@ -30,4 +30,13 @@ public interface PrescriptionRepository extends JpaRepository<Prescription, UUID
     @Modifying
     @Query("update Prescription p set p.eRxKey = :key where p.id = :id")
     int updateERxKey(@Param("id") UUID id, @Param("key") String key);
+
+    /**
+     * Jak {@link #updateERxKey}, ale tylko gdy zapisany klucz wciaz jest tym odczytanym przed wyslaniem `POST`
+     * (`:staleKey`) - rozstrzyga wyscig przy ponowieniu (retry outboxa): jesli inny watek (np. wczesniejsza proba)
+     * zdazyl juz zapisac nowszy klucz, retry nie nadpisuje go (0 zaktualizowanych wierszy).
+     */
+    @Modifying
+    @Query("update Prescription p set p.eRxKey = :key where p.id = :id and p.eRxKey = :staleKey")
+    int updateERxKeyIfStillLocal(@Param("id") UUID id, @Param("staleKey") String staleKey, @Param("key") String key);
 }

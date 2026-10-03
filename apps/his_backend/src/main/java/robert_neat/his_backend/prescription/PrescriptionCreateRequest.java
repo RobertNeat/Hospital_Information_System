@@ -9,13 +9,12 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 
 /**
- * `PrescriptionCreateRequest` (= `PrescriptionDraft`) z kontraktu. `prescriberId` jest ignorowany (aktor z sesji);
+ * `PrescriptionCreateRequest` z kontraktu. Aktor zawsze z sesji, wiec pole prescriberId nie wystepuje w zadaniu;
  * `patientId` (opcjonalny) musi byc zgodny ze sciezka (422). `accessCode`, `eRxKey`, `status`, `issuedAt` nadaje backend.
  */
 public record PrescriptionCreateRequest(
         UUID patientId,
         UUID encounterId,
-        UUID prescriberId,
         @NotNull LocalDate validFrom,
         @NotNull LocalDate validUntil,
         @NotNull PrescriptionKind kind,

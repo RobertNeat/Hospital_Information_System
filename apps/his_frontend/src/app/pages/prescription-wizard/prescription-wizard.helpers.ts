@@ -5,7 +5,8 @@ import {
   defaultRoute,
   suggestPackageQuantity,
 } from '../../components/dosage-editor/dosage-math';
-import type { Drug, Patient, PrescriptionDraft, PrescriptionItem, StaffMember } from '../../models';
+import type { Drug, Patient, PrescriptionItem, StaffMember } from '../../models';
+import type { PrescriptionCreateRequest } from '../../models/api';
 import { toLocalIsoDate } from '../../utils/date-utils';
 
 export const MAX_ITEMS = 5;
@@ -151,17 +152,15 @@ export function suggestQuantity(drug: Drug, dv: DosageFormValue, days: number | 
   return suggestPackageQuantity(daily, dv.dose, drug, days);
 }
 
-export function buildPrescriptionDraft(i: {
+export function buildPrescriptionCreateRequest(i: {
   patientId: string;
-  prescriberId: string;
   validFrom: Date;
   validUntil: string;
   items: PrescriptionItem[];
   notes: string[];
-}): PrescriptionDraft {
+}): PrescriptionCreateRequest {
   return {
     patientId: i.patientId,
-    prescriberId: i.prescriberId,
     validFrom: toLocalIsoDate(i.validFrom),
     validUntil: i.validUntil,
     kind: 'e_prescription',

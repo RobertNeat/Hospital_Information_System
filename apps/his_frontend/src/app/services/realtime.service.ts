@@ -5,6 +5,7 @@ import type { IMessage, StompConfig, StompSubscription } from '@stomp/stompjs';
 import { realtimeWsUrl } from '../config/api.config';
 import type { ClinicalAlert, Message, MessageThread, TeamTask } from '../models';
 import { AuthService } from './auth.service';
+import { StaffService } from './staff.service';
 import { TeamMessageService } from './team-message.service';
 
 export type RealtimeStatus = 'connected' | 'connecting' | 'disconnected';
@@ -26,16 +27,23 @@ export const MAX_RECONNECT_DELAY_MS = 30_000;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+/** Payload of `/topic/presence` (`staff/events/PresenceChanged`). */
+interface PresenceChanged {
+  staffId: string;
+  online: boolean;
+}
+
 /**
  * STOMP push (`/ws`) while signed in; server -> client only (sending goes through REST). The JWT
  * is verified at CONNECT only, so it is read again for every (re)connect. Pushes are applied by
  * `TeamMessageService`; after a reconnect everything is reloaded because events may have been
- * missed. Presence is not pushed by the backend (`StaffMember.online` comes from REST only).
+ * missed. Presence (`/topic/presence`) is applied directly to `StaffService`'s cache.
  */
 @Injectable({ providedIn: 'root' })
 export class RealtimeService {
   private readonly auth = inject(AuthService);
   private readonly team = inject(TeamMessageService);
+  private readonly staff = inject(StaffService);
   private readonly createClient = inject(REALTIME_CLIENT_FACTORY);
 
   private client: RealtimeClient | undefined;
@@ -108,6 +116,9 @@ export class RealtimeService {
     client.subscribe('/user/queue/tasks', (frame) =>
       this.handle<TeamTask>(frame, (task) => this.team.applyPush({ kind: 'task', task })),
     );
+    client.subscribe('/topic/presence', (frame) =>
+      this.handle<PresenceChanged>(frame, (p) => this.staff.applyPresence(p.staffId, p.online)),
+    );
 
     // A denied SUBSCRIBE closes the connection, so only subscribe where the backend allows it.
     const user = this.auth.currentUser();
@@ -118,6 +129,8 @@ export class RealtimeService {
     if (this.connectedBefore) {
       this.team.refresh();
       this.team.applyPush({ kind: 'resync' });
+      // Presence pushes may have been missed while disconnected; reload the cached staff list.
+      if (this.staff.staff().length) this.staff.load(true).subscribe({ error: () => undefined });
     }
     this.connectedBefore = true;
   }

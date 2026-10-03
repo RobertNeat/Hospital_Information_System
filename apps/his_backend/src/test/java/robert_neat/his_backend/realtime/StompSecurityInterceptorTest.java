@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Optional;
 import java.util.UUID;
 
 import javax.crypto.SecretKey;
@@ -29,6 +30,7 @@ import com.nimbusds.jose.jwk.source.ImmutableSecret;
 
 import robert_neat.his_backend.security.JwtProperties;
 import robert_neat.his_backend.security.JwtTokenService;
+import robert_neat.his_backend.security.TokenVersionLookup;
 import robert_neat.his_backend.staff.StaffRole;
 
 /** Reguly CONNECT/SUBSCRIBE kanalu wejsciowego STOMP (bez Springa i bazy). */
@@ -38,10 +40,25 @@ class StompSecurityInterceptorTest {
     private static final String ISSUER = "his-backend";
     private static final UUID OWN_WARD = UUID.randomUUID();
     private static final UUID OTHER_WARD = UUID.randomUUID();
+    /** Zawsze zgodna wersja tokenu: ten test sprawdza reguly CONNECT/SUBSCRIBE, nie odwolywanie tokenow. */
+    private static final TokenVersionLookup ALWAYS_CURRENT = new TokenVersionLookup() {
+        @Override
+        public Optional<Integer> currentVersion(UUID accountId) {
+            return Optional.of(0);
+        }
+
+        @Override
+        public java.util.Map<UUID, Integer> currentVersions(java.util.Collection<UUID> accountIds) {
+            java.util.Map<UUID, Integer> result = new java.util.HashMap<>();
+            accountIds.forEach(id -> result.put(id, 0));
+            return result;
+        }
+    };
 
     private final SecretKey key = new SecretKeySpec(SECRET.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
     private final JwtDecoder decoder = decoder(key);
-    private final StompSecurityInterceptor interceptor = new StompSecurityInterceptor(decoder);
+    private final StompSecurityInterceptor interceptor = new StompSecurityInterceptor(decoder, ALWAYS_CURRENT,
+            new StompSessionRegistry());
 
     // --- CONNECT ---
 
@@ -118,6 +135,18 @@ class StompSecurityInterceptorTest {
         for (StaffRole role : StaffRole.values()) {
             assertThatCode(() -> subscribe(connect(role, OWN_WARD), destination)).doesNotThrowAnyException();
         }
+    }
+
+    @Test
+    void presenceTopicIsAllowedForAnyAuthenticatedRole() {
+        for (StaffRole role : StaffRole.values()) {
+            assertThatCode(() -> subscribe(connect(role, OWN_WARD), "/topic/presence")).doesNotThrowAnyException();
+        }
+    }
+
+    @Test
+    void presenceTopicIsForbiddenWithoutAuthentication() {
+        assertThatThrownBy(() -> subscribe(null, "/topic/presence")).isInstanceOf(MessageDeliveryException.class);
     }
 
     @ParameterizedTest
@@ -268,6 +297,6 @@ class StompSecurityInterceptorTest {
     private static String token(SecretKey key, Duration ttl, UUID staffId, StaffRole role, UUID wardId) {
         JwtTokenService service = new JwtTokenService(new NimbusJwtEncoder(new ImmutableSecret<>(key)),
                 new JwtProperties("ignored", ttl, ISSUER));
-        return service.issue(UUID.randomUUID(), staffId, "EMP-TEST", role, wardId).value();
+        return service.issue(UUID.randomUUID(), staffId, "EMP-TEST", role, wardId, 0).value();
     }
 }

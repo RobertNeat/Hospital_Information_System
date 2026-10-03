@@ -1,5 +1,9 @@
+import { effect, inject, signal, type Signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { catchError, debounceTime, of, Subject, switchMap } from 'rxjs';
 import type { Coding, Diagnosis } from '../models';
 import type { SnomedConcept } from '../models/api';
+import { EhrService } from '../services/ehr.service';
 
 export interface DiagnosisOption {
   label: string;
@@ -36,4 +40,49 @@ export function buildDiagnosisOptions(
     });
   }
   return options;
+}
+
+/**
+ * Debounced server-side search (`GET /terminology/snomed/suggestions?term=...`) over the diagnosis picker,
+ * for rare diagnoses outside the specialty-scoped prefetch (~100 rows, no `term`). Injection context only
+ * (uses `takeUntilDestroyed`). Feed `search()` from `p-autoComplete`'s `completeMethod`; an empty query
+ * falls back to `baseOptions` (the prefetch merged with the patient's own diagnoses).
+ */
+export function injectDiagnosisSearch(
+  baseOptions: Signal<DiagnosisOption[]>,
+  patientDiagnoses: Signal<Diagnosis[]>,
+): { options: Signal<DiagnosisOption[]>; search: (term: string) => void } {
+  const ehrService = inject(EhrService);
+  const options = signal<DiagnosisOption[]>([]);
+  let searching = false;
+
+  // Keep showing the (possibly still-loading) prefetch until the user actually searches.
+  effect(() => {
+    if (!searching) options.set(baseOptions());
+  });
+
+  const query$ = new Subject<string>();
+  query$
+    .pipe(
+      debounceTime(300),
+      switchMap((term) => {
+        const trimmed = term.trim();
+        if (!trimmed) return of(null);
+        return ehrService
+          .getSnomedSuggestions('diagnosis', trimmed)
+          .pipe(catchError(() => of({ total: 0, offset: 0, concepts: [] })));
+      }),
+      takeUntilDestroyed(),
+    )
+    .subscribe((page) => {
+      searching = page !== null;
+      options.set(
+        page === null ? baseOptions() : buildDiagnosisOptions(patientDiagnoses(), page.concepts),
+      );
+    });
+
+  return {
+    options,
+    search: (term: string) => query$.next(term),
+  };
 }

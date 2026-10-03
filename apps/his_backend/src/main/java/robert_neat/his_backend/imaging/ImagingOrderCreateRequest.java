@@ -12,14 +12,14 @@ import robert_neat.his_backend.common.order.Urgency;
 import robert_neat.his_backend.ehr.Coding;
 
 /**
- * ImagingOrderCreateRequest z kontraktu. `orderedById` jest ignorowany (aktor z sesji), podobnie jak pola snapshotu
- * (`examName`, `modality`, `bodyRegion` - z katalogu) i `scheduledAt` (wynika ze slotu); `patientId` (opcjonalny) musi
- * byc zgodny ze sciezka (422). `laterality` pominiete = `na` (wymagane inne dla badan z `requiresLaterality`).
+ * ImagingOrderCreateRequest z kontraktu. Aktor zawsze z sesji, wiec pole orderedById nie wystepuje w zadaniu;
+ * podobnie pominiete sa pola snapshotu (`examName`, `modality`, `bodyRegion` - z katalogu) i `scheduledAt`
+ * (wynika ze slotu); `patientId` (opcjonalny) musi byc zgodny ze sciezka (422). `laterality` pominiete = `na`
+ * (wymagane inne dla badan z `requiresLaterality`).
  */
 public record ImagingOrderCreateRequest(
         UUID patientId,
         UUID encounterId,
-        UUID orderedById,
         @NotBlank String examCode,
         Laterality laterality,
         @NotNull Boolean contrast,

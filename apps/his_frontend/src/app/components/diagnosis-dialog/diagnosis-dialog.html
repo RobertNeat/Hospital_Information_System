@@ -15,14 +15,16 @@
         [required]="true"
         [control]="form.controls.code"
       >
-        <p-select
+        <p-autocomplete
           id="diagnosis-dialog-code"
-          [options]="diagnosisOptions()"
+          [suggestions]="diagnosisOptions()"
+          (completeMethod)="searchDiagnosis($event)"
           formControlName="code"
           optionLabel="label"
-          optionValue="value"
-          [filter]="true"
+          [dropdown]="true"
+          [forceSelection]="true"
           [showClear]="true"
+          appendTo="body"
           placeholder="Wybierz rozpoznanie"
           class="his-full-width"
         />

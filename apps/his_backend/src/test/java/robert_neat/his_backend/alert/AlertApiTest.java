@@ -11,10 +11,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
@@ -37,6 +39,14 @@ import robert_neat.his_backend.ApiIntegrationTest;
 import robert_neat.his_backend.alert.events.AlertCreated;
 import robert_neat.his_backend.catalog.ImagingModality;
 import robert_neat.his_backend.common.order.OrderStatus;
+import robert_neat.his_backend.ehr.AllergySeverity;
+import robert_neat.his_backend.ehr.Coding;
+import robert_neat.his_backend.ehr.CodingSystem;
+import robert_neat.his_backend.ehr.DiagnosisType;
+import robert_neat.his_backend.ehr.NoteCategory;
+import robert_neat.his_backend.ehr.events.AllergyRecorded;
+import robert_neat.his_backend.ehr.events.ClinicalNoteCreated;
+import robert_neat.his_backend.ehr.events.DiagnosisRecorded;
 import robert_neat.his_backend.imaging.ImagingResultStatus;
 import robert_neat.his_backend.imaging.events.ImagingOrderStatusChanged;
 import robert_neat.his_backend.imaging.events.ImagingResultRecorded;
@@ -48,7 +58,17 @@ import robert_neat.his_backend.lab.ResultStatus;
 import robert_neat.his_backend.lab.events.LabOrderStatusChanged;
 import robert_neat.his_backend.lab.events.LabResultRecorded;
 import robert_neat.his_backend.messaging.Priority;
+import robert_neat.his_backend.messaging.TaskStatus;
+import robert_neat.his_backend.messaging.events.MessageSent;
 import robert_neat.his_backend.messaging.events.TaskAssigned;
+import robert_neat.his_backend.messaging.events.TaskStatusChanged;
+import robert_neat.his_backend.patient.AdmissionType;
+import robert_neat.his_backend.patient.DischargeDisposition;
+import robert_neat.his_backend.patient.events.PatientAdmitted;
+import robert_neat.his_backend.patient.events.PatientDischarged;
+import robert_neat.his_backend.prescription.PrescriptionKind;
+import robert_neat.his_backend.prescription.events.PrescriptionCancelled;
+import robert_neat.his_backend.prescription.events.PrescriptionIssued;
 import robert_neat.his_backend.vitals.AnomalyDirection;
 import robert_neat.his_backend.vitals.AnomalySeverity;
 import robert_neat.his_backend.vitals.VitalAnomaly;
@@ -77,6 +97,7 @@ class AlertApiTest extends ApiIntegrationTest {
     private static final String NURSE_8 = "570c2cc4-eafe-5082-a1ca-e47097316d3a"; // EMP-0008
 
     private static final String KOWALSKI = "c078186c-c437-5fa8-8a5b-a6bf8883f8bf"; // ward internal, attending EMP-0001
+    private static final String KOWALSKI_ADMISSION = "a2c2db40-225e-5f59-9c66-31e7414b7b71"; // active, ward internal
     private static final String WARD_INTERNAL = "25c25490-5067-5aaa-bcf5-5dc23f56588b";
     private static final String SZYMANSKI = "50c8f3fa-ea66-581a-9207-f9c4c7131d26";
     private static final String MAZUR = "55cc6e9e-6413-58bc-88b6-6342579d8413";
@@ -413,6 +434,148 @@ class AlertApiTest extends ApiIntegrationTest {
                 .containsExactly(uuid(NURSE_8)));
     }
 
+    @Test
+    void patientAdmittedCreatesSystemAlertForAttendingPhysicianFromActiveAdmission() {
+        UUID patientId = uuid(KOWALSKI);
+        // przyjecie mock KOWALSKI (a2c2db40...) jest juz ACTIVE, attending = DOC_1: notifyAttending=true go znajduje
+        publisher.publishEvent(new PatientAdmitted(patientId, uuid(KOWALSKI_ADMISSION), UUID.randomUUID(),
+                uuid(WARD_INTERNAL), uuid(DOC_1), AdmissionType.EMERGENCY, Instant.now(), uuid(NURSE_8)));
+        Map<String, Object> row = alertRows("target_kind = 'patient' and target_id = ?::uuid", KOWALSKI).getFirst();
+        assertThat(row).containsEntry("type", "system").containsEntry("severity", "info")
+                .containsEntry("patient_id", patientId);
+        assertThat((String) row.get("message")).contains("Przyjęto pacjenta");
+        assertThat(events.stream(AlertCreated.class)).singleElement().satisfies(e -> {
+            assertThat(e.recipientIds()).containsExactly(uuid(DOC_1));
+            assertThat(e.wardId()).isEqualTo(uuid(WARD_INTERNAL));
+        });
+    }
+
+    @Test
+    void patientDischargedCreatesSystemAlertWithAttendingFromClosedAdmissionAndFallbackWard() throws Exception {
+        UUID patientId = uuid(KOWALSKI);
+        // wypis: admission jest juz DISCHARGED w bazie w chwili publikacji zdarzenia (jak w realnym PatientService) -
+        // notifyAttending z raise() nie znajdzie go jako ACTIVE, wiec attending/wardId musza pochodzic ze zdarzenia/
+        // z bezposredniego odczytu przyjecia (nie z `active` admission).
+        jdbc.update(
+                "update admission set status = 'discharged', discharged_at = now() where id = ?::uuid",
+                KOWALSKI_ADMISSION);
+        publisher.publishEvent(new PatientDischarged(patientId, uuid(KOWALSKI_ADMISSION), UUID.randomUUID(),
+                uuid(WARD_INTERNAL), Instant.now(), DischargeDisposition.HOME, null, uuid(DOC_1)));
+        Map<String, Object> row = alertRows("target_kind = 'patient' and target_id = ?::uuid", KOWALSKI).getFirst();
+        assertThat(row).containsEntry("type", "system").containsEntry("severity", "info");
+        assertThat((String) row.get("message")).contains("Wypisano pacjenta");
+        assertThat(events.stream(AlertCreated.class)).singleElement().satisfies(e -> {
+            assertThat(e.recipientIds()).containsExactly(uuid(DOC_1));
+            assertThat(e.wardId()).isEqualTo(uuid(WARD_INTERNAL));
+        });
+    }
+
+    @Test
+    void clinicalNoteCreatedCreatesSystemAlertForAttendingPhysician() {
+        UUID patientId = uuid(KOWALSKI);
+        publisher.publishEvent(new ClinicalNoteCreated(UUID.randomUUID(), patientId, null, uuid(NURSE_8),
+                NoteCategory.PROGRESS, Instant.now()));
+        Map<String, Object> row = alertRows("target_kind = 'patient' and target_id = ?::uuid", KOWALSKI).getFirst();
+        assertThat(row).containsEntry("type", "system").containsEntry("severity", "info");
+        assertThat((String) row.get("message")).contains("notatka kliniczna").contains("progress");
+        // adresat: lekarz prowadzacy z aktywnego przyjecia KOWALSKI (notifyAttending=true)
+        assertThat(events.stream(AlertCreated.class)).singleElement()
+                .satisfies(e -> assertThat(e.recipientIds()).containsExactly(uuid(DOC_1)));
+    }
+
+    @Test
+    void diagnosisRecordedCreatesSystemAlert() {
+        UUID patientId = uuid(KOWALSKI);
+        Coding code = new Coding(CodingSystem.SNOMED, "38341003", "Nadciśnienie tętnicze");
+        publisher.publishEvent(new DiagnosisRecorded(UUID.randomUUID(), patientId, null, code,
+                DiagnosisType.PRIMARY, Instant.now(), uuid(NURSE_8)));
+        Map<String, Object> row = alertRows("target_kind = 'patient' and target_id = ?::uuid", KOWALSKI).getFirst();
+        assertThat(row).containsEntry("type", "system").containsEntry("severity", "info");
+        assertThat((String) row.get("message")).contains("Nadciśnienie tętnicze");
+    }
+
+    @Test
+    void allergyRecordedCreatesWarningSystemAlert() {
+        UUID patientId = uuid(KOWALSKI);
+        publisher.publishEvent(new AllergyRecorded(UUID.randomUUID(), patientId, "Penicylina",
+                AllergySeverity.SEVERE, Set.of(), Instant.now(), uuid(NURSE_8)));
+        Map<String, Object> row = alertRows("target_kind = 'patient' and target_id = ?::uuid", KOWALSKI).getFirst();
+        assertThat(row).containsEntry("type", "system").containsEntry("severity", "warning");
+        assertThat((String) row.get("message")).contains("Penicylina");
+    }
+
+    @Test
+    void prescriptionIssuedCreatesSystemAlertWithoutRecipients() {
+        UUID patientId = uuid(KOWALSKI);
+        // wystawiajacy = prescriberId = aktor zapisu - nie ma kogo dodatkowo powiadomic o wlasnej akcji
+        publisher.publishEvent(new PrescriptionIssued(UUID.randomUUID(), patientId, uuid(DOC_1),
+                PrescriptionKind.E_PRESCRIPTION, LocalDate.now(), LocalDate.now().plusDays(30), 1, Instant.now()));
+        List<Map<String, Object>> rows = alertRows("target_kind = 'patient' and target_id = ?::uuid", KOWALSKI);
+        assertThat(rows).hasSize(1).allSatisfy(r -> assertThat(r).containsEntry("type", "system")
+                .containsEntry("severity", "info"));
+        assertThat(events.stream(AlertCreated.class)).singleElement()
+                .satisfies(e -> assertThat(e.recipientIds()).isEmpty());
+    }
+
+    @Test
+    void prescriptionCancelledNotifiesPrescriberOnlyWhenSomeoneElseCancelled() {
+        UUID patientId = uuid(KOWALSKI);
+        // ktos inny (NURSE_8, np. uprawniony personel) anuluje recepte wystawiona przez DOC_1 -> adresat: DOC_1
+        publisher.publishEvent(new PrescriptionCancelled(UUID.randomUUID(), patientId, uuid(DOC_1), uuid(NURSE_8),
+                "Błąd wystawienia", Instant.now()));
+        // anulowanie przychodzace z e-receipt (actorId=null) tez powiadamia wystawiajacego
+        publisher.publishEvent(new PrescriptionCancelled(UUID.randomUUID(), patientId, uuid(DOC_1), null,
+                "Zmiana w e-receipt", Instant.now()));
+        List<Map<String, Object>> rows = alertRows(
+                "target_kind = 'patient' and target_id = ?::uuid and severity = 'warning'", KOWALSKI);
+        assertThat(rows).hasSize(2);
+        assertThat(events.stream(AlertCreated.class)).allSatisfy(e -> assertThat(e.recipientIds())
+                .containsExactly(uuid(DOC_1)));
+    }
+
+    @Test
+    void prescriptionCancelledBySamePrescriberNotifiesNobody() {
+        // DOC_1 anuluje wlasna recepte - nie ma kogo dodatkowo powiadomic o wlasnej akcji
+        publisher.publishEvent(new PrescriptionCancelled(UUID.randomUUID(), uuid(KOWALSKI), uuid(DOC_1), uuid(DOC_1),
+                "Omyłka", Instant.now()));
+        assertThat(events.stream(AlertCreated.class)).singleElement()
+                .satisfies(e -> assertThat(e.recipientIds()).isEmpty());
+    }
+
+    @Test
+    void messageSentCreatesAlertWithoutRecipientsTargetOrSubjectToAvoidDoubleNotification() {
+        publisher.publishEvent(new MessageSent(UUID.randomUUID(), UUID.randomUUID(), "Pilna konsultacja",
+                uuid(KOWALSKI), uuid(DOC_1), Priority.HIGH, Instant.now(), List.of(uuid(NURSE_8))));
+        List<Map<String, Object>> rows = alertRows(
+                "type = 'system' and created_at > now() - interval '1 minute' and target_kind is null"
+                        + " and patient_id is null");
+        assertThat(rows).hasSize(1).allSatisfy(r -> assertThat(r).containsEntry("severity", "info"));
+        // tresc watku (temat, pacjent) nie jest ujawniana w nieadresowanym wpisie alertu (prywatnosc)
+        assertThat((String) rows.getFirst().get("message")).doesNotContain("Pilna konsultacja");
+        // bez adresatow: dostarczenie na zywo juz robi RealtimePublisher (/user/queue/messages)
+        assertThat(events.stream(AlertCreated.class)).singleElement()
+                .satisfies(e -> assertThat(e.recipientIds()).isEmpty());
+    }
+
+    @Test
+    void taskStatusChangedCreatesAlertOnlyForTerminalStatusesForTheOtherParty() {
+        UUID taskId = UUID.randomUUID();
+        // in_progress: brak alertu
+        publisher.publishEvent(new TaskStatusChanged(taskId, uuid(NURSE_8), uuid(DOC_1), TaskStatus.OPEN,
+                TaskStatus.IN_PROGRESS, uuid(NURSE_8), Instant.now()));
+        assertThat(alertRows("target_id = ?::uuid", taskId.toString())).isEmpty();
+
+        // done, zmienione przez przypisanego (NURSE_8) -> powiadamiamy tworce (DOC_1)
+        publisher.publishEvent(new TaskStatusChanged(taskId, uuid(NURSE_8), uuid(DOC_1), TaskStatus.IN_PROGRESS,
+                TaskStatus.DONE, uuid(NURSE_8), Instant.now()));
+        Map<String, Object> row = alertRow(taskId);
+        assertThat(row).containsEntry("type", "task").containsEntry("severity", "info")
+                .containsEntry("target_kind", "task");
+        assertThat((String) row.get("message")).contains("Zakończono zadanie");
+        assertThat(events.stream(AlertCreated.class)).singleElement()
+                .satisfies(e -> assertThat(e.recipientIds()).containsExactly(uuid(DOC_1)));
+    }
+
     // --- listenery: realne akcje domenowe ---
 
     @Test
@@ -440,10 +603,14 @@ class AlertApiTest extends ApiIntegrationTest {
     }
 
     @Test
-    void warningOnlyVitalsCreateNoAlert() throws Exception {
+    void warningOnlyVitalsCreateWarningAlert() throws Exception {
         as("nurse", post("/api/v1/patients/{id}/vitals", KOWALSKI).contentType(JSON)
                 .content("{\"context\":\"ward_round\",\"heartRate\":105}")).andExpect(status().isCreated());
-        as("EMP-0001", get("/api/v1/alerts?patientId=" + KOWALSKI)).andExpect(jsonPath("$.items", hasSize(0)));
+        as("EMP-0001", get("/api/v1/alerts?patientId=" + KOWALSKI)).andExpect(jsonPath("$.items", hasSize(1)))
+                .andExpect(jsonPath("$.items[0].type").value("vital_anomaly"))
+                .andExpect(jsonPath("$.items[0].severity").value("warning"))
+                .andExpect(jsonPath("$.items[0].target.kind").value("patient_vitals"))
+                .andExpect(jsonPath("$.items[0].target.id").value(KOWALSKI));
     }
 
     @Test

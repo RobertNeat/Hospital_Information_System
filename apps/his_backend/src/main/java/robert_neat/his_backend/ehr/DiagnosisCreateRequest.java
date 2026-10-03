@@ -7,8 +7,8 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
 /**
- * DiagnosisCreateRequest z kontraktu. diagnosedById jest ignorowany (sesja); brak diagnosedAt = teraz,
- * brak status = active.
+ * DiagnosisCreateRequest z kontraktu. Aktor zawsze z sesji, wiec pole diagnosedById nie wystepuje w zadaniu;
+ * brak diagnosedAt = teraz, brak status = active.
  */
 public record DiagnosisCreateRequest(
         UUID patientId,
@@ -17,6 +17,5 @@ public record DiagnosisCreateRequest(
         @NotNull DiagnosisType type,
         DiagnosisStatus status,
         Instant diagnosedAt,
-        UUID diagnosedById,
         String notes) {
 }

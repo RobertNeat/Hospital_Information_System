@@ -124,6 +124,15 @@ body {
   }
 }
 
+/* `p-autoComplete` is inline by default (unlike `p-select`): stretch it to the field width. */
+p-autocomplete.his-full-width {
+  display: flex;
+  width: 100%;
+}
+p-autocomplete.his-full-width .p-autocomplete-input {
+  width: 100%;
+}
+
 .his-toolbar {
   display: flex;
   align-items: center;

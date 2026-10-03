@@ -42,6 +42,13 @@ class MockDataMigrationTest {
                 assertCount(table, expected + DemoAccounts.EXTRA_ROWS.getOrDefault(table, 0)));
     }
 
+    /**
+     * Tabele operacyjne backendu bez odpowiednika w mockach frontendu (zasilane w czasie dzialania,
+     * nie danymi poczatkowymi) - manifest generuje `pnpm export:mocks` wylacznie z mockow, wiec nigdy
+     * ich nie obejmie.
+     */
+    private static final List<String> OPERATIONAL_TABLES_WITHOUT_MOCK = List.of("integration_outbox");
+
     @Test
     void everyTableIsCoveredByManifest() {
         MockManifest manifest = MockManifest.load();
@@ -50,8 +57,9 @@ class MockDataMigrationTest {
                         + "WHERE table_schema = 'public' AND table_type = 'BASE TABLE' "
                         + "AND table_name NOT LIKE 'databasechangelog%'",
                 String.class);
-        assertThat(tables).hasSize(48);
+        assertThat(tables).hasSize(49);
         for (String table : tables) {
+            if (OPERATIONAL_TABLES_WITHOUT_MOCK.contains(table)) continue;
             assertThat(manifest.reference().containsKey(table) || manifest.mock().containsKey(table))
                     .as("tabela %s w manifescie", table).isTrue();
         }

@@ -5,7 +5,7 @@ import java.util.UUID;
 
 import robert_neat.his_backend.patient.AdmissionType;
 
-/** Zdarzenie domenowe: pacjent przyjety (publikowane w transakcji przyjecia, brak konsumenta). */
+/** Zdarzenie domenowe: pacjent przyjety (publikowane w transakcji przyjecia; konsument: `alert/AlertEventListener`, alert `system`). */
 public record PatientAdmitted(
         UUID patientId,
         UUID admissionId,

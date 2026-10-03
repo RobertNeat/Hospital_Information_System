@@ -7,7 +7,6 @@ describe('ClinicalNoteDialog', () => {
     const fixture = TestBed.createComponent(ClinicalNoteDialog);
     fixture.componentRef.setInput('visible', true);
     fixture.componentRef.setInput('patientId', 'pat-001');
-    fixture.componentRef.setInput('authorId', 'stf-001');
     return fixture;
   }
 
@@ -44,7 +43,6 @@ describe('ClinicalNoteDialog', () => {
     expect(emitted).toEqual({
       draft: {
         patientId: 'pat-001',
-        authorId: 'stf-001',
         category: 'progress',
         title: 'Kontrola',
         content: 'Pacjent czuje się dobrze, bez dolegliwości.',

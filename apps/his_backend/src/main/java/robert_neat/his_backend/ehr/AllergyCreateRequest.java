@@ -9,8 +9,8 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 /**
- * AllergyCreateRequest z kontraktu. recordedById jest ignorowany (sesja); brak recordedAt = teraz,
- * brak status = active.
+ * AllergyCreateRequest z kontraktu. Aktor zawsze z sesji, wiec pole recordedById nie wystepuje w zadaniu;
+ * brak recordedAt = teraz, brak status = active.
  */
 public record AllergyCreateRequest(
         UUID patientId,
@@ -20,6 +20,5 @@ public record AllergyCreateRequest(
         @NotNull AllergySeverity severity,
         AllergyStatus status,
         Instant recordedAt,
-        UUID recordedById,
         @Size(max = 50) List<@NotBlank @Size(max = 10) String> atcCodes) {
 }
