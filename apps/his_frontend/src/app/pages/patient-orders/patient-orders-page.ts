@@ -1,4 +1,5 @@
 import type { Observable } from 'rxjs';
+import { catchError, of } from 'rxjs';
 import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -72,9 +73,23 @@ export class PatientOrdersPage {
     this.auth.hasPermission(PERMISSIONS.IMAGING_ORDER_CREATE),
   );
 
-  protected readonly activeTab = computed<OrdersTab>(() =>
-    this.type() === 'imaging' ? 'imaging' : 'lab',
+  /** Hides the "Laboratoryjne"/"Obrazowe" tab the role has no read access to (e.g. radiologist
+   *  has no lab-order:read) -- otherwise a role without a type would land on it by default and
+   *  see a misleading "Brak zleceń ..." (empty) instead of simply never seeing the tab. */
+  protected readonly canSeeLab = computed(() =>
+    this.auth.hasPermission(PERMISSIONS.LAB_ORDER_READ),
   );
+  protected readonly canSeeImaging = computed(() =>
+    this.auth.hasPermission(PERMISSIONS.IMAGING_ORDER_READ),
+  );
+
+  protected readonly activeTab = computed<OrdersTab>(() => {
+    const requested = this.type();
+    if (requested === 'imaging' && this.canSeeImaging()) return 'imaging';
+    if (requested === 'lab' && this.canSeeLab()) return 'lab';
+    // No (valid) requested tab -- default to the first one this role can see.
+    return this.canSeeLab() ? 'lab' : 'imaging';
+  });
 
   protected readonly labColumns: TableColumn<LabOrder>[] = [
     { field: 'orderedAt', header: 'Data zlecenia' },
@@ -93,14 +108,43 @@ export class PatientOrdersPage {
   private readonly cancelTargetId = signal<string | null>(null);
   private readonly cancelTargetKind = signal<OrdersTab>('lab');
 
+  // `params: () => undefined` leaves a resource idle (no request, no load) -- used here so a
+  // role without read access (e.g. radiologist has no lab-order:read) never sends the call that
+  // the backend would reject with 403 in the first place; that 403 is expected, not an error to
+  // report. A failure on a call the role *is* allowed to make is a genuine problem: `catchError`
+  // reports it via toast and resolves to `[]` so the resource stays "resolved" rather than
+  // "error" (an errored resource's `.value()` throws, which would otherwise freeze the view --
+  // reported: radiologist without lab-order:read hit a stuck spinner on /orders?type=imaging).
   private readonly labResource = rxResource({
-    params: () => this.patientId(),
-    stream: ({ params: pid }) => this.labOrderService.getOrders({ patientId: pid }),
+    params: () =>
+      this.auth.hasPermission(PERMISSIONS.LAB_ORDER_READ) ? this.patientId() : undefined,
+    stream: ({ params: pid }) =>
+      this.labOrderService.getOrders({ patientId: pid }).pipe(
+        catchError((err: unknown) => {
+          this.toast.add({
+            severity: 'error',
+            summary: 'Nie udało się wczytać zleceń laboratoryjnych',
+            detail: toApiError(err).problem.detail,
+          });
+          return of<LabOrder[]>([]);
+        }),
+      ),
   });
 
   private readonly imagingResource = rxResource({
-    params: () => this.patientId(),
-    stream: ({ params: pid }) => this.imagingOrderService.getOrders({ patientId: pid }),
+    params: () =>
+      this.auth.hasPermission(PERMISSIONS.IMAGING_ORDER_READ) ? this.patientId() : undefined,
+    stream: ({ params: pid }) =>
+      this.imagingOrderService.getOrders({ patientId: pid }).pipe(
+        catchError((err: unknown) => {
+          this.toast.add({
+            severity: 'error',
+            summary: 'Nie udało się wczytać zleceń obrazowych',
+            detail: toApiError(err).problem.detail,
+          });
+          return of<ImagingOrder[]>([]);
+        }),
+      ),
   });
 
   protected readonly labOrders = computed<LabOrder[]>(() =>

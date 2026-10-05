@@ -27,13 +27,25 @@ export const NAV_GROUPS: NavGroup[] = [
     label: 'Pacjenci',
     items: [
       { label: 'Lista pacjentów', icon: 'pi pi-users', route: '/patients' },
-      { label: 'Rejestracja / Przyjęcie', icon: 'pi pi-user-plus', route: '/patients/register' },
+      {
+        // The wizard always creates a patient first (POST /patients, patient:write);
+        // admission:admit alone (e.g. DOCTOR) is not enough to reach this flow.
+        label: 'Rejestracja / Przyjęcie',
+        icon: 'pi pi-user-plus',
+        route: '/patients/register',
+        requiresAnyOf: [PERMISSIONS.PATIENT_WRITE],
+      },
     ],
   },
   {
     label: 'Dokumentacja medyczna',
     items: [
-      { label: 'Historia choroby', icon: 'pi pi-book', patientScoped: 'history' },
+      {
+        label: 'Historia choroby',
+        icon: 'pi pi-book',
+        patientScoped: 'history',
+        requiresAnyOf: [PERMISSIONS.EHR_READ, PERMISSIONS.EHR_READ_LIMITED],
+      },
       {
         label: 'Wyniki badań',
         icon: 'pi pi-chart-bar',

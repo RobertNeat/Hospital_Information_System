@@ -39,6 +39,7 @@ export const routes: Routes = [
       },
       {
         path: 'patients/register',
+        canActivate: [permissionGuard(PERMISSIONS.PATIENT_WRITE)],
         loadComponent: () =>
           import('./pages/patient-registration/patient-registration-page').then(
             (m) => m.PatientRegistrationPage,
@@ -66,6 +67,7 @@ export const routes: Routes = [
           },
           {
             path: 'edit',
+            canActivate: [permissionGuard(PERMISSIONS.PATIENT_WRITE)],
             loadComponent: () =>
               import('./pages/patient-registration/patient-registration-page').then(
                 (m) => m.PatientRegistrationPage,
@@ -76,6 +78,7 @@ export const routes: Routes = [
           },
           {
             path: 'history',
+            canActivate: [permissionGuard(PERMISSIONS.EHR_READ, PERMISSIONS.EHR_READ_LIMITED)],
             loadComponent: () =>
               import('./pages/patient-history/patient-history-page').then(
                 (m) => m.PatientHistoryPage,
@@ -84,6 +87,9 @@ export const routes: Routes = [
           },
           {
             path: 'results',
+            canActivate: [
+              permissionGuard(PERMISSIONS.LAB_RESULT_READ, PERMISSIONS.IMAGING_RESULT_READ),
+            ],
             loadComponent: () =>
               import('./pages/patient-results/patient-results-page').then(
                 (m) => m.PatientResultsPage,
@@ -92,6 +98,7 @@ export const routes: Routes = [
           },
           {
             path: 'results/lab/:resultId',
+            canActivate: [permissionGuard(PERMISSIONS.LAB_RESULT_READ)],
             loadComponent: () =>
               import('./pages/result-detail/result-detail-page').then((m) => m.ResultDetailPage),
             data: { kind: 'lab' },
@@ -99,6 +106,7 @@ export const routes: Routes = [
           },
           {
             path: 'results/imaging/:resultId',
+            canActivate: [permissionGuard(PERMISSIONS.IMAGING_RESULT_READ)],
             loadComponent: () =>
               import('./pages/result-detail/result-detail-page').then((m) => m.ResultDetailPage),
             data: { kind: 'imaging' },

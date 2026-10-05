@@ -1,15 +1,24 @@
 import { patientServiceStub } from '../../testing/patient-service.stub';
 import { prescriptionServiceStub } from '../../testing/prescription-service.stub';
 import { staffServiceStub } from '../../testing/staff-service.stub';
-import { describe, expect, it, beforeEach } from 'vitest';
+import { throwError } from 'rxjs';
+import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { MessageService } from 'primeng/api';
 import { PrescriptionsListPage } from './prescriptions-list-page';
+import { PrescriptionService } from '../../services/prescription.service';
 
 describe('PrescriptionsListPage', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [staffServiceStub, prescriptionServiceStub, patientServiceStub, provideRouter([])],
+      providers: [
+        staffServiceStub,
+        prescriptionServiceStub,
+        patientServiceStub,
+        provideRouter([]),
+        MessageService,
+      ],
     });
   });
 
@@ -70,5 +79,20 @@ describe('PrescriptionsListPage', () => {
     const filtered = fixture.componentInstance['filteredRows']();
     expect(filtered.length).toBeLessThanOrEqual(totalBefore);
     expect(filtered.every((r) => r.status === 'cancelled')).toBe(true);
+  });
+
+  it('stops the spinner and toasts instead of hanging when the prescriptions call fails', async () => {
+    const prescriptionService = TestBed.inject(PrescriptionService);
+    vi.spyOn(prescriptionService, 'getPrescriptions').mockReturnValue(
+      throwError(() => new Error('500')),
+    );
+    const fixture = TestBed.createComponent(PrescriptionsListPage);
+    await fixture.whenStable();
+    const cmp = fixture.componentInstance as unknown as {
+      loading: () => boolean;
+      prescriptions: () => unknown[];
+    };
+    expect(cmp.loading()).toBe(false);
+    expect(cmp.prescriptions()).toEqual([]);
   });
 });

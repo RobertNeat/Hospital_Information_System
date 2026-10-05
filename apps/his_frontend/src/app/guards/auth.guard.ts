@@ -1,6 +1,7 @@
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 import type { CanActivateFn } from '@angular/router';
+import { MessageService } from 'primeng/api';
 import { AuthService } from '../services/auth.service';
 
 /** Requires a session; otherwise redirects to `/login?returnUrl=<requested url>`. */
@@ -22,6 +23,19 @@ export function permissionGuard(...anyOf: string[]): CanActivateFn {
   return () => {
     const auth = inject(AuthService);
     if (anyOf.some((p) => auth.hasPermission(p))) return true;
+    const toast = inject(MessageService);
+    // On a hard page load, this guard runs as part of resolving the *initial* navigation --
+    // before the root component's <p-toast> has mounted and subscribed to MessageService's
+    // plain (non-replaying) Subject. `toast.add()` here would be emitted into the void and
+    // never shown. Deferring to the next macrotask lets bootstrap/mounting finish first; on an
+    // in-app navigation (already mounted) this is an imperceptible delay.
+    setTimeout(() =>
+      toast.add({
+        severity: 'warn',
+        summary: 'Brak uprawnień',
+        detail: 'Twoje konto nie ma dostępu do tej strony.',
+      }),
+    );
     return inject(Router).createUrlTree(['/dashboard']);
   };
 }

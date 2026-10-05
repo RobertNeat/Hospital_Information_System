@@ -9,7 +9,8 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
-import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs';
+import { catchError, debounceTime, distinctUntilChanged, of, switchMap } from 'rxjs';
+import { MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { InputText } from 'primeng/inputtext';
 import { Select } from 'primeng/select';
@@ -54,6 +55,7 @@ export class PatientListPage {
   private readonly route = inject(ActivatedRoute);
   private readonly patientService = inject(PatientService);
   private readonly wardService = inject(WardService);
+  private readonly messageService = inject(MessageService);
 
   readonly q = input('');
   readonly status = input<AdmissionStatus | ''>('');
@@ -94,12 +96,24 @@ export class PatientListPage {
     effect(() => this.selectedStatus.set(this.status() ?? ''));
     effect(() => this.selectedWard.set(this.ward() ?? ''));
 
-    this.wardService.getWards().subscribe((wards: Ward[]) => {
-      this.wardOptions.set([
-        { label: 'Wszystkie oddziały', value: '' },
-        ...wards.map((w) => ({ label: w.name, value: w.id })),
-      ]);
-    });
+    this.wardService
+      .getWards()
+      .pipe(
+        catchError(() => {
+          this.messageService.add({
+            severity: 'warn',
+            summary: 'Oddziały',
+            detail: 'Nie udało się wczytać listy oddziałów do filtra.',
+          });
+          return of<Ward[]>([]);
+        }),
+      )
+      .subscribe((wards: Ward[]) => {
+        this.wardOptions.set([
+          { label: 'Wszystkie oddziały', value: '' },
+          ...wards.map((w) => ({ label: w.name, value: w.id })),
+        ]);
+      });
 
     toObservable(this.filterState)
       .pipe(
@@ -109,11 +123,22 @@ export class PatientListPage {
         ),
         switchMap(({ term, status, wardId }) => {
           this.loading.set(true);
-          return this.patientService.getPatients({
-            term: term || undefined,
-            status: status || undefined,
-            wardId: wardId || undefined,
-          });
+          return this.patientService
+            .getPatients({
+              term: term || undefined,
+              status: status || undefined,
+              wardId: wardId || undefined,
+            })
+            .pipe(
+              catchError(() => {
+                this.messageService.add({
+                  severity: 'error',
+                  summary: 'Lista pacjentów',
+                  detail: 'Nie udało się wczytać listy pacjentów.',
+                });
+                return of<PatientSummary[]>([]);
+              }),
+            );
         }),
         takeUntilDestroyed(),
       )

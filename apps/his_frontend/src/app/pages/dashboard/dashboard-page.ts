@@ -34,12 +34,17 @@ import type {
 } from '../../models';
 
 interface QuickActionDef extends IconAction {
-  /** Omitted = always visible (e.g. patient registration, messages). */
+  /** Omitted = always visible (e.g. messages, granted to every role). */
   requiresAnyOf?: string[];
 }
 
 const QUICK_ACTIONS: QuickActionDef[] = [
-  { id: 'register-patient', icon: 'pi pi-user-plus', label: 'Rejestracja pacjenta' },
+  {
+    id: 'register-patient',
+    icon: 'pi pi-user-plus',
+    label: 'Rejestracja pacjenta',
+    requiresAnyOf: [PERMISSIONS.PATIENT_WRITE],
+  },
   {
     id: 'lab-order',
     icon: 'pi pi-eye-dropper',
@@ -102,6 +107,25 @@ export class DashboardPage {
     QUICK_ACTIONS.filter(
       (a) => !a.requiresAnyOf || a.requiresAnyOf.some((p) => this.auth.hasPermission(p)),
     ),
+  );
+
+  // Stat-card links each gate on the same permission as the target route's `permissionGuard`,
+  // so a role without access never sees a tile that would 403 on click.
+  protected readonly canSeeAdmitted = computed(() => true); // `/patients` is unguarded.
+  protected readonly canSeeResults = computed(
+    () =>
+      this.auth.hasPermission(PERMISSIONS.LAB_RESULT_READ) ||
+      this.auth.hasPermission(PERMISSIONS.IMAGING_RESULT_READ),
+  );
+  protected readonly canSeeAlerts = computed(() => this.auth.hasPermission(PERMISSIONS.ALERT_READ));
+  protected readonly canSeeTasks = computed(() => this.auth.hasPermission(PERMISSIONS.TASK_READ));
+  protected readonly canSeeOrders = computed(
+    () =>
+      this.auth.hasPermission(PERMISSIONS.LAB_ORDER_READ) ||
+      this.auth.hasPermission(PERMISSIONS.IMAGING_ORDER_READ),
+  );
+  protected readonly canSeeVitals = computed(() =>
+    this.auth.hasPermission(PERMISSIONS.VITALS_READ),
   );
 
   protected readonly stats = signal<DashboardStats | null>(null);

@@ -1,12 +1,13 @@
 import { imagingOrderServiceStub } from '../../testing/imaging-order-service.stub';
 import { labOrderServiceStub } from '../../testing/lab-order-service.stub';
 import { describe, expect, it, beforeEach, vi } from 'vitest';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { AuthService } from '../../services/auth.service';
 import { ImagingOrderService } from '../../services/imaging-order.service';
+import { LabOrderService } from '../../services/lab-order.service';
 import { IMAGING_ORDERS } from '../../mock-data/imaging-orders.mock';
 import { PatientOrdersPage } from './patient-orders-page';
 
@@ -21,7 +22,12 @@ describe('PatientOrdersPage', () => {
   let permissions: string[];
 
   beforeEach(() => {
-    permissions = ['imaging-order:cancel', 'lab-order:cancel'];
+    permissions = [
+      'imaging-order:cancel',
+      'lab-order:cancel',
+      'imaging-order:read',
+      'lab-order:read',
+    ];
     vi.stubGlobal('ResizeObserver', ResizeObserverStub);
     TestBed.configureTestingModule({
       providers: [
@@ -102,6 +108,48 @@ describe('PatientOrdersPage', () => {
     page.cancelReason.set('Pacjent zrezygnował');
     accept?.();
     expect(cancel).toHaveBeenCalledWith(order.id, 'Pacjent zrezygnował', order.version);
+  });
+
+  it('shows a toast and an empty list instead of a frozen view when an allowed call fails', async () => {
+    const lab = TestBed.inject(LabOrderService);
+    vi.spyOn(lab, 'getOrders').mockReturnValue(throwError(() => new Error('Server error')));
+    const toast = TestBed.inject(MessageService);
+    const addSpy = vi.spyOn(toast, 'add');
+
+    const fixture = TestBed.createComponent(PatientOrdersPage);
+    fixture.componentRef.setInput('patientId', 'pat-001');
+    await fixture.whenStable();
+
+    expect(addSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        severity: 'error',
+        summary: expect.stringContaining('laboratoryjnych'),
+      }),
+    );
+    const page = fixture.componentInstance as unknown as { labOrders: () => unknown[] };
+    expect(page.labOrders()).toEqual([]);
+  });
+
+  it('never requests lab orders, shows no error toast and no lab tab for a role without lab-order:read', async () => {
+    permissions = ['imaging-order:read'];
+    const lab = TestBed.inject(LabOrderService);
+    const getOrdersSpy = vi.spyOn(lab, 'getOrders');
+    const toast = TestBed.inject(MessageService);
+    const addSpy = vi.spyOn(toast, 'add');
+
+    const fixture = TestBed.createComponent(PatientOrdersPage);
+    fixture.componentRef.setInput('patientId', 'pat-001');
+    await fixture.whenStable();
+
+    expect(getOrdersSpy).not.toHaveBeenCalled();
+    expect(addSpy).not.toHaveBeenCalledWith(expect.objectContaining({ severity: 'error' }));
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(text).not.toContain('Laboratoryjne');
+    // Defaults to the only tab the role can see, not the hardcoded 'lab' default.
+    const activeTab = (fixture.nativeElement as HTMLElement).querySelector(
+      '[data-p-active="true"]',
+    );
+    expect(activeTab?.textContent).toContain('Obrazowe');
   });
 
   it('offers lab cancellation only with the lab cancel permission', async () => {

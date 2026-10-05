@@ -1,5 +1,5 @@
 import { HttpClient, HttpContext, HttpHeaders } from '@angular/common/http';
-import { Injectable, Injector, computed, inject, signal } from '@angular/core';
+import { DestroyRef, Injectable, Injector, computed, inject, signal } from '@angular/core';
 import type { Signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { MessageService } from 'primeng/api';
@@ -82,12 +82,16 @@ export class AuthService {
 
   constructor() {
     if (!PERSIST_SESSION) return;
-    window.addEventListener('storage', (event) => {
+    const onStorage = (event: StorageEvent) => {
       if (event.key === STORAGE_KEY && event.newValue === null && this.isAuthenticated()) {
         this.clearSession();
         void this.router.navigate(['/login']);
       }
-    });
+    };
+    window.addEventListener('storage', onStorage);
+    // Without this, each test-created instance leaks a listener on the shared `window`;
+    // a later test's StorageEvent then reaches a destroyed instance's injector (NG0205).
+    inject(DestroyRef).onDestroy(() => window.removeEventListener('storage', onStorage));
   }
 
   /** Current bearer token (read by `authInterceptor`); `null` when signed out. */

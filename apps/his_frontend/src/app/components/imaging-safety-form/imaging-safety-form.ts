@@ -22,4 +22,6 @@ export class ImagingSafetyForm {
   readonly isMri = input.required<boolean>();
   readonly egfrBlocksContrast = input.required<boolean>();
   readonly latestCreatinineEgfr = input.required<CreatinineEgfr | null>();
+  readonly contrastSafetyUnverified = input.required<boolean>();
+  readonly labResultsUnavailable = input.required<boolean>();
 }

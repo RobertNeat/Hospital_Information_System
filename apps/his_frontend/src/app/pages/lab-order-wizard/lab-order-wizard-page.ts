@@ -28,7 +28,7 @@ import { WizardStepFooter } from '../../components/wizard-step-footer/wizard-ste
 import { SPECIMEN_LABELS, URGENCY_OPTIONS } from '../../constants/labels';
 import type { HasUnsavedChanges } from '../../guards/unsaved-changes.guard';
 import type { FieldError } from '../../models/api';
-import type { LabTest, OrderUrgency, SpecimenType } from '../../models';
+import type { Diagnosis, LabTest, OrderUrgency, SpecimenType } from '../../models';
 import { PatientContextService } from '../../services/patient-context.service';
 import { EhrService } from '../../services/ehr.service';
 import { LabOrderService } from '../../services/lab-order.service';
@@ -94,7 +94,16 @@ export class LabOrderWizardPage implements HasUnsavedChanges {
       forkJoin({
         catalog: this.labOrderService.getCatalog(),
         panels: this.labOrderService.getPanels(),
-      }),
+      }).pipe(
+        catchError(() => {
+          this.toast.add({
+            severity: 'error',
+            summary: 'Katalog badań',
+            detail: 'Nie udało się wczytać katalogu badań laboratoryjnych.',
+          });
+          return of({ catalog: [], panels: [] });
+        }),
+      ),
   });
 
   protected readonly catalog = computed<LabTest[]>(
@@ -108,7 +117,17 @@ export class LabOrderWizardPage implements HasUnsavedChanges {
     params: () => this.patientId(),
     stream: ({ params: pid }) =>
       forkJoin({
-        diagnoses: this.ehrService.getDiagnoses(pid),
+        // Brak rozpoznan nie moze zablokowac zlecenia; uzytkownik jest informowany, ze lista jest niepewna.
+        diagnoses: this.ehrService.getDiagnoses(pid).pipe(
+          catchError(() => {
+            this.toast.add({
+              severity: 'warn',
+              summary: 'Rozpoznania',
+              detail: 'Nie udało się wczytać rozpoznań pacjenta.',
+            });
+            return of<Diagnosis[]>([]);
+          }),
+        ),
         // Snowstorm może być wyłączony/niedostępny - brak podpowiedzi nie blokuje reszty kroku 3.
         suggestions: this.ehrService
           .getSnomedSuggestions('diagnosis')

@@ -27,7 +27,13 @@
       optionValue="value"
     />
   </app-form-field>
-  <app-form-field id="insurance-step-app-form-field-3" label="Oddział NFZ" for="nfzBranch">
+  <app-form-field
+    id="insurance-step-app-form-field-3"
+    label="Oddział NFZ"
+    for="nfzBranch"
+    [required]="true"
+    [control]="form().controls.nfzBranch"
+  >
     <p-select
       id="insurance-step-nfz-branch"
       inputId="nfzBranch"

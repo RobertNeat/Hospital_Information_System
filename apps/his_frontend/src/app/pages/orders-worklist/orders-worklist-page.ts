@@ -1,7 +1,7 @@
 import type { Observable } from 'rxjs';
 import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
-import { forkJoin, map } from 'rxjs';
+import { catchError, forkJoin, map, of } from 'rxjs';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MessageService } from 'primeng/api';
@@ -15,12 +15,21 @@ import {
   IMAGING_MODALITY_LABELS,
   URGENCY_OPTIONS,
 } from '../../constants/labels';
-import type { ID, OrderStatus, OrderUrgency, PatientSummary, TableColumn } from '../../models';
+import type {
+  ID,
+  ImagingOrder,
+  LabOrder,
+  OrderStatus,
+  OrderUrgency,
+  PatientSummary,
+  TableColumn,
+} from '../../models';
 import { toApiError } from '../../utils/api-error';
 import { LabOrderService } from '../../services/lab-order.service';
 import { ImagingOrderService } from '../../services/imaging-order.service';
 import { AuthService } from '../../services/auth.service';
 import { PatientService } from '../../services/patient.service';
+import { PERMISSIONS } from '../../constants/permissions';
 
 type WorklistOrderType = 'lab' | 'imaging';
 
@@ -105,9 +114,32 @@ export class OrdersWorklistPage {
     params: () => this.urgencyFilter(),
     stream: ({ params }) => {
       const urgency = params || undefined;
+      // Role may lack permission for one order type (e.g. radiologist has no lab-order:read) --
+      // skip that call entirely rather than let its 403 blank the whole worklist; that 403 is
+      // expected, not an error to report. A genuine failure (500, network, timeout) on a call
+      // the role *is* allowed to make still surfaces via toast, resolving to `[]` so the other
+      // source's rows still render instead of the whole worklist going blank.
+      const lab$ = this.auth.hasPermission(PERMISSIONS.LAB_ORDER_READ)
+        ? this.labOrderService
+            .getOrders({ urgency })
+            .pipe(
+              catchError((err: unknown) =>
+                this.reportLoadError<LabOrder>('zleceń laboratoryjnych', err),
+              ),
+            )
+        : of<LabOrder[]>([]);
+      const imaging$ = this.auth.hasPermission(PERMISSIONS.IMAGING_ORDER_READ)
+        ? this.imagingOrderService
+            .getOrders({ urgency })
+            .pipe(
+              catchError((err: unknown) =>
+                this.reportLoadError<ImagingOrder>('zleceń obrazowych', err),
+              ),
+            )
+        : of<ImagingOrder[]>([]);
       return forkJoin({
-        lab: this.labOrderService.getOrders({ urgency }),
-        imaging: this.imagingOrderService.getOrders({ urgency }),
+        lab: lab$,
+        imaging: imaging$,
         patients: this.patientService.getPatients(),
       }).pipe(
         map(({ lab, imaging, patients }) => {
@@ -145,6 +177,17 @@ export class OrdersWorklistPage {
       );
     },
   });
+
+  /** Reports a load failure via toast; returns `[]` so the forkJoin stream still resolves
+   *  (a genuine error here is still visible to the user, just not a frozen/blank worklist). */
+  private reportLoadError<T>(subject: string, err: unknown): Observable<T[]> {
+    this.toast.add({
+      severity: 'error',
+      summary: `Nie udało się wczytać listy ${subject}`,
+      detail: toApiError(err).problem.detail,
+    });
+    return of<T[]>([]);
+  }
 
   protected readonly loading = computed(() => this.ordersResource.isLoading());
 

@@ -9,7 +9,7 @@ import {
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { FormBuilder } from '@angular/forms';
-import { EMPTY, catchError, switchMap, throwError } from 'rxjs';
+import { EMPTY, catchError, of, switchMap, throwError } from 'rxjs';
 import { MessageService } from 'primeng/api';
 import { StepperModule } from 'primeng/stepper';
 
@@ -135,8 +135,14 @@ export class PatientRegistrationPage implements HasUnsavedChanges {
   private originalPatient: Patient | null = null;
 
   constructor() {
-    this.wardService.getWards().subscribe((w) => this.wards.set(w));
-    this.staffService.getStaff('doctor').subscribe((d) => this.doctors.set(d));
+    this.wardService
+      .getWards()
+      .pipe(catchError(() => of<Ward[]>([])))
+      .subscribe((w) => this.wards.set(w));
+    this.staffService
+      .getStaff('doctor')
+      .pipe(catchError(() => of<StaffMember[]>([])))
+      .subscribe((d) => this.doctors.set(d));
 
     // PESEL <-> manual-birth-date branch toggling.
     this.step1.controls.noPesel.valueChanges.subscribe((noPesel) => {
@@ -160,7 +166,18 @@ export class PatientRegistrationPage implements HasUnsavedChanges {
         switchMap((id) => {
           if (this.mode() !== 'edit' || !id) return EMPTY;
           this.loadingPatient.set(true);
-          return this.patientService.getPatientById(id);
+          return this.patientService.getPatientById(id).pipe(
+            catchError((err: unknown) => {
+              this.loadingPatient.set(false);
+              this.messageService.add({
+                severity: 'error',
+                summary: 'Nie udało się wczytać danych pacjenta',
+                detail: problemMessage(err),
+              });
+              void this.router.navigate(['/patients']);
+              return EMPTY;
+            }),
+          );
         }),
         takeUntilDestroyed(),
       )

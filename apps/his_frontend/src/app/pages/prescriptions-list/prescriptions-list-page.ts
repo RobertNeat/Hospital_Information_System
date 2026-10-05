@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { forkJoin, catchError, of } from 'rxjs';
+import { MessageService } from 'primeng/api';
 import { DatePicker } from 'primeng/datepicker';
 import { Select } from 'primeng/select';
 import { DataTable } from '../../components/data-table/data-table';
@@ -35,6 +36,7 @@ export class PrescriptionsListPage {
   private readonly patientService = inject(PatientService);
   private readonly staffService = inject(StaffService);
   private readonly router = inject(Router);
+  private readonly messageService = inject(MessageService);
 
   protected readonly loading = signal(true);
   protected readonly prescriptions = signal<Prescription[]>([]);
@@ -61,9 +63,20 @@ export class PrescriptionsListPage {
 
   constructor() {
     forkJoin({
-      prescriptions: this.prescriptionService.getPrescriptions({
-        prescriberId: this.staffService.currentUser().id,
-      }),
+      prescriptions: this.prescriptionService
+        .getPrescriptions({
+          prescriberId: this.staffService.currentUser().id,
+        })
+        .pipe(
+          catchError(() => {
+            this.messageService.add({
+              severity: 'error',
+              summary: 'Recepty',
+              detail: 'Nie udało się wczytać listy recept.',
+            });
+            return of<Prescription[]>([]);
+          }),
+        ),
       // The prescription DTO carries only patientId; patients are fetched separately to
       // resolve display names. A failed fetch must not block the prescriptions list.
       patients: this.patientService.getPatients().pipe(catchError(() => of([]))),

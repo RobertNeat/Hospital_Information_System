@@ -85,27 +85,32 @@ export function bindStep1Rules(form: Step1Form, selectedExam: () => ImagingExam 
   });
 }
 
-/** Scans forward up to 14 days for the first available slot of the modality; calls `found` once. */
+/** Scans forward up to 14 days for the first available slot of the modality; calls `found` once.
+ * `onError` fires (once) if a day's lookup fails, instead of the scan silently stopping. */
 export function findNearestSlot(
   getSlots: (modality: ImagingModality, iso: string) => Observable<ScheduleSlot[]>,
   modality: ImagingModality,
   found: (date: Date, slot: ScheduleSlot) => void,
+  onError?: () => void,
 ): void {
   const startDate = new Date();
   const tryDay = (offset: number): void => {
     if (offset > 14) return;
     const d = new Date(startDate);
     d.setDate(d.getDate() + offset);
-    getSlots(modality, toLocalIsoDate(d)).subscribe((slots) => {
-      const now = new Date();
-      const available = slots
-        .filter((s) => s.available && new Date(s.start) > now)
-        .sort((a, b) => a.start.localeCompare(b.start));
-      if (available.length) {
-        found(d, available[0]);
-      } else {
-        tryDay(offset + 1);
-      }
+    getSlots(modality, toLocalIsoDate(d)).subscribe({
+      next: (slots) => {
+        const now = new Date();
+        const available = slots
+          .filter((s) => s.available && new Date(s.start) > now)
+          .sort((a, b) => a.start.localeCompare(b.start));
+        if (available.length) {
+          found(d, available[0]);
+        } else {
+          tryDay(offset + 1);
+        }
+      },
+      error: () => onError?.(),
     });
   };
   tryDay(0);

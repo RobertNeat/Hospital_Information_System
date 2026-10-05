@@ -3,11 +3,13 @@ import { patientServiceStub } from '../../testing/patient-service.stub';
 import { ehrServiceStub } from '../../testing/ehr-service.stub';
 import { wardServiceStub } from '../../testing/ward-service.stub';
 import { staffServiceStub } from '../../testing/staff-service.stub';
-import { describe, expect, it, beforeEach } from 'vitest';
+import { throwError } from 'rxjs';
+import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { MessageService } from 'primeng/api';
 import { LabOrderWizardPage } from './lab-order-wizard-page';
+import { LabOrderService } from '../../services/lab-order.service';
 
 describe('LabOrderWizardPage', () => {
   beforeEach(() => {
@@ -31,6 +33,20 @@ describe('LabOrderWizardPage', () => {
     expect((fixture.nativeElement as HTMLElement).textContent).toContain(
       'Nowe zlecenie laboratoryjne',
     );
+  });
+
+  it('falls back to an empty catalog and toasts instead of hanging when the catalog fetch fails', async () => {
+    const labOrderService = TestBed.inject(LabOrderService);
+    vi.spyOn(labOrderService, 'getCatalog').mockReturnValue(throwError(() => new Error('500')));
+    const fixture = TestBed.createComponent(LabOrderWizardPage);
+    fixture.componentRef.setInput('patientId', 'pat-001');
+    await fixture.whenStable();
+    const cmp = fixture.componentInstance as unknown as {
+      catalog: () => unknown[];
+      panels: () => unknown[];
+    };
+    expect(cmp.catalog()).toEqual([]);
+    expect(cmp.panels()).toEqual([]);
   });
 
   it('reports no unsaved changes initially, and true once a step form becomes dirty', async () => {

@@ -2,6 +2,7 @@ import { patientServiceStub } from '../../testing/patient-service.stub';
 import { ehrServiceStub } from '../../testing/ehr-service.stub';
 import { staffServiceStub } from '../../testing/staff-service.stub';
 import { wardServiceStub } from '../../testing/ward-service.stub';
+import { throwError } from 'rxjs';
 import { afterEach, describe, expect, it, beforeEach, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
@@ -44,6 +45,19 @@ describe('PatientRegistrationPage', () => {
     fixture.componentRef.setInput('patientId', 'pat-001');
     await fixture.whenStable();
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('Edycja danych pacjenta');
+  });
+
+  it('stops the loading spinner and navigates back instead of hanging when the fetch fails', async () => {
+    const patientService = TestBed.inject(PatientService);
+    vi.spyOn(patientService, 'getPatientById').mockReturnValue(throwError(() => new Error('404')));
+    const router = TestBed.inject(Router);
+    const navigateSpy = vi.spyOn(router, 'navigate');
+    const fixture = TestBed.createComponent(PatientRegistrationPage);
+    fixture.componentRef.setInput('mode', 'edit');
+    fixture.componentRef.setInput('patientId', 'pat-001');
+    await fixture.whenStable();
+    expect(fixture.componentInstance['loadingPatient']()).toBe(false);
+    expect(navigateSpy).toHaveBeenCalledWith(['/patients']);
   });
 
   it('reports no unsaved changes before any step is touched', async () => {

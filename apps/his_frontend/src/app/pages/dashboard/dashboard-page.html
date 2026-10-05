@@ -14,54 +14,66 @@
   </div>
 
   <div id="dashboard-grid-3" class="his-grid-3 his-dashboard__stats">
-    <app-stat-card
-      id="dashboard-app-stat-card"
-      label="Pacjenci na oddziale"
-      [value]="stats()?.admittedPatients ?? 0"
-      icon="pi pi-users"
-      severity="primary"
-      link="/patients?status=admitted"
-    />
-    <app-stat-card
-      id="dashboard-app-stat-card-2"
-      label="Nowe wyniki"
-      [value]="stats()?.newResults ?? 0"
-      icon="pi pi-chart-bar"
-      severity="info"
-      link="/results"
-    />
-    <app-stat-card
-      id="dashboard-app-stat-card-3"
-      label="Alerty krytyczne"
-      [value]="stats()?.criticalAlerts ?? 0"
-      icon="pi pi-exclamation-triangle"
-      severity="danger"
-      link="/messages?tab=alerts"
-    />
-    <app-stat-card
-      id="dashboard-app-stat-card-4"
-      label="Moje zadania"
-      [value]="stats()?.openTasks ?? 0"
-      icon="pi pi-list-check"
-      severity="warn"
-      link="/messages?tab=tasks"
-    />
-    <app-stat-card
-      id="dashboard-app-stat-card-5"
-      label="Oczekujące zlecenia"
-      [value]="stats()?.pendingOrders ?? 0"
-      icon="pi pi-send"
-      severity="secondary"
-      link="/orders"
-    />
-    <app-stat-card
-      id="dashboard-app-stat-card-6"
-      label="Odchylenia parametrów"
-      [value]="stats()?.vitalsAnomalies ?? 0"
-      icon="pi pi-heart"
-      severity="danger"
-      link="/vitals"
-    />
+    @if (canSeeAdmitted()) {
+      <app-stat-card
+        id="dashboard-app-stat-card"
+        label="Pacjenci na oddziale"
+        [value]="stats()?.admittedPatients ?? 0"
+        icon="pi pi-users"
+        severity="primary"
+        link="/patients?status=admitted"
+      />
+    }
+    @if (canSeeResults()) {
+      <app-stat-card
+        id="dashboard-app-stat-card-2"
+        label="Nowe wyniki"
+        [value]="stats()?.newResults ?? 0"
+        icon="pi pi-chart-bar"
+        severity="info"
+        link="/results"
+      />
+    }
+    @if (canSeeAlerts()) {
+      <app-stat-card
+        id="dashboard-app-stat-card-3"
+        label="Alerty krytyczne"
+        [value]="stats()?.criticalAlerts ?? 0"
+        icon="pi pi-exclamation-triangle"
+        severity="danger"
+        link="/messages?tab=alerts"
+      />
+    }
+    @if (canSeeTasks()) {
+      <app-stat-card
+        id="dashboard-app-stat-card-4"
+        label="Moje zadania"
+        [value]="stats()?.openTasks ?? 0"
+        icon="pi pi-list-check"
+        severity="warn"
+        link="/messages?tab=tasks"
+      />
+    }
+    @if (canSeeOrders()) {
+      <app-stat-card
+        id="dashboard-app-stat-card-5"
+        label="Oczekujące zlecenia"
+        [value]="stats()?.pendingOrders ?? 0"
+        icon="pi pi-send"
+        severity="secondary"
+        link="/orders"
+      />
+    }
+    @if (canSeeVitals()) {
+      <app-stat-card
+        id="dashboard-app-stat-card-6"
+        label="Odchylenia parametrów"
+        [value]="stats()?.vitalsAnomalies ?? 0"
+        icon="pi pi-heart"
+        severity="danger"
+        link="/vitals"
+      />
+    }
   </div>
 
   <div id="dashboard-card-2" class="his-card">

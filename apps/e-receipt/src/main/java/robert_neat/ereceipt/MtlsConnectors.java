@@ -48,7 +48,7 @@ class MtlsConnectors {
         return registration;
     }
 
-    /** HTTPS: tylko `/fhir/**`; HTTP: tylko UI (`/`, `/ui/**`); inaczej 404. */
+    /** HTTPS: tylko `/fhir/**`; HTTP: tylko UI (`/`, `/ui/**`, statyki); inaczej 404. */
     static final class ConnectorGuardFilter extends OncePerRequestFilter {
 
         @Override
@@ -56,7 +56,8 @@ class MtlsConnectors {
                 throws ServletException, IOException {
             String path = request.getRequestURI();
             boolean allowed = request.isSecure() ? isUnder(path, "/fhir")
-                    : path.equals("/") || isUnder(path, "/ui");
+                    : path.equals("/") || isUnder(path, "/ui") || isUnder(path, "/css")
+                            || isUnder(path, "/js") || isUnder(path, "/images");
             if (allowed) {
                 chain.doFilter(request, response);
             } else {

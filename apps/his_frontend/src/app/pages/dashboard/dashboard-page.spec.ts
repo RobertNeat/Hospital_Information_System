@@ -14,6 +14,7 @@ import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import { DashboardPage } from './dashboard-page';
 import { PatientContextService } from '../../services/patient-context.service';
+import { AuthService } from '../../services/auth.service';
 import type { ClinicalAlert, PatientSummary } from '../../models';
 
 const SUMMARY: PatientSummary = {
@@ -136,6 +137,37 @@ describe('DashboardPage', () => {
       'overview',
     ]);
     expect(page.alertLink({})).toBeNull();
+  });
+
+  it('hides quick actions and stat-card links the role has no permission for', async () => {
+    TestBed.overrideProvider(AuthService, {
+      // Rejestrator: no vitals/orders/results/alerts/tasks; but patient:write is registrar's.
+      useValue: { hasPermission: (p: string) => p === 'patient:write' },
+    });
+    const fixture = TestBed.createComponent(DashboardPage);
+    await fixture.whenStable();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.textContent).toContain('Rejestracja pacjenta');
+    // Scoped to the stat-card grid: "Alerty krytyczne" also titles the (always-visible) section below.
+    const statGrid = el.querySelector('#dashboard-grid-3');
+    const statText = statGrid?.textContent ?? '';
+    expect(statText).not.toContain('Odchylenia parametrów');
+    expect(statText).not.toContain('Oczekujące zlecenia');
+    expect(statText).not.toContain('Nowe wyniki');
+    expect(statText).not.toContain('Alerty krytyczne');
+    expect(statText).not.toContain('Moje zadania');
+    // `/patients` has no route guard, so the admitted-patients tile always stays.
+    expect(statText).toContain('Pacjenci na oddziale');
+  });
+
+  it('hides the register-patient quick action without `patient:write`', async () => {
+    TestBed.overrideProvider(AuthService, {
+      useValue: { hasPermission: () => false },
+    });
+    const fixture = TestBed.createComponent(DashboardPage);
+    await fixture.whenStable();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.textContent).not.toContain('Rejestracja pacjenta');
   });
 
   it('names an inbox result without `patient` by resolving its patientId', async () => {

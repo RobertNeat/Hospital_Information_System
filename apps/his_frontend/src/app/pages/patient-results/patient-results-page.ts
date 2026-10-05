@@ -2,7 +2,7 @@ import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
-import { switchMap } from 'rxjs';
+import { catchError, of, switchMap } from 'rxjs';
 import { MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { Tab, TabList, TabPanel, TabPanels, Tabs } from 'primeng/tabs';
@@ -135,10 +135,23 @@ export class PatientResultsPage {
   }
 
   protected openCompare(analyteCode?: string): void {
-    this.labResultService.getTrendableAnalytes(this.patientId()).subscribe((options) => {
-      this.trendableAnalytes.set(options);
-      this.compareAnalyteCode.set(analyteCode ?? options[0]?.value);
-      this.compareVisible.set(true);
-    });
+    this.labResultService
+      .getTrendableAnalytes(this.patientId())
+      .pipe(
+        catchError(() => {
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Nie udało się wczytać listy parametrów do porównania',
+          });
+          // `null` = request failed (don't open); distinct from a genuinely empty list.
+          return of<SelectOption[] | null>(null);
+        }),
+      )
+      .subscribe((options) => {
+        if (options === null) return;
+        this.trendableAnalytes.set(options);
+        this.compareAnalyteCode.set(analyteCode ?? options[0]?.value);
+        this.compareVisible.set(true);
+      });
   }
 }

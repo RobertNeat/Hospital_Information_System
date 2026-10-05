@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { catchError, forkJoin, of } from 'rxjs';
 import { MessageService as ToastService } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { Dialog } from 'primeng/dialog';
@@ -123,12 +124,36 @@ export class MessagesPage {
   protected readonly sortedAlerts = this.alertTab.sortedAlerts;
 
   constructor() {
-    this.staffService.getStaff('doctor').subscribe((doctors) => {
-      this.staffService.getStaff('nurse').subscribe((nurses) => {
+    forkJoin({
+      doctors: this.staffService.getStaff('doctor'),
+      nurses: this.staffService.getStaff('nurse'),
+    })
+      .pipe(
+        catchError(() => {
+          this.ctx.toast.add({
+            severity: 'warn',
+            summary: 'Pracownicy',
+            detail: 'Nie udało się wczytać listy pracowników.',
+          });
+          return of({ doctors: [] as StaffMember[], nurses: [] as StaffMember[] });
+        }),
+      )
+      .subscribe(({ doctors, nurses }) => {
         this.messagingStaff.set([...doctors, ...nurses]);
       });
-    });
-    this.wardService.getWards().subscribe((wards) => this.wards.set(wards));
+    this.wardService
+      .getWards()
+      .pipe(
+        catchError(() => {
+          this.ctx.toast.add({
+            severity: 'warn',
+            summary: 'Oddziały',
+            detail: 'Nie udało się wczytać listy oddziałów.',
+          });
+          return of<Ward[]>([]);
+        }),
+      )
+      .subscribe((wards) => this.wards.set(wards));
     this.inbox.load();
     // "Zadania" and "Przekazanie dyżuru" both require `task:read` on the backend; "Alerty"
     // requires `alert:read`. Skip the call entirely for a role without it (pharmacist) instead

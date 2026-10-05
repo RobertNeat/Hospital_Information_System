@@ -53,7 +53,9 @@ export function createInsuranceForm(fb: NonNullableFormBuilder) {
   return fb.group({
     insuranceStatus: fb.control<'active' | 'inactive' | 'unknown'>('unknown'),
     insurancePayer: fb.control<'NFZ' | 'private' | 'none'>('NFZ'),
-    nfzBranch: fb.control(''),
+    // Backend requires nfzBranch unconditionally (Insurance.java @NotBlank), even for
+    // non-NFZ payers -- required here too so the wizard reports it before the 422 would.
+    nfzBranch: fb.control('', Validators.required),
     ewusVerifiedAt: fb.control<string | null>(null),
     contactFullName: fb.control(''),
     contactRelation: fb.control(''),

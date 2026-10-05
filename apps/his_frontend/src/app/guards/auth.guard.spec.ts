@@ -1,20 +1,26 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import type { ActivatedRouteSnapshot, RouterStateSnapshot, UrlTree } from '@angular/router';
+import { MessageService } from 'primeng/api';
 import { AuthService } from '../services/auth.service';
-import { authGuard, guestGuard } from './auth.guard';
+import { authGuard, guestGuard, permissionGuard } from './auth.guard';
 
 describe('auth guards', () => {
   const authenticated = signal(false);
+  const hasPermission = vi.fn(() => false);
+  const messageAdd = vi.fn();
 
   beforeEach(() => {
     authenticated.set(false);
+    hasPermission.mockReset().mockReturnValue(false);
+    messageAdd.mockReset();
     TestBed.configureTestingModule({
       providers: [
         provideRouter([]),
-        { provide: AuthService, useValue: { isAuthenticated: authenticated } },
+        { provide: AuthService, useValue: { isAuthenticated: authenticated, hasPermission } },
+        { provide: MessageService, useValue: { add: messageAdd } },
       ],
     });
   });
@@ -46,5 +52,28 @@ describe('auth guards', () => {
   it('guestGuard sends authenticated users to the dashboard', () => {
     authenticated.set(true);
     expect(serialize(run(guestGuard))).toBe('/dashboard');
+  });
+
+  it('permissionGuard lets a user with the permission through', () => {
+    hasPermission.mockReturnValue(true);
+    expect(run(permissionGuard('patient:write'))).toBe(true);
+    expect(messageAdd).not.toHaveBeenCalled();
+  });
+
+  it('permissionGuard redirects to /dashboard and warns (deferred past bootstrap) when the permission is missing', () => {
+    vi.useFakeTimers();
+    try {
+      const result = run(permissionGuard('patient:write'));
+      expect(serialize(result)).toBe('/dashboard');
+      // Deferred via setTimeout so the toast isn't emitted before <p-toast> mounts on a
+      // hard page load (see comment in auth.guard.ts) -- not called synchronously.
+      expect(messageAdd).not.toHaveBeenCalled();
+      vi.runAllTimers();
+      expect(messageAdd).toHaveBeenCalledWith(
+        expect.objectContaining({ severity: 'warn', summary: 'Brak uprawnień' }),
+      );
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

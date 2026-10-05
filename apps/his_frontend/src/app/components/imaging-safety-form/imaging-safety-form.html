@@ -60,12 +60,24 @@
     />
   </app-form-field>
 
+  @if (contrastSafetyUnverified()) {
+    <p-message
+      id="imaging-safety-form-contrast-safety-unverified"
+      severity="error"
+      text="Nie udało się zweryfikować bezpieczeństwa kontrastu (alergie/eGFR) - nie można złożyć zlecenia z kontrastem, dopóki dane nie zostaną wczytane poprawnie. Odśwież stronę, aby spróbować ponownie, albo usuń kontrast ze zlecenia. Jeśli u pacjenta faktycznie występuje uczulenie na środek kontrastowy, zaznacz pole „Uczulenie na środek kontrastowy” powyżej - zlecenie z kontrastem i odnotowaną alergią będzie można kontynuować (np. do premedykacji). Pole to NIE służy do potwierdzania braku alergii. W razie problemu skontaktuj się z IT."
+    />
+  }
+
   @if (latestCreatinineEgfr(); as lab) {
     <p id="imaging-safety-form-muted" class="his-muted">
       Ostatnia kreatynina/eGFR:
       {{ lab.creatinine ?? '—' }} mg/dL / {{ lab.egfr ?? '—' }} mL/min/1.73m2 ({{
         lab.collectedAt | date: 'dd.MM.yyyy'
       }})
+    </p>
+  } @else if (labResultsUnavailable()) {
+    <p id="imaging-safety-form-muted-2" class="his-muted">
+      Nie udało się wczytać wyników laboratoryjnych (kreatynina/eGFR).
     </p>
   } @else {
     <p id="imaging-safety-form-muted-2" class="his-muted">Brak wyniku kreatyniny/eGFR.</p>

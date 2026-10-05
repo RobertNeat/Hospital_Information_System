@@ -13,7 +13,7 @@
       >
         <app-icon-action-group
           id="patient-overview-app-icon-action-group"
-          [actions]="quickActions"
+          [actions]="quickActions()"
           (action)="onQuickAction($event)"
         />
         <p-button
@@ -112,80 +112,96 @@
         </div>
       </div>
 
-      <div id="patient-overview-section-6" class="his-section">
-        <app-section-header
-          id="patient-overview-app-section-header-6"
-          title="Ostatni pomiar parametrów"
-          icon="pi pi-wave-pulse"
-        />
-        <div id="patient-overview-section-body-6" class="his-patient-overview__section-body">
-          @if (!vitalsLoaded()) {
-            <app-empty-state
-              id="patient-overview-app-empty-state-3"
-              icon="pi pi-wave-pulse"
-              title="Ładowanie..."
-            />
-          } @else if (latestVitals(); as v) {
-            <app-summary-list
-              id="patient-overview-app-summary-list-6"
-              [items]="[
-                { label: 'Data pomiaru', value: v.recordedAt | date: 'dd.MM.yyyy HH:mm' },
-                {
-                  label: 'Ciśnienie tętnicze',
-                  value:
-                    v.systolic && v.diastolic ? v.systolic + '/' + v.diastolic + ' mmHg' : null,
-                },
-                { label: 'Tętno', value: v.heartRate ? v.heartRate + ' /min' : null },
-                { label: 'Temperatura', value: v.temperature ? v.temperature + ' °C' : null },
-                { label: 'SpO2', value: v.spo2 ? v.spo2 + ' %' : null },
-                {
-                  label: 'Oddechy',
-                  value: v.respiratoryRate ? v.respiratoryRate + ' /min' : null,
-                },
-              ]"
-            />
-          } @else {
-            <app-empty-state
-              id="patient-overview-app-empty-state-4"
-              icon="pi pi-wave-pulse"
-              title="Brak pomiarów"
-            />
-          }
+      @if (canSeeVitals()) {
+        <div id="patient-overview-section-6" class="his-section">
+          <app-section-header
+            id="patient-overview-app-section-header-6"
+            title="Ostatni pomiar parametrów"
+            icon="pi pi-wave-pulse"
+          />
+          <div id="patient-overview-section-body-6" class="his-patient-overview__section-body">
+            @if (!vitalsLoaded()) {
+              <app-empty-state
+                id="patient-overview-app-empty-state-3"
+                icon="pi pi-wave-pulse"
+                title="Ładowanie..."
+              />
+            } @else if (vitalsUnavailable()) {
+              <app-empty-state
+                id="patient-overview-app-empty-state-7"
+                icon="pi pi-question-circle"
+                title="Nie udało się wczytać parametrów życiowych"
+              />
+            } @else if (latestVitals(); as v) {
+              <app-summary-list
+                id="patient-overview-app-summary-list-6"
+                [items]="[
+                  { label: 'Data pomiaru', value: v.recordedAt | date: 'dd.MM.yyyy HH:mm' },
+                  {
+                    label: 'Ciśnienie tętnicze',
+                    value:
+                      v.systolic && v.diastolic ? v.systolic + '/' + v.diastolic + ' mmHg' : null,
+                  },
+                  { label: 'Tętno', value: v.heartRate ? v.heartRate + ' /min' : null },
+                  { label: 'Temperatura', value: v.temperature ? v.temperature + ' °C' : null },
+                  { label: 'SpO2', value: v.spo2 ? v.spo2 + ' %' : null },
+                  {
+                    label: 'Oddechy',
+                    value: v.respiratoryRate ? v.respiratoryRate + ' /min' : null,
+                  },
+                ]"
+              />
+            } @else {
+              <app-empty-state
+                id="patient-overview-app-empty-state-4"
+                icon="pi pi-wave-pulse"
+                title="Brak pomiarów"
+              />
+            }
+          </div>
         </div>
-      </div>
+      }
 
-      <div id="patient-overview-section-7" class="his-section">
-        <app-section-header
-          id="patient-overview-app-section-header-7"
-          title="Alergie"
-          icon="pi pi-exclamation-triangle"
-          [count]="allergies().length"
-        />
-        <div id="patient-overview-section-body-7" class="his-patient-overview__section-body">
-          @if (allergies().length === 0) {
-            <app-empty-state
-              id="patient-overview-app-empty-state-5"
-              icon="pi pi-exclamation-triangle"
-              title="Brak odnotowanych alergii"
-            />
-          } @else {
-            <ul id="patient-overview-allergy-list" class="his-patient-overview__allergy-list">
-              @for (a of allergies(); track a.id; let idx0 = $index) {
-                <li [id]="'patient-overview-li-' + idx0">
-                  <app-status-tag
-                    [id]="'patient-overview-app-status-tag-' + idx0"
-                    kind="allergySeverity"
-                    [value]="a.severity"
-                  />
-                  <span [id]="'patient-overview-span-' + idx0"
-                    >{{ a.substance }} — {{ a.reaction }}</span
-                  >
-                </li>
-              }
-            </ul>
-          }
+      @if (canSeeAllergies()) {
+        <div id="patient-overview-section-7" class="his-section">
+          <app-section-header
+            id="patient-overview-app-section-header-7"
+            title="Alergie"
+            icon="pi pi-exclamation-triangle"
+            [count]="allergies().length"
+          />
+          <div id="patient-overview-section-body-7" class="his-patient-overview__section-body">
+            @if (allergiesUnavailable()) {
+              <app-empty-state
+                id="patient-overview-app-empty-state-6"
+                icon="pi pi-question-circle"
+                title="Nie udało się wczytać alergii"
+              />
+            } @else if (allergies().length === 0) {
+              <app-empty-state
+                id="patient-overview-app-empty-state-5"
+                icon="pi pi-exclamation-triangle"
+                title="Brak odnotowanych alergii"
+              />
+            } @else {
+              <ul id="patient-overview-allergy-list" class="his-patient-overview__allergy-list">
+                @for (a of allergies(); track a.id; let idx0 = $index) {
+                  <li [id]="'patient-overview-li-' + idx0">
+                    <app-status-tag
+                      [id]="'patient-overview-app-status-tag-' + idx0"
+                      kind="allergySeverity"
+                      [value]="a.severity"
+                    />
+                    <span [id]="'patient-overview-span-' + idx0"
+                      >{{ a.substance }} — {{ a.reaction }}</span
+                    >
+                  </li>
+                }
+              </ul>
+            }
+          </div>
         </div>
-      </div>
+      }
     </div>
   } @else {
     <app-page-header id="patient-overview-app-page-header-2" title="Dane pacjenta" />

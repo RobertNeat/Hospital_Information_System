@@ -4,6 +4,12 @@
  * strings here; any mismatch silently hides/shows UI incorrectly.
  */
 export const PERMISSIONS = {
+  PATIENT_WRITE: 'patient:write',
+  ADMISSION_ADMIT: 'admission:admit',
+
+  EHR_READ: 'ehr:read',
+  EHR_READ_LIMITED: 'ehr:read-limited',
+
   VITALS_READ: 'vitals:read',
   VITALS_WRITE: 'vitals:write',
 

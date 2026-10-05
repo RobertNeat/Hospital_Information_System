@@ -3,7 +3,7 @@ import { labResultServiceStub } from '../../testing/lab-result-service.stub';
 import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, of, throwError } from 'rxjs';
 import { MessageService } from 'primeng/api';
 import { PatientResultsPage } from './patient-results-page';
 import { LabResultService } from '../../services/lab-result.service';
@@ -41,5 +41,35 @@ describe('PatientResultsPage', () => {
     expect(text).toContain('Obrazowe');
     expect(results.length).toBeGreaterThan(0);
     expect(text).toContain(results[0].testName);
+  });
+
+  it('does not open the compare dialog and toasts instead of silently failing when the analytes call errors', async () => {
+    const labResultService = TestBed.inject(LabResultService);
+    vi.spyOn(labResultService, 'getTrendableAnalytes').mockReturnValue(
+      throwError(() => new Error('500')),
+    );
+    const fixture = TestBed.createComponent(PatientResultsPage);
+    fixture.componentRef.setInput('patientId', 'pat-001');
+    await fixture.whenStable();
+    const page = fixture.componentInstance as unknown as {
+      openCompare: (code?: string) => void;
+      compareVisible: () => boolean;
+    };
+    page.openCompare('EGFR');
+    expect(page.compareVisible()).toBe(false);
+  });
+
+  it('opens the compare dialog even when the trendable-analytes list is genuinely empty', async () => {
+    const labResultService = TestBed.inject(LabResultService);
+    vi.spyOn(labResultService, 'getTrendableAnalytes').mockReturnValue(of([]));
+    const fixture = TestBed.createComponent(PatientResultsPage);
+    fixture.componentRef.setInput('patientId', 'pat-001');
+    await fixture.whenStable();
+    const page = fixture.componentInstance as unknown as {
+      openCompare: (code?: string) => void;
+      compareVisible: () => boolean;
+    };
+    page.openCompare();
+    expect(page.compareVisible()).toBe(true);
   });
 });

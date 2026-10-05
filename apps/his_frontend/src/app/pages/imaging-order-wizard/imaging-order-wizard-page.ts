@@ -9,6 +9,7 @@ import {
 } from '@angular/core';
 import { Router } from '@angular/router';
 import { rxResource } from '@angular/core/rxjs-interop';
+import { catchError, of } from 'rxjs';
 import { type AbstractControl, FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { MessageService } from 'primeng/api';
 import { Step, StepList, StepPanel, StepPanels, Stepper } from 'primeng/stepper';
@@ -103,7 +104,17 @@ export class ImagingOrderWizardPage implements HasUnsavedChanges {
 
   // ---- Data resources ----
   private readonly catalogResource = rxResource({
-    stream: () => this.imagingOrderService.getCatalog(),
+    stream: () =>
+      this.imagingOrderService.getCatalog().pipe(
+        catchError(() => {
+          this.toast.add({
+            severity: 'error',
+            summary: 'Katalog badań',
+            detail: 'Nie udało się wczytać katalogu badań obrazowych.',
+          });
+          return of<ImagingExam[]>([]);
+        }),
+      ),
   });
   protected readonly fullCatalog = computed<ImagingExam[]>(
     () => this.catalogResource.value() ?? [],
@@ -113,6 +124,9 @@ export class ImagingOrderWizardPage implements HasUnsavedChanges {
   protected readonly diagnosisOptions = this.patientData.diagnosisOptions;
   protected readonly hasContrastAllergy = this.patientData.hasContrastAllergy;
   protected readonly latestCreatinineEgfr = this.patientData.latestCreatinineEgfr;
+  protected readonly allergiesUnavailable = this.patientData.allergiesUnavailable;
+  protected readonly labResultsUnavailable = this.patientData.labResultsUnavailable;
+  protected readonly contrastSafetyDataUnavailable = this.patientData.contrastSafetyDataUnavailable;
 
   protected searchDiagnosis(event: AutoCompleteCompleteEvent): void {
     this.patientData.searchDiagnosis(event.query);
@@ -162,10 +176,12 @@ export class ImagingOrderWizardPage implements HasUnsavedChanges {
     step3Form: this.step3Form,
     patient: this.ctx.patient,
     egfr: this.latestCreatinineEgfr,
+    contrastSafetyDataUnavailable: this.contrastSafetyDataUnavailable,
   });
   protected readonly needsPregnancyCheck = this.safety.needsPregnancyCheck;
   protected readonly isMri = this.safety.isMri;
   protected readonly egfrBlocksContrast = this.safety.egfrBlocksContrast;
+  protected readonly contrastSafetyUnverified = this.safety.contrastSafetyUnverified;
   protected readonly step3Blocked = this.safety.step3Blocked;
 
   // ---- Step 4: Termin badania ----
@@ -203,6 +219,12 @@ export class ImagingOrderWizardPage implements HasUnsavedChanges {
         this.step4Form.controls.date.setValue(date);
         this.onSlotSelected(slot);
       },
+      () =>
+        this.toast.add({
+          severity: 'error',
+          summary: 'Najbliższy termin',
+          detail: 'Nie udało się wyszukać najbliższego terminu.',
+        }),
     );
   }
 
@@ -243,6 +265,15 @@ export class ImagingOrderWizardPage implements HasUnsavedChanges {
   protected advanceFromStep3(activate: (value: number) => void): void {
     this.step3Form.markAllAsTouched();
     this.step3Form.updateValueAndValidity();
+    if (this.contrastSafetyUnverified()) {
+      this.toast.add({
+        severity: 'error',
+        summary: 'Nie można kontynuować',
+        detail:
+          'Nie udało się zweryfikować bezpieczeństwa kontrastu - nie można złożyć zlecenia z kontrastem, dopóki dane nie zostaną wczytane poprawnie. Odśwież stronę, usuń kontrast ze zlecenia, albo zaznacz pole „Uczulenie na środek kontrastowy” w kroku 3, jeśli u pacjenta faktycznie występuje uczulenie.',
+      });
+      return;
+    }
     if (this.step3Blocked()) {
       this.toast.add({
         severity: 'warn',

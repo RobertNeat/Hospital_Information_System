@@ -27,135 +27,143 @@
 
   <p-tabs id="patient-orders-p-tabs" [value]="activeTab()" (valueChange)="onTabChange($event)">
     <p-tablist id="patient-orders-p-tablist">
-      <p-tab id="patient-orders-p-tab" value="lab">Laboratoryjne</p-tab>
-      <p-tab id="patient-orders-p-tab-2" value="imaging">Obrazowe</p-tab>
+      @if (canSeeLab()) {
+        <p-tab id="patient-orders-p-tab" value="lab">Laboratoryjne</p-tab>
+      }
+      @if (canSeeImaging()) {
+        <p-tab id="patient-orders-p-tab-2" value="imaging">Obrazowe</p-tab>
+      }
     </p-tablist>
     <p-tabpanels id="patient-orders-p-tabpanels">
-      <p-tabpanel id="patient-orders-p-tabpanel" value="lab">
-        @if (!labLoading() && !labOrders().length) {
-          <app-empty-state
-            id="patient-orders-app-empty-state"
-            title="Brak zleceń laboratoryjnych"
-            icon="pi pi-eye-dropper"
-          />
-        } @else {
-          <app-data-table
-            id="patient-orders-lab-table"
-            [rows]="labOrders()"
-            [columns]="labColumns"
-            [loading]="labLoading()"
-            [paginator]="false"
-          >
-            <ng-template #cell let-row let-col="col">
-              @switch (col.field) {
-                @case ('orderedAt') {
-                  {{ row.orderedAt | date: 'dd.MM.yyyy HH:mm' }}
+      @if (canSeeLab()) {
+        <p-tabpanel id="patient-orders-p-tabpanel" value="lab">
+          @if (!labLoading() && !labOrders().length) {
+            <app-empty-state
+              id="patient-orders-app-empty-state"
+              title="Brak zleceń laboratoryjnych"
+              icon="pi pi-eye-dropper"
+            />
+          } @else {
+            <app-data-table
+              id="patient-orders-lab-table"
+              [rows]="labOrders()"
+              [columns]="labColumns"
+              [loading]="labLoading()"
+              [paginator]="false"
+            >
+              <ng-template #cell let-row let-col="col">
+                @switch (col.field) {
+                  @case ('orderedAt') {
+                    {{ row.orderedAt | date: 'dd.MM.yyyy HH:mm' }}
+                  }
+                  @case ('items') {
+                    {{ row.items.length }} badań
+                  }
+                  @case ('urgency') {
+                    <app-status-tag
+                      [id]="'patient-orders-app-status-tag-' + row.id"
+                      kind="urgency"
+                      [value]="row.urgency"
+                    />
+                  }
+                  @case ('status') {
+                    <app-status-tag
+                      [id]="'patient-orders-app-status-tag-2-' + row.id"
+                      kind="orderStatus"
+                      [value]="row.status"
+                    />
+                  }
                 }
-                @case ('items') {
-                  {{ row.items.length }} badań
+              </ng-template>
+              <ng-template #rowActions let-row>
+                @if (canCancel(row.status)) {
+                  <button
+                    [id]="'patient-orders-icon-btn-' + row.id"
+                    type="button"
+                    class="his-icon-btn"
+                    aria-label="Anuluj zlecenie"
+                    pTooltip="Anuluj zlecenie"
+                    (click)="requestCancel('lab', row.id)"
+                  >
+                    <i [id]="'patient-orders-pi-' + row.id" class="pi pi-times"></i>
+                  </button>
                 }
-                @case ('urgency') {
-                  <app-status-tag
-                    [id]="'patient-orders-app-status-tag-' + row.id"
-                    kind="urgency"
-                    [value]="row.urgency"
-                  />
-                }
-                @case ('status') {
-                  <app-status-tag
-                    [id]="'patient-orders-app-status-tag-2-' + row.id"
-                    kind="orderStatus"
-                    [value]="row.status"
-                  />
-                }
-              }
-            </ng-template>
-            <ng-template #rowActions let-row>
-              @if (canCancel(row.status)) {
-                <button
-                  [id]="'patient-orders-icon-btn-' + row.id"
-                  type="button"
-                  class="his-icon-btn"
-                  aria-label="Anuluj zlecenie"
-                  pTooltip="Anuluj zlecenie"
-                  (click)="requestCancel('lab', row.id)"
-                >
-                  <i [id]="'patient-orders-pi-' + row.id" class="pi pi-times"></i>
-                </button>
-              }
-            </ng-template>
-            <ng-template #rowExpansion let-row>
-              <app-order-status-timeline
-                [id]="'patient-orders-app-order-status-timeline-' + row.id"
-                [history]="row.statusHistory"
-              />
-            </ng-template>
-          </app-data-table>
-        }
-      </p-tabpanel>
+              </ng-template>
+              <ng-template #rowExpansion let-row>
+                <app-order-status-timeline
+                  [id]="'patient-orders-app-order-status-timeline-' + row.id"
+                  [history]="row.statusHistory"
+                />
+              </ng-template>
+            </app-data-table>
+          }
+        </p-tabpanel>
+      }
 
-      <p-tabpanel id="patient-orders-p-tabpanel-2" value="imaging">
-        @if (!imagingLoading() && !imagingOrders().length) {
-          <app-empty-state
-            id="patient-orders-app-empty-state-2"
-            title="Brak zleceń obrazowych"
-            icon="pi pi-image"
-          />
-        } @else {
-          <app-data-table
-            id="patient-orders-imaging-table"
-            [rows]="imagingOrders()"
-            [columns]="imagingColumns"
-            [loading]="imagingLoading()"
-            [paginator]="false"
-          >
-            <ng-template #cell let-row let-col="col">
-              @switch (col.field) {
-                @case ('orderedAt') {
-                  {{ row.orderedAt | date: 'dd.MM.yyyy HH:mm' }}
+      @if (canSeeImaging()) {
+        <p-tabpanel id="patient-orders-p-tabpanel-2" value="imaging">
+          @if (!imagingLoading() && !imagingOrders().length) {
+            <app-empty-state
+              id="patient-orders-app-empty-state-2"
+              title="Brak zleceń obrazowych"
+              icon="pi pi-image"
+            />
+          } @else {
+            <app-data-table
+              id="patient-orders-imaging-table"
+              [rows]="imagingOrders()"
+              [columns]="imagingColumns"
+              [loading]="imagingLoading()"
+              [paginator]="false"
+            >
+              <ng-template #cell let-row let-col="col">
+                @switch (col.field) {
+                  @case ('orderedAt') {
+                    {{ row.orderedAt | date: 'dd.MM.yyyy HH:mm' }}
+                  }
+                  @case ('examName') {
+                    {{ row.examName }} ({{ row.modality | label: 'imagingModality' }})
+                  }
+                  @case ('urgency') {
+                    <app-status-tag
+                      [id]="'patient-orders-app-status-tag-3-' + row.id"
+                      kind="urgency"
+                      [value]="row.urgency"
+                    />
+                  }
+                  @case ('status') {
+                    <app-status-tag
+                      [id]="'patient-orders-app-status-tag-4-' + row.id"
+                      kind="orderStatus"
+                      [value]="row.status"
+                    />
+                  }
                 }
-                @case ('examName') {
-                  {{ row.examName }} ({{ row.modality | label: 'imagingModality' }})
+              </ng-template>
+              <ng-template #rowActions let-row>
+                @if (canCancel(row.status, 'imaging')) {
+                  <button
+                    [id]="'patient-orders-icon-btn-2-' + row.id"
+                    type="button"
+                    class="his-icon-btn"
+                    aria-label="Anuluj zlecenie"
+                    pTooltip="Anuluj zlecenie"
+                    (click)="requestCancel('imaging', row.id)"
+                  >
+                    <i [id]="'patient-orders-pi-2-' + row.id" class="pi pi-times"></i>
+                  </button>
                 }
-                @case ('urgency') {
-                  <app-status-tag
-                    [id]="'patient-orders-app-status-tag-3-' + row.id"
-                    kind="urgency"
-                    [value]="row.urgency"
-                  />
-                }
-                @case ('status') {
-                  <app-status-tag
-                    [id]="'patient-orders-app-status-tag-4-' + row.id"
-                    kind="orderStatus"
-                    [value]="row.status"
-                  />
-                }
-              }
-            </ng-template>
-            <ng-template #rowActions let-row>
-              @if (canCancel(row.status, 'imaging')) {
-                <button
-                  [id]="'patient-orders-icon-btn-2-' + row.id"
-                  type="button"
-                  class="his-icon-btn"
-                  aria-label="Anuluj zlecenie"
-                  pTooltip="Anuluj zlecenie"
-                  (click)="requestCancel('imaging', row.id)"
-                >
-                  <i [id]="'patient-orders-pi-2-' + row.id" class="pi pi-times"></i>
-                </button>
-              }
-            </ng-template>
-            <ng-template #rowExpansion let-row>
-              <app-order-status-timeline
-                [id]="'patient-orders-app-order-status-timeline-2-' + row.id"
-                [history]="row.statusHistory"
-              />
-            </ng-template>
-          </app-data-table>
-        }
-      </p-tabpanel>
+              </ng-template>
+              <ng-template #rowExpansion let-row>
+                <app-order-status-timeline
+                  [id]="'patient-orders-app-order-status-timeline-2-' + row.id"
+                  [history]="row.statusHistory"
+                />
+              </ng-template>
+            </app-data-table>
+          }
+        </p-tabpanel>
+      }
     </p-tabpanels>
   </p-tabs>
 

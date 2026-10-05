@@ -1,15 +1,24 @@
 import { patientServiceStub } from '../../testing/patient-service.stub';
 import { ehrServiceStub } from '../../testing/ehr-service.stub';
 import { wardServiceStub } from '../../testing/ward-service.stub';
+import { throwError } from 'rxjs';
 import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
+import { MessageService } from 'primeng/api';
 import { PatientListPage } from './patient-list-page';
+import { PatientService } from '../../services/patient.service';
 
 describe('PatientListPage', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [patientServiceStub, ehrServiceStub, provideRouter([]), wardServiceStub],
+      providers: [
+        patientServiceStub,
+        ehrServiceStub,
+        provideRouter([]),
+        wardServiceStub,
+        MessageService,
+      ],
     });
   });
 
@@ -74,5 +83,20 @@ describe('PatientListPage', () => {
     const navigateSpy = vi.spyOn(router, 'navigate');
     (fixture.componentInstance as unknown as { goToRegister: () => void }).goToRegister();
     expect(navigateSpy).toHaveBeenCalledWith(['/patients', 'register']);
+  });
+
+  it('stops the spinner and toasts instead of hanging when the search fails', async () => {
+    const patientService = TestBed.inject(PatientService);
+    vi.spyOn(patientService, 'getPatients').mockReturnValue(throwError(() => new Error('500')));
+    const fixture = TestBed.createComponent(PatientListPage);
+    await fixture.whenStable();
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    await fixture.whenStable();
+    const cmp = fixture.componentInstance as unknown as {
+      loading: () => boolean;
+      rows: () => unknown[];
+    };
+    expect(cmp.loading()).toBe(false);
+    expect(cmp.rows()).toEqual([]);
   });
 });

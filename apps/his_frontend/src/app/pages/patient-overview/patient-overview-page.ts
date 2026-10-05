@@ -10,7 +10,7 @@ import {
 import { DatePipe, formatDate } from '@angular/common';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
-import { switchMap } from 'rxjs';
+import { catchError, of, switchMap } from 'rxjs';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { PageHeader } from '../../components/page-header/page-header';
@@ -22,6 +22,8 @@ import {
   type IconAction,
 } from '../../components/icon-action-group/icon-action-group';
 import { StatusTag } from '../../components/status-tag/status-tag';
+import { PERMISSIONS } from '../../constants/permissions';
+import { AuthService } from '../../services/auth.service';
 import { PatientContextService } from '../../services/patient-context.service';
 import { PatientService } from '../../services/patient.service';
 import { WardService } from '../../services/ward.service';
@@ -65,14 +67,30 @@ export class PatientOverviewPage {
   private readonly ehrService = inject(EhrService);
   private readonly messageService = inject(MessageService);
   private readonly confirmationService = inject(ConfirmationService);
+  private readonly auth = inject(AuthService);
   protected readonly ctx = inject(PatientContextService);
   private readonly locale = inject(LOCALE_ID);
+
+  /** `vitals:read` nie jest przyznane kazdej roli (np. rejestrator, farmaceuta). */
+  protected readonly canSeeVitals = computed(() =>
+    this.auth.hasPermission(PERMISSIONS.VITALS_READ),
+  );
+  /** `ehr:read-limited` jest minimalnym uprawnieniem do alergii; rejestrator go nie ma. */
+  protected readonly canSeeAllergies = computed(
+    () =>
+      this.auth.hasPermission(PERMISSIONS.EHR_READ) ||
+      this.auth.hasPermission(PERMISSIONS.EHR_READ_LIMITED),
+  );
 
   readonly patientId = input.required<string>();
 
   protected readonly allergies = signal<Allergy[]>([]);
+  /** True gdy alergie nie sa znane (brak uprawnien lub blad), zeby nie pokazac falszywego "brak alergii". */
+  protected readonly allergiesUnavailable = signal(false);
   protected readonly latestVitals = signal<VitalSigns | undefined>(undefined);
   protected readonly vitalsLoaded = signal(false);
+  /** True gdy rola MA `vitals:read`, ale zapytanie sie nie powiodlo (odrozniane od "brak pomiarow"). */
+  protected readonly vitalsUnavailable = signal(false);
   protected readonly discharging = signal(false);
 
   protected readonly patient = computed(() => this.ctx.patient());
@@ -163,28 +181,93 @@ export class PatientOverviewPage {
     ];
   });
 
-  protected readonly quickActions: IconAction[] = [
-    { id: 'history', icon: 'pi pi-book', label: 'Historia choroby' },
-    { id: 'results', icon: 'pi pi-chart-bar', label: 'Wyniki badań' },
-    { id: 'vitals', icon: 'pi pi-heart', label: 'Parametry życiowe' },
-    { id: 'orders', icon: 'pi pi-list-check', label: 'Zlecenia' },
-    { id: 'prescriptions', icon: 'pi pi-file-edit', label: 'Leki i recepty' },
+  // Gated the same as the corresponding route's `permissionGuard` (see app.routes.ts), so a
+  // role without access never sees a button that would 403 on click.
+  private readonly allQuickActions: (IconAction & { requiresAnyOf?: string[] })[] = [
+    {
+      id: 'history',
+      icon: 'pi pi-book',
+      label: 'Historia choroby',
+      requiresAnyOf: [PERMISSIONS.EHR_READ, PERMISSIONS.EHR_READ_LIMITED],
+    },
+    {
+      id: 'results',
+      icon: 'pi pi-chart-bar',
+      label: 'Wyniki badań',
+      requiresAnyOf: [PERMISSIONS.LAB_RESULT_READ, PERMISSIONS.IMAGING_RESULT_READ],
+    },
+    {
+      id: 'vitals',
+      icon: 'pi pi-heart',
+      label: 'Parametry życiowe',
+      requiresAnyOf: [PERMISSIONS.VITALS_READ],
+    },
+    {
+      id: 'orders',
+      icon: 'pi pi-list-check',
+      label: 'Zlecenia',
+      requiresAnyOf: [PERMISSIONS.LAB_ORDER_READ, PERMISSIONS.IMAGING_ORDER_READ],
+    },
+    {
+      id: 'prescriptions',
+      icon: 'pi pi-file-edit',
+      label: 'Leki i recepty',
+      requiresAnyOf: [PERMISSIONS.PRESCRIPTION_READ],
+    },
   ];
 
+  protected readonly quickActions = computed<IconAction[]>(() =>
+    this.allQuickActions.filter(
+      (a) => !a.requiresAnyOf || a.requiresAnyOf.some((p) => this.auth.hasPermission(p)),
+    ),
+  );
+
   constructor() {
+    // `ehr:read`/`ehr:read-limited` nie sa przyznane kazdej roli (np. rejestrator) - unikamy 403
+    // zamiast go lapac; sekcja jest wtedy ukryta w szablonie (`@if (canSeeAllergies())`), a nie
+    // pokazuje falszywego "brak alergii". `allergiesUnavailable` oznacza wylacznie realny blad
+    // zapytania u roli, ktora MA uprawnienie (ryzyko kliniczne gdyby to pomylic z "brak alergii").
     toObservable(this.patientId)
       .pipe(
         switchMap((id) => {
-          this.vitalsLoaded.set(false);
-          return this.ehrService.getAllergies(id);
+          this.allergiesUnavailable.set(false);
+          if (!this.canSeeAllergies()) return of<Allergy[]>([]);
+          return this.ehrService.getAllergies(id).pipe(
+            catchError(() => {
+              this.allergiesUnavailable.set(true);
+              this.messageService.add({
+                severity: 'warn',
+                summary: 'Alergie',
+                detail: 'Nie udało się wczytać alergii pacjenta.',
+              });
+              return of<Allergy[]>([]);
+            }),
+          );
         }),
         takeUntilDestroyed(),
       )
       .subscribe((allergies) => this.allergies.set(allergies));
 
+    // Jak wyzej: `vitals:read` gating unika 403, sekcja jest wtedy ukryta w szablonie.
+    // `vitalsUnavailable` oznacza wylacznie realny blad zapytania, nie brak uprawnien.
     toObservable(this.patientId)
       .pipe(
-        switchMap((id) => this.vitalsService.getLatest(id)),
+        switchMap((id) => {
+          this.vitalsLoaded.set(false);
+          this.vitalsUnavailable.set(false);
+          if (!this.canSeeVitals()) return of(undefined);
+          return this.vitalsService.getLatest(id).pipe(
+            catchError(() => {
+              this.vitalsUnavailable.set(true);
+              this.messageService.add({
+                severity: 'warn',
+                summary: 'Parametry życiowe',
+                detail: 'Nie udało się wczytać ostatnich parametrów życiowych.',
+              });
+              return of(undefined);
+            }),
+          );
+        }),
         takeUntilDestroyed(),
       )
       .subscribe((v) => {

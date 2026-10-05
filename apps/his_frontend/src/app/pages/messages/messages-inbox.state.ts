@@ -32,7 +32,10 @@ export function createInboxState(
   const newMessagePatient = signal<PatientSummary | null>(null);
 
   const reloadMessages = (threadId: string): void => {
-    service.getMessages(threadId).subscribe((messages) => selectedThreadMessages.set(messages));
+    service.getMessages(threadId).subscribe({
+      next: (messages) => selectedThreadMessages.set(messages),
+      error: () => toast.add({ severity: 'error', summary: 'Nie udało się wczytać wiadomości' }),
+    });
   };
 
   const selectThread = (threadId: string): void => {

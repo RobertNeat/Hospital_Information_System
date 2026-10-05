@@ -94,6 +94,12 @@ class MtlsE2ETest {
     }
 
     @Test
+    void uiStaticAssetsAreServedOnThePlainHttpConnector() throws Exception {
+        assertThat(get("http://localhost:" + UI_PORT + "/css/ui.css", null).statusCode()).isEqualTo(200);
+        assertThat(get("http://localhost:" + UI_PORT + "/js/ui.js", null).statusCode()).isEqualTo(200);
+    }
+
+    @Test
     void healthIsServedOnPlainManagementPortOnly() throws Exception {
         assertThat(get("http://localhost:" + MANAGEMENT_PORT + "/actuator/health/readiness", null).statusCode())
                 .isEqualTo(200);

@@ -1,6 +1,8 @@
 import { computed, inject, type Signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { catchError, forkJoin, of } from 'rxjs';
+import type { Observable } from 'rxjs';
+import { MessageService } from 'primeng/api';
 import type { SummaryItem } from '../../components/summary-list/summary-list';
 import {
   IMAGING_MODALITY_OPTIONS,
@@ -77,8 +79,10 @@ function isSafetyBlocked(i: {
   implantOrMetal: boolean;
   egfrBlocksContrast: boolean;
   egfrConfirmed: boolean;
+  contrastSafetyUnverified: boolean;
 }): boolean {
   if (i.isMri && i.implantOrMetal) return true;
+  if (i.contrastSafetyUnverified) return true;
   return i.egfrBlocksContrast && !i.egfrConfirmed;
 }
 
@@ -162,17 +166,50 @@ export function buildImagingOrderCreateRequest(
 export function injectImagingPatientData(patientId: Signal<string>) {
   const ehrService = inject(EhrService);
   const labResultService = inject(LabResultService);
+  const toast = inject(MessageService);
+  // Rozpoznania/Snowstorm nie zasilaja bezpieczenstwa kontrastu - ich brak nie blokuje kroku 3,
+  // tylko toastuje i oddaje puste dane.
+  function unverified<T>(source: Observable<T[]>, label: string): Observable<T[]> {
+    return source.pipe(
+      catchError(() => {
+        toast.add({
+          severity: 'warn',
+          summary: 'Bezpieczeństwo badania',
+          detail: `Nie udało się zweryfikować: ${label}.`,
+        });
+        return of<T[]>([]);
+      }),
+    );
+  }
+  // Alergie i wyniki lab. zasilaja hasContrastAllergy/latestCreatinineEgfr (bezpieczenstwo kontrastu).
+  // Fail-closed: blad zapytania oddaje `null` (nie `[]`), zeby nie udawac "zweryfikowano, brak alergii/eGFR
+  // w normie" - wolacy rozroznia ten stan przez `contrastSafetyDataUnavailable` i blokuje zlecenie z kontrastem.
+  function unverifiedSafetyData<T>(source: Observable<T[]>, label: string): Observable<T[] | null> {
+    return source.pipe(
+      catchError(() => {
+        toast.add({
+          severity: 'warn',
+          summary: 'Bezpieczeństwo badania',
+          detail: `Nie udało się zweryfikować: ${label}.`,
+        });
+        return of<T[] | null>(null);
+      }),
+    );
+  }
   const resource = rxResource({
     params: () => patientId(),
     stream: ({ params: pid }) =>
       forkJoin({
-        diagnoses: ehrService.getDiagnoses(pid),
+        diagnoses: unverified(ehrService.getDiagnoses(pid), 'rozpoznania pacjenta'),
         // Snowstorm może być wyłączony/niedostępny - nie może blokować allergies/labResults (bezpieczeństwo badania).
         suggestions: ehrService
           .getSnomedSuggestions('diagnosis')
           .pipe(catchError(() => of({ total: 0, offset: 0, concepts: [] }))),
-        allergies: ehrService.getAllergies(pid),
-        labResults: labResultService.getResults(pid),
+        allergies: unverifiedSafetyData(ehrService.getAllergies(pid), 'alergie pacjenta'),
+        labResults: unverifiedSafetyData(
+          labResultService.getResults(pid),
+          'wyniki badań laboratoryjnych',
+        ),
       }),
   });
   const baseDiagnosisOptions = computed<DiagnosisOption[]>(() => {
@@ -182,17 +219,27 @@ export function injectImagingPatientData(patientId: Signal<string>) {
   const patientDiagnoses = computed(() => resource.value()?.diagnoses ?? []);
   const diagnosisSearch = injectDiagnosisSearch(baseDiagnosisOptions, patientDiagnoses);
 
+  const allergiesUnavailable = computed(() => resource.value()?.allergies === null);
+  const labResultsUnavailable = computed(() => resource.value()?.labResults === null);
+
   return {
     diagnosisOptions: diagnosisSearch.options,
     searchDiagnosis: diagnosisSearch.search,
     hasContrastAllergy: computed(() => {
-      const data = resource.value();
-      return data ? hasActiveContrastAllergy(data.allergies) : false;
+      const allergies = resource.value()?.allergies;
+      return allergies ? hasActiveContrastAllergy(allergies) : false;
     }),
     latestCreatinineEgfr: computed<CreatinineEgfr | null>(() => {
-      const data = resource.value();
-      return data ? latestCreatinineEgfr(data.labResults) : null;
+      const labResults = resource.value()?.labResults;
+      return labResults ? latestCreatinineEgfr(labResults) : null;
     }),
+    allergiesUnavailable,
+    labResultsUnavailable,
+    // Dopoki trwa pierwsze wczytanie (resource.value() === undefined) dane rowniez nie sa zweryfikowane -
+    // fail-closed obejmuje loading, nie tylko blad zapytania.
+    contrastSafetyDataUnavailable: computed(
+      () => resource.value() === undefined || allergiesUnavailable() || labResultsUnavailable(),
+    ),
   };
 }
 
@@ -202,6 +249,7 @@ export function createSafetyState(deps: {
   step3Form: Step3Form;
   patient: Signal<Patient | null>;
   egfr: Signal<CreatinineEgfr | null>;
+  contrastSafetyDataUnavailable: Signal<boolean>;
 }) {
   // Reactive forms are not signals: track their values through value-change signals.
   const step1 = rawValueSignal(deps.step1Form);
@@ -218,6 +266,14 @@ export function createSafetyState(deps: {
     const egfr = deps.egfr()?.egfr;
     return step1().contrast && typeof egfr === 'number' && egfr < 30;
   });
+  // Fail-closed: zlecenie z kontrastem wymaga albo poprawnie wczytanych danych alergii/eGFR, albo
+  // rezygnacji z kontrastu, albo odnotowania przez lekarza rzeczywistej alergii (contrastAllergy=true,
+  // np. do premedykacji) - to pole oznacza "pacjent JEST uczulony", nie "zweryfikowano brak alergii",
+  // więc nie jest furtką do potwierdzania bezpieczeństwa innym kanałem. Zlecenia bez kontrastu nie są
+  // objęte tą blokadą.
+  const contrastSafetyUnverified = computed(
+    () => step1().contrast && deps.contrastSafetyDataUnavailable() && !step3().contrastAllergy,
+  );
   const step3Blocked = computed(() => {
     const s3 = step3();
     return isSafetyBlocked({
@@ -225,7 +281,14 @@ export function createSafetyState(deps: {
       implantOrMetal: s3.pacemakerOrImplant || s3.metalFragments,
       egfrBlocksContrast: egfrBlocksContrast(),
       egfrConfirmed: s3.egfrConfirmed,
+      contrastSafetyUnverified: contrastSafetyUnverified(),
     });
   });
-  return { needsPregnancyCheck: needs, isMri, egfrBlocksContrast, step3Blocked };
+  return {
+    needsPregnancyCheck: needs,
+    isMri,
+    egfrBlocksContrast,
+    contrastSafetyUnverified,
+    step3Blocked,
+  };
 }

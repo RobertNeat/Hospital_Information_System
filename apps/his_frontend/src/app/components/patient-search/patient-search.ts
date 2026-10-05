@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { catchError, of } from 'rxjs';
 import {
   AutoComplete,
   type AutoCompleteCompleteEvent,
@@ -34,7 +35,10 @@ export class PatientSearch {
       this.suggestions.set([]);
       return;
     }
-    this.patientService.search(term).subscribe((results) => this.suggestions.set(results));
+    this.patientService
+      .search(term)
+      .pipe(catchError(() => of<PatientSummary[]>([])))
+      .subscribe((results) => this.suggestions.set(results));
   }
 
   protected onSelect(event: AutoCompleteSelectEvent): void {

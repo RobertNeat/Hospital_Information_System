@@ -1,5 +1,5 @@
 <nav id="patient-chart-nav-chart-nav" class="his-chart-nav">
-  @for (item of items; track item.segment; let idx0 = $index) {
+  @for (item of items(); track item.segment; let idx0 = $index) {
     <a
       [id]="'patient-chart-nav-chart-nav-item-' + idx0"
       class="his-chart-nav__item"
