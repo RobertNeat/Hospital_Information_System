@@ -32,7 +32,7 @@ import robert_neat.his_backend.imaging.events.ImagingOrderStatusChanged;
  *       istniejacy zasob zamiast tworzyc duplikat), wiec ponowienie po czesciowym sukcesie jest bezpieczne.</li>
  *   <li>`ImagingOrderStatusChanged` z aktorem (zmiana w HIS, dowolny docelowy status - w tym anulowanie): PUT stanu.
  *       Zdarzenie bez aktora (zmiana przyszla z e-imaging albo automatyczne `completed` po wyniku) nie jest odsylane -
- *       brak petli. PUT nie jest ponawiany przez outbox (poza zakresem: patrz `docs/deployment-and-config.md`).</li>
+ *       brak petli. PUT nie jest ponawiany przez outbox (poza zakresem: patrz `docs/readme/services_pl.md`).</li>
  * </ul>
  * Wywolanie jest synchroniczne (limity czasu z konfiguracji), poza transakcja bazodanowa.
  * <p>

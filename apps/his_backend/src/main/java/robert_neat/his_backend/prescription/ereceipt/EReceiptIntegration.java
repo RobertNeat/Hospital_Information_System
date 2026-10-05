@@ -37,7 +37,7 @@ import robert_neat.his_backend.prescription.events.PrescriptionIssued;
  *       powiedzie; nieudana zostaje dla schedulera, a klient widzi klucz lokalny (bez zmiany zachowania/API).</li>
  *   <li>`PrescriptionCancelled` z aktorem (anulowanie w HIS): PUT stanu do e-receipt. Zdarzenie bez aktora (zmiana
  *       przyszla z e-receipt) nie jest odsylane - brak petli. PUT nie jest ponawiany przez outbox (poza zakresem:
- *       patrz dokumentacja biezacego stanu w `docs/deployment-and-config.md`).</li>
+ *       patrz dokumentacja biezacego stanu w `docs/readme/services_pl.md`).</li>
  * </ul>
  * Wywolanie jest synchroniczne (limity czasu z konfiguracji), poza transakcja bazodanowa.
  * <p>
