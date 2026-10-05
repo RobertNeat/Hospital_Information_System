@@ -94,6 +94,7 @@
             [text]="true"
             ariaLabel="Otwórz kartę pacjenta"
             pTooltip="Otwórz kartę pacjenta"
+            tooltipPosition="left"
             (onClick)="openChart(row)"
           />
           <p-button
@@ -102,6 +103,7 @@
             [text]="true"
             ariaLabel="Edytuj dane pacjenta"
             pTooltip="Edytuj dane pacjenta"
+            tooltipPosition="left"
             (onClick)="editPatient(row, $event)"
           />
           <p-button
@@ -110,6 +112,7 @@
             [text]="true"
             ariaLabel="Nowe zlecenie laboratoryjne"
             pTooltip="Nowe zlecenie laboratoryjne"
+            tooltipPosition="left"
             (onClick)="newLabOrder(row, $event)"
           />
           <p-button
@@ -118,6 +121,7 @@
             [text]="true"
             ariaLabel="Nowa recepta"
             pTooltip="Nowa recepta"
+            tooltipPosition="left"
             (onClick)="newPrescription(row, $event)"
           />
         </div>

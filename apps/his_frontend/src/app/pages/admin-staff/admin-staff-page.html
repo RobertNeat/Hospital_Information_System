@@ -43,6 +43,7 @@
           class="his-icon-btn"
           aria-label="Aktywuj konto"
           pTooltip="Aktywuj konto"
+          tooltipPosition="left"
           (click)="requestActivate(row)"
         >
           <i [id]="'admin-staff-pi-activate-' + row.id" class="pi pi-lock-open"></i>
@@ -55,6 +56,7 @@
           class="his-icon-btn"
           aria-label="Zablokuj konto"
           pTooltip="Zablokuj konto"
+          tooltipPosition="left"
           (click)="requestLock(row)"
         >
           <i [id]="'admin-staff-pi-lock-' + row.id" class="pi pi-lock"></i>
