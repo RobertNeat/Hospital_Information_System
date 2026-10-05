@@ -1,4 +1,5 @@
 # Nakładka lokalna (tylko różnice deweloperskie względem compose.yml):
+#   pnpm --filter his-frontend build  (wymagane przed --build, zob. his-frontend poniżej)
 #   docker compose -f deploy/compose.yml -f deploy/compose.dev.yml --env-file deploy/local.env up -d --build
 #   (+ --profile terminology dla Snowstorm Lite)
 # Tryb IDE (backend z IntelliJ, profil dev): uruchamiać tylko `up -d postgres`
@@ -23,15 +24,14 @@ services:
       - "127.0.0.1:${HIS_DB_HOST_PORT:-5432}:5432"
 
   his-frontend:
+    # Wymaga lokalnego builda przed `up --build`: pnpm --filter his-frontend build
+    # (unika pnpm install/supply-chain check w kontenerze - zob. angular.local.Dockerfile).
     build:
-      context: ..
-      dockerfile: .github/docker/angular.Dockerfile
+      context: ../apps/his_frontend
+      dockerfile: ../../.github/docker/angular.local.Dockerfile
       args:
-        RUNTIME_VERSION: "22"
-        PROJECT_PATH: apps/his_frontend
-        PACKAGE_NAME: his-frontend
-        BUILD_OUTPUT: apps/his_frontend/dist/his_frontend/browser
-        SERVER_CONFIG: apps/his_frontend/nginx.conf
+        BUILD_OUTPUT: dist/his_frontend/browser
+        SERVER_CONFIG: nginx.conf
         APP_PORT: "10400"
     # Tylko loopback zamiast 0.0.0.0 (!override zastępuje listę z compose.yml).
     ports: !override
