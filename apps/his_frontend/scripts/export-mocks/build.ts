@@ -116,6 +116,15 @@ class FileBuilder {
     this.changesets.push({ id, statements: tables.map((t) => t.insert()) });
   }
 
+  /**
+   * Like `changeset`, but appends `rowComment` as a trailing comment on every row of `table`
+   * (e.g. a scanner suppression) - see `Table.insert`.
+   */
+  changesetWithRowComment(id: string, table: Table, rowComment: string): void {
+    this.tables.push(table);
+    this.changesets.push({ id, statements: [table.insert(rowComment)] });
+  }
+
   sql(id: string, ...statements: string[]): void {
     this.changesets.push({ id, statements });
   }
@@ -231,7 +240,12 @@ export function build(m: Mocks): BuildResult {
     const f = new FileBuilder('mock/001-staff.sql', 'mock');
     f.changeset('001-ward', ward);
     f.changeset('001-staff-member', staff);
-    f.changeset('001-user-account', accounts);
+    f.changesetWithRowComment(
+      '001-user-account',
+      accounts,
+      'nosemgrep: generic.secrets.security.detected-bcrypt-hash.detected-bcrypt-hash -- ' +
+        'wspolny hash demo-hasla dla danych mock (nie sekret produkcyjny), patrz DEMO_PASSWORD_HASH',
+    );
     finish(f, 'mock');
   }
 

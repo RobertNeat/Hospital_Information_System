@@ -35,12 +35,16 @@
             <div th:if="${r.syncMessage}" th:text="${r.syncMessage}"></div>
         </td>
         <td>
+            <!-- Thymeleaf/Spring Security form, not Django; CsrfRequestDataValueProcessor auto-injects
+                 the _csrf hidden field for th:action forms (SecurityConfig). -->
             <th:block th:each="t : ${targets}" th:if="${r.status.canMoveTo(t)}">
+                <!-- nosemgrep: python.django.security.django-no-csrf-token.django-no-csrf-token -->
                 <form method="post" th:action="@{/ui/prescriptions/{k}/status(k=${r.erxKey})}">
                     <input type="hidden" name="status" th:value="${t.wire()}">
                     <button type="submit" class="btn" th:classappend="${t.name() == 'CANCELLED' or t.name() == 'EXPIRED'} ? 'btn-danger'" th:text="${t.wire()}"></button>
                 </form>
             </th:block>
+            <!-- nosemgrep: python.django.security.django-no-csrf-token.django-no-csrf-token -->
             <form method="post" th:if="${r.syncState.name() == 'PENDING'}"
                   th:action="@{/ui/prescriptions/{k}/sync(k=${r.erxKey})}">
                 <button type="submit" class="btn">ponow wysylke do HIS</button>

@@ -38,12 +38,16 @@
             <div th:if="${o.syncMessage}" th:text="${o.syncMessage}"></div>
         </td>
         <td>
+            <!-- Thymeleaf/Spring Security form, not Django; CsrfRequestDataValueProcessor auto-injects
+                 the _csrf hidden field for th:action forms (SecurityConfig). -->
             <th:block th:each="t : ${targets}" th:if="${o.status.canMoveTo(t)}">
+                <!-- nosemgrep: python.django.security.django-no-csrf-token.django-no-csrf-token -->
                 <form method="post" th:action="@{/ui/orders/{id}/status(id=${o.hisOrderId})}">
                     <input type="hidden" name="status" th:value="${t.wire()}">
                     <button type="submit" class="btn" th:classappend="${t.name() == 'CANCELLED'} ? 'btn-danger'" th:text="${t.wire()}"></button>
                 </form>
             </th:block>
+            <!-- nosemgrep: python.django.security.django-no-csrf-token.django-no-csrf-token -->
             <form method="post" th:if="${o.syncState.name() == 'PENDING'}"
                   th:action="@{/ui/orders/{id}/sync(id=${o.hisOrderId})}">
                 <button type="submit" class="btn">ponow wysylke do HIS</button>
@@ -58,6 +62,7 @@
                     <span th:text="${obs.analyteCode()} + ': ' + (${obs.numeric()} != null ? ${obs.numeric()} : ${obs.text()}) + ' ' + ${obs.unit()}"></span>
                     <span th:if="${obs.flag()}" th:text="'[' + ${obs.flag()} + ']'"></span>
                 </div>
+                <!-- nosemgrep: python.django.security.django-no-csrf-token.django-no-csrf-token -->
                 <form method="post" th:if="${r.syncState.name() == 'PENDING'}"
                       th:action="@{/ui/orders/{id}/results/{rid}/sync(id=${o.hisOrderId},rid=${r.id})}">
                     <button type="submit" class="btn">ponow wysylke wyniku</button>
@@ -66,6 +71,7 @@
             <th:block th:if="${o.status.acceptsResults() or o.status.name() == 'COMPLETED'}">
                 <details th:each="i : ${o.items}">
                     <summary th:text="'Wprowadz wynik: ' + ${i.testCode()}"></summary>
+                    <!-- nosemgrep: python.django.security.django-no-csrf-token.django-no-csrf-token -->
                     <form method="post"
                           th:action="@{/ui/orders/{id}/results/{code}(id=${o.hisOrderId},code=${i.testCode()})}">
                         <label>Status

@@ -2,13 +2,13 @@ package robert_neat.eimaging.ui;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 
 import java.util.UUID;
 
@@ -60,15 +60,22 @@ class ImagingUiTest {
     @Test
     void changingStateUpdatesOrderAndHandlesConflicts() throws Exception {
         String id = createViaFhir();
-        mvc.perform(post("/ui/orders/" + id + "/status").param("status", "in_progress"))
+        mvc.perform(post("/ui/orders/" + id + "/status").param("status", "in_progress").with(csrf()))
                 .andExpect(redirectedUrl("/ui/orders")).andExpect(flash().attributeExists("message"));
         mvc.perform(get("/fhir/ServiceRequest/" + id))
                 .andExpect(content().string(containsString("in_progress")));
         // niedozwolone przejscie i nieznany stan to bledy pokazane w UI
-        mvc.perform(post("/ui/orders/" + id + "/status").param("status", "ordered"))
+        mvc.perform(post("/ui/orders/" + id + "/status").param("status", "ordered").with(csrf()))
                 .andExpect(flash().attributeExists("error"));
-        mvc.perform(post("/ui/orders/" + id + "/status").param("status", "bogus"))
+        mvc.perform(post("/ui/orders/" + id + "/status").param("status", "bogus").with(csrf()))
                 .andExpect(flash().attributeExists("error"));
+    }
+
+    @Test
+    void changingStateWithoutCsrfTokenIsRejected() throws Exception {
+        String id = createViaFhir();
+        mvc.perform(post("/ui/orders/" + id + "/status").param("status", "in_progress"))
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -76,7 +83,8 @@ class ImagingUiTest {
         String id = createViaFhir();
         mvc.perform(get("/ui/orders")).andExpect(content().string(containsString("Wprowadz wynik")));
         mvc.perform(post("/ui/orders/" + id + "/result").param("status", "final").param("findings", "Opis UI.")
-                        .param("conclusion", "Wniosek UI.").param("critical", "true").param("radiologist", "Radiolog UI"))
+                        .param("conclusion", "Wniosek UI.").param("critical", "true").param("radiologist", "Radiolog UI")
+                        .with(csrf()))
                 .andExpect(redirectedUrl("/ui/orders")).andExpect(flash().attributeExists("message"));
 
         // zakonczone zlecenie znika z aktywnych i jest w historii
@@ -87,7 +95,7 @@ class ImagingUiTest {
         mvc.perform(get("/fhir/ServiceRequest/" + id)).andExpect(content().string(containsString("\"completed\"")));
         // zlecenie zakonczone nie przyjmuje kolejnego wyniku
         mvc.perform(post("/ui/orders/" + id + "/result").param("status", "final").param("findings", "x")
-                        .param("conclusion", "y"))
+                        .param("conclusion", "y").with(csrf()))
                 .andExpect(flash().attributeExists("error"));
     }
 
@@ -101,7 +109,7 @@ class ImagingUiTest {
                          "code":{"coding":[{"system":"urn:his:imaging-exam","code":"RTG-X","display":"RTG bez terminu"}]}}
                         """.formatted(id))).andExpect(status().isCreated());
         mvc.perform(post("/ui/orders/" + id + "/result").param("status", "final").param("findings", "x")
-                        .param("conclusion", "y"))
+                        .param("conclusion", "y").with(csrf()))
                 .andExpect(flash().attributeExists("error"));
         mvc.perform(get("/ui/orders")).andExpect(content().string(containsString("RTG bez terminu")))
                 .andExpect(content().string(not(containsString("Opis: x"))));
@@ -110,12 +118,13 @@ class ImagingUiTest {
     @Test
     void resultFormRejectsEmptyAndInvalidInput() throws Exception {
         String id = createViaFhir();
-        mvc.perform(post("/ui/orders/" + id + "/result").param("status", "final"))
+        mvc.perform(post("/ui/orders/" + id + "/result").param("status", "final").with(csrf()))
                 .andExpect(flash().attributeExists("error"));
-        mvc.perform(post("/ui/orders/" + id + "/result").param("status", "final").param("findings", "Opis"))
+        mvc.perform(post("/ui/orders/" + id + "/result").param("status", "final").param("findings", "Opis")
+                        .with(csrf()))
                 .andExpect(flash().attributeExists("error"));
         mvc.perform(post("/ui/orders/" + id + "/result").param("status", "zly").param("findings", "a")
-                        .param("conclusion", "b"))
+                        .param("conclusion", "b").with(csrf()))
                 .andExpect(flash().attributeExists("error"));
     }
 }

@@ -50,15 +50,25 @@ export class Table {
     return this.rows.length;
   }
 
-  insert(): string {
+  /**
+   * `rowComment`, if given, is appended as a trailing `-- ...` comment on every row (e.g. a scanner
+   * suppression); it must go after the row's own trailing `,`/`;`, never before, or the separator
+   * would land inside the comment and break the statement.
+   */
+  insert(rowComment?: string): string {
     if (this.rows.length === 0) return '';
     const values = this.rows
-      .map(
-        (r, i) =>
-          `    (${r.map((v, j) => literal(v, `${this.name}[${i}].${this.columns[j]}`)).join(', ')})`,
-      )
-      .join(',\n');
-    return `INSERT INTO ${this.name} (${this.columns.join(', ')}) VALUES\n${values};`;
+      .map((r, i) => {
+        const cells = r
+          .map((v, j) => literal(v, `${this.name}[${i}].${this.columns[j]}`))
+          .join(', ');
+        const isLast = i === this.rows.length - 1;
+        const terminator = isLast ? ';' : ',';
+        const comment = rowComment ? ` -- ${rowComment}` : '';
+        return `    (${cells})${terminator}${comment}`;
+      })
+      .join('\n');
+    return `INSERT INTO ${this.name} (${this.columns.join(', ')}) VALUES\n${values}`;
   }
 }
 

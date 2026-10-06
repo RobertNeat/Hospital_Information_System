@@ -43,12 +43,16 @@
             <div th:if="${o.syncMessage}" th:text="${o.syncMessage}"></div>
         </td>
         <td>
+            <!-- Thymeleaf/Spring Security form, not Django; CsrfRequestDataValueProcessor auto-injects
+                 the _csrf hidden field for th:action forms (SecurityConfig). -->
             <th:block th:each="t : ${targets}" th:if="${o.status.canMoveTo(t)}">
+                <!-- nosemgrep: python.django.security.django-no-csrf-token.django-no-csrf-token -->
                 <form method="post" th:action="@{/ui/orders/{id}/status(id=${o.hisOrderId})}">
                     <input type="hidden" name="status" th:value="${t.wire()}">
                     <button type="submit" class="btn" th:classappend="${t.name() == 'CANCELLED'} ? 'btn-danger'" th:text="${t.wire()}"></button>
                 </form>
             </th:block>
+            <!-- nosemgrep: python.django.security.django-no-csrf-token.django-no-csrf-token -->
             <form method="post" th:if="${o.syncState.name() == 'PENDING'}"
                   th:action="@{/ui/orders/{id}/sync(id=${o.hisOrderId})}">
                 <button type="submit" class="btn">ponow wysylke do HIS</button>
@@ -63,6 +67,7 @@
                 <div th:text="'Opis: ' + ${r.findings}"></div>
                 <div th:text="'Wnioski: ' + ${r.conclusion}"></div>
                 <div th:text="'Radiolog: ' + ${r.radiologist}"></div>
+                <!-- nosemgrep: python.django.security.django-no-csrf-token.django-no-csrf-token -->
                 <form method="post" th:if="${r.syncState.name() == 'PENDING'}"
                       th:action="@{/ui/orders/{id}/results/{rid}/sync(id=${o.hisOrderId},rid=${r.id})}">
                     <button type="submit" class="btn">ponow wysylke wyniku</button>
@@ -70,6 +75,7 @@
             </div>
             <details th:if="${o.status.acceptsResults()}">
                 <summary>Wprowadz wynik</summary>
+                <!-- nosemgrep: python.django.security.django-no-csrf-token.django-no-csrf-token -->
                 <form method="post" th:action="@{/ui/orders/{id}/result(id=${o.hisOrderId})}">
                     <label>Status
                         <select name="status">

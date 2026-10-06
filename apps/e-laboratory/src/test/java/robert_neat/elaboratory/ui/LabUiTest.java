@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 
 import java.util.UUID;
 
@@ -57,28 +58,36 @@ class LabUiTest {
     @Test
     void changingStateUpdatesOrderAndHandlesConflicts() throws Exception {
         String id = createViaFhir();
-        mvc.perform(post("/ui/orders/" + id + "/status").param("status", "specimen_collected"))
+        mvc.perform(post("/ui/orders/" + id + "/status").param("status", "specimen_collected").with(csrf()))
                 .andExpect(redirectedUrl("/ui/orders")).andExpect(flash().attributeExists("message"));
         mvc.perform(get("/fhir/ServiceRequest/" + id))
                 .andExpect(content().string(containsString("specimen_collected")));
         // niedozwolone przejscie i nieznany stan to bledy pokazane w UI
-        mvc.perform(post("/ui/orders/" + id + "/status").param("status", "ordered"))
+        mvc.perform(post("/ui/orders/" + id + "/status").param("status", "ordered").with(csrf()))
                 .andExpect(flash().attributeExists("error"));
-        mvc.perform(post("/ui/orders/" + id + "/status").param("status", "bogus"))
+        mvc.perform(post("/ui/orders/" + id + "/status").param("status", "bogus").with(csrf()))
                 .andExpect(flash().attributeExists("error"));
+    }
+
+    @Test
+    void changingStateWithoutCsrfTokenIsRejected() throws Exception {
+        String id = createViaFhir();
+        mvc.perform(post("/ui/orders/" + id + "/status").param("status", "specimen_collected"))
+                .andExpect(status().isForbidden());
     }
 
     @Test
     void resultFormRecordsResultAndCompletesOrder() throws Exception {
         String id = createViaFhir();
         // przed pobraniem materialu wynik jest odrzucany
-        mvc.perform(post("/ui/orders/" + id + "/results/MORF").param("status", "final").param("v_HGB", "14,2"))
+        mvc.perform(post("/ui/orders/" + id + "/results/MORF").param("status", "final").param("v_HGB", "14,2")
+                        .with(csrf()))
                 .andExpect(flash().attributeExists("error"));
 
-        mvc.perform(post("/ui/orders/" + id + "/status").param("status", "specimen_collected"));
+        mvc.perform(post("/ui/orders/" + id + "/status").param("status", "specimen_collected").with(csrf()));
         mvc.perform(get("/ui/orders")).andExpect(content().string(containsString("Wprowadz wynik: MORF")));
         mvc.perform(post("/ui/orders/" + id + "/results/MORF").param("status", "final").param("v_HGB", "14,2")
-                        .param("f_HGB", "H").param("performer", "Laborant UI"))
+                        .param("f_HGB", "H").param("performer", "Laborant UI").with(csrf()))
                 .andExpect(redirectedUrl("/ui/orders")).andExpect(flash().attributeExists("message"));
 
         // zakonczone zlecenie jest w historii
@@ -91,13 +100,14 @@ class LabUiTest {
     @Test
     void resultFormRejectsEmptyAndInvalidInput() throws Exception {
         String id = createViaFhir();
-        mvc.perform(post("/ui/orders/" + id + "/status").param("status", "specimen_collected"));
-        mvc.perform(post("/ui/orders/" + id + "/results/MORF").param("status", "final"))
+        mvc.perform(post("/ui/orders/" + id + "/status").param("status", "specimen_collected").with(csrf()));
+        mvc.perform(post("/ui/orders/" + id + "/results/MORF").param("status", "final").with(csrf()))
                 .andExpect(flash().attributeExists("error"));
         mvc.perform(post("/ui/orders/" + id + "/results/MORF").param("status", "final").param("v_HGB", "1")
-                        .param("f_HGB", "ZZ"))
+                        .param("f_HGB", "ZZ").with(csrf()))
                 .andExpect(flash().attributeExists("error"));
-        mvc.perform(post("/ui/orders/" + id + "/results/MORF").param("status", "zly").param("v_HGB", "1"))
+        mvc.perform(post("/ui/orders/" + id + "/results/MORF").param("status", "zly").param("v_HGB", "1")
+                        .with(csrf()))
                 .andExpect(flash().attributeExists("error"));
     }
 }

@@ -1,30 +1,40 @@
 package robert_neat.ereceipt.ui;
 
-import static org.hamcrest.Matchers.containsString;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.web.servlet.MockMvc;
 
 import ca.uhn.fhir.context.FhirContext;
 import org.hl7.fhir.r4.model.MedicationRequest;
 
-/** UI Thymeleaf dostepne bez uwierzytelniania: lista i zmiana stanu (integracja z HIS wylaczona w testach). */
+/**
+ * Prawdziwy przeplyw CSRF, BEZ {@code with(csrf())} (ten post-processor podmienia reflexywnie repozytorium
+ * tokenu we wspoldzielonym CsrfFilter na sesyjne, trwale dla calego kontekstu testowego - stad osobna klasa z
+ * {@code DirtiesContext} przed klasa, aby dostac swiezy, niepodmieniony filtr).
+ * GET renderuje pole {@code _csrf} (CsrfRequestDataValueProcessor) i ustawia cookie XSRF-TOKEN
+ * (CookieCsrfTokenRepository); POST z tym tokenem i cookie przechodzi.
+ */
 @SpringBootTest
 @AutoConfigureMockMvc
-class ReceiptUiTest {
+@DirtiesContext(classMode = ClassMode.BEFORE_CLASS)
+class CsrfFlowTest {
 
     @Autowired
     MockMvc mvc;
@@ -45,37 +55,26 @@ class ReceiptUiTest {
     }
 
     @Test
-    void rootRedirectsToList() throws Exception {
-        mvc.perform(get("/")).andExpect(redirectedUrl("/ui/prescriptions"));
-    }
-
-    @Test
-    void listShowsReceiptWithoutAuthentication() throws Exception {
+    void realCsrfTokenFromRenderedPageIsAccepted() throws Exception {
         String key = createViaFhir();
-        mvc.perform(get("/ui/prescriptions")).andExpect(status().isOk())
-                .andExpect(content().string(containsString(key)))
-                .andExpect(content().string(containsString("Atoris 20 mg")));
-    }
+        MockHttpServletResponse listResponse = mvc.perform(get("/ui/prescriptions"))
+                .andExpect(status().isOk()).andReturn().getResponse();
 
-    @Test
-    void changingStateUpdatesReceiptAndHandlesConflicts() throws Exception {
-        String key = createViaFhir();
-        mvc.perform(post("/ui/prescriptions/" + key + "/status").param("status", "dispensed").with(csrf()))
+        String token = extractCsrfToken(listResponse.getContentAsString());
+        var xsrfCookie = listResponse.getCookie("XSRF-TOKEN");
+        assertNotNull(xsrfCookie, "CookieCsrfTokenRepository powinien ustawic cookie XSRF-TOKEN");
+
+        mvc.perform(post("/ui/prescriptions/" + key + "/status")
+                        .param("status", "dispensed")
+                        .param("_csrf", token)
+                        .cookie(xsrfCookie))
                 .andExpect(redirectedUrl("/ui/prescriptions"))
                 .andExpect(flash().attributeExists("message"));
-        mvc.perform(get("/fhir/MedicationRequest/" + key))
-                .andExpect(content().string(containsString("\"completed\"")));
-        // stan koncowy: kolejna zmiana to blad pokazany w UI
-        mvc.perform(post("/ui/prescriptions/" + key + "/status").param("status", "cancelled").with(csrf()))
-                .andExpect(flash().attributeExists("error"));
-        mvc.perform(post("/ui/prescriptions/" + key + "/status").param("status", "bogus").with(csrf()))
-                .andExpect(flash().attributeExists("error"));
     }
 
-    @Test
-    void changingStateWithoutCsrfTokenIsRejected() throws Exception {
-        String key = createViaFhir();
-        mvc.perform(post("/ui/prescriptions/" + key + "/status").param("status", "dispensed"))
-                .andExpect(status().isForbidden());
+    private static String extractCsrfToken(String html) {
+        Matcher m = Pattern.compile("name=\"_csrf\"\\s+value=\"([^\"]+)\"").matcher(html);
+        if (!m.find()) throw new AssertionError("brak pola _csrf w wyrenderowanej stronie");
+        return m.group(1);
     }
 }
