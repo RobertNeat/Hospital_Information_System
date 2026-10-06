@@ -31,6 +31,10 @@
         <hapi-fhir.version>8.12.1</hapi-fhir.version>
         <!-- springdoc 3.x targets Spring Boot v4 (2.x targets Boot 3, incompatible with the Boot 4.1 parent used here) -->
         <springdoc.version>3.1.1</springdoc.version>
+        <!-- CVE fixes: override transitive versions from spring-boot-dependencies BOM -->
+        <jackson-2-bom.version>2.21.7</jackson-2-bom.version>
+        <jackson-bom.version>3.1.7</jackson-bom.version>
+        <tomcat.version>11.0.25</tomcat.version>
     </properties>
     <dependencies>
         <dependency>

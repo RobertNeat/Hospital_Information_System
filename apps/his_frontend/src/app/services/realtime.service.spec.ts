@@ -104,7 +104,10 @@ describe('RealtimeService', () => {
     expect(clients).toHaveLength(1);
     const [client] = clients;
     expect(client.activate).toHaveBeenCalled();
-    expect(client.config.brokerURL).toBe(`ws://${window.location.host}/ws`);
+    const brokerUrl = new URL(client.config.brokerURL!);
+    expect(brokerUrl.protocol).toBe(window.location.protocol === 'https:' ? 'wss:' : 'ws:');
+    expect(brokerUrl.host).toBe(window.location.host);
+    expect(brokerUrl.pathname).toBe('/ws');
     expect(client.config.reconnectDelay).toBeGreaterThan(0);
     expect(service.status()).toBe('connecting');
 

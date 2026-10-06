@@ -78,7 +78,10 @@ export interface BuildResult {
 /**
  * BCrypt (cost 10) of the shared demo password `HisDemo2026!`. Computed once with Spring Security's
  * BCryptPasswordEncoder (the salt is part of the hash, so the constant is stable); see README.
+ * Not a leaked credential: the plaintext is public (this comment, the README) and only ever
+ * seeds non-production mock data.
  */
+// nosemgrep: generic.secrets.security.detected-bcrypt-hash.detected-bcrypt-hash
 export const DEMO_PASSWORD_HASH = '$2a$10$5oDBlRGwsrFsuDdeTl/EPOPDhCFr3VoyDb1Bi.4B4hn3fKXcGdmnC';
 
 /** Modalities with slot generation, in the order of the `ck_schedule_slot_modality` constraint. */

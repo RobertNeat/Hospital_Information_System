@@ -56,12 +56,28 @@ export function exceedsMaxDailyDose(
   return dailyDose > drug.maxDailyDose.value;
 }
 
-/** Leading numeric strength per dose unit, e.g. "5 mg" -> 5, "875/125 mg" -> 875, "1%" -> null. */
+/** True for characters `\b` treats as "word" characters (`\w` = `[A-Za-z0-9_]`). */
+function isWordChar(ch: string | undefined): boolean {
+  return ch !== undefined && /[A-Za-z0-9_]/.test(ch);
+}
+
+/**
+ * Leading numeric strength per dose unit, e.g. "5 mg" -> 5, "875/125 mg" -> 875, "1%" -> null.
+ * Uses a fixed regex only for the numeric prefix; `doseUnit` (which may come from drug data) is
+ * compared manually afterwards instead of being interpolated into a RegExp, to avoid ReDoS.
+ */
 export function parseStrengthValue(strength: string, doseUnit: string): number | null {
-  const escapedUnit = doseUnit.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const match = strength.match(new RegExp(`^([\\d.]+)(?:/[\\d.]+)?\\s*${escapedUnit}\\b`, 'i'));
-  if (!match) return null;
-  const value = Number(match[1]);
+  const prefix = /^([\d.]+)(?:\/[\d.]+)?\s*/.exec(strength);
+  if (!prefix) return null;
+
+  const rest = strength.slice(prefix[0].length);
+  if (!rest.toLowerCase().startsWith(doseUnit.toLowerCase())) return null;
+  // Emulate the \b at the end of doseUnit: the boundary holds unless both the unit's
+  // last character and the one right after it are "word" characters.
+  const afterUnit = rest.charAt(doseUnit.length) || undefined;
+  if (isWordChar(doseUnit.charAt(doseUnit.length - 1)) && isWordChar(afterUnit)) return null;
+
+  const value = Number(prefix[1]);
   return Number.isFinite(value) && value > 0 ? value : null;
 }
 

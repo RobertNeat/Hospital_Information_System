@@ -4,7 +4,7 @@ export const API_BASE_URL = '/api/v1';
 /** STOMP endpoint (plain WebSocket, no SockJS); proxied like the REST API. */
 export const REALTIME_WS_PATH = '/ws';
 
-/** Absolute `ws://`/`wss://` URL of the STOMP endpoint for the given page location. */
+/** Absolute WebSocket URL of the STOMP endpoint, secure iff the page itself was loaded securely. */
 export const realtimeWsUrl = (location: Pick<Location, 'protocol' | 'host'>): string =>
   `${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}${REALTIME_WS_PATH}`;
 

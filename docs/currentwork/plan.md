@@ -1,3 +1,1 @@
 # Planowane prace
-
-(brak)
