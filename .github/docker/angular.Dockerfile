@@ -6,6 +6,11 @@ ARG PACKAGE_NAME
 WORKDIR /workspace
 RUN corepack enable
 ENV npm_config_store_dir=/pnpm/store
+# minimum-release-age=0: disables pnpm 11's default supply-chain age check for this
+# install only. That check requires fetching publish-time metadata for every lockfile
+# entry, which is unreliable from inside a Docker build; the real policy gate already
+# runs on the runner in check_node.sh (_job_check.yaml), a dependency of the image build.
+ENV npm_config_minimum_release_age=0
 COPY . .
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
     pnpm install --frozen-lockfile \
