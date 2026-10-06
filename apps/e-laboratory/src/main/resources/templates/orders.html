@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="pl" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout(~{::section})}">
+<body>
+<section>
+<h1 th:text="${view == 'history'} ? 'Zlecenia badań - historia' : 'Zlecenia badań'"></h1>
+<div class="msg" th:if="${message}" th:text="${message}"></div>
+<div class="err" th:if="${error}" th:text="${error}"></div>
+<p class="lead" th:if="${orders.empty}" th:text="${view == 'history'} ? 'Brak zakończonych zleceń.' : 'Brak zlecen. Pojawiaja sie po utworzeniu zlecenia laboratoryjnego w HIS.'"></p>
+<table class="table" th:unless="${orders.empty}">
+    <thead>
+    <tr>
+        <th>Zlecenie (id HIS)</th>
+        <th>Pacjent</th>
+        <th>Badania</th>
+        <th>Stan</th>
+        <th>Synchronizacja z HIS</th>
+        <th>Zmiana stanu</th>
+        <th>Wyniki</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="o : ${orders}">
+        <td class="key" th:text="${o.hisOrderId}"></td>
+        <td class="key" th:text="${o.patientRef}"></td>
+        <td>
+            <div th:each="i : ${o.items}">
+                <strong th:text="${i.testCode()}"></strong>
+                <span th:text="${i.testName()}"></span>
+                <span th:if="${i.specimenType()}" th:text="'(' + ${i.specimenType()} + ')'"></span>
+            </div>
+            <div th:if="${o.fasting}">Na czczo</div>
+            <div th:each="n : ${o.notes}" th:text="${n}"></div>
+        </td>
+        <td><span class="badge" th:text="${o.status.wire()}"></span></td>
+        <td>
+            <span th:text="${o.syncState}"></span>
+            <div th:if="${o.syncMessage}" th:text="${o.syncMessage}"></div>
+        </td>
+        <td>
+            <th:block th:each="t : ${targets}" th:if="${o.status.canMoveTo(t)}">
+                <form method="post" th:action="@{/ui/orders/{id}/status(id=${o.hisOrderId})}">
+                    <input type="hidden" name="status" th:value="${t.wire()}">
+                    <button type="submit" class="btn" th:classappend="${t.name() == 'CANCELLED'} ? 'btn-danger'" th:text="${t.wire()}"></button>
+                </form>
+            </th:block>
+            <form method="post" th:if="${o.syncState.name() == 'PENDING'}"
+                  th:action="@{/ui/orders/{id}/sync(id=${o.hisOrderId})}">
+                <button type="submit" class="btn">ponow wysylke do HIS</button>
+            </form>
+        </td>
+        <td>
+            <div class="result" th:each="r : ${o.results}">
+                <strong th:text="${r.testCode} + ' (' + ${r.status.wire()} + ')'"></strong>
+                <span th:text="${r.syncState}"></span>
+                <div th:if="${r.syncMessage}" th:text="${r.syncMessage}"></div>
+                <div th:each="obs : ${r.observations}">
+                    <span th:text="${obs.analyteCode()} + ': ' + (${obs.numeric()} != null ? ${obs.numeric()} : ${obs.text()}) + ' ' + ${obs.unit()}"></span>
+                    <span th:if="${obs.flag()}" th:text="'[' + ${obs.flag()} + ']'"></span>
+                </div>
+                <form method="post" th:if="${r.syncState.name() == 'PENDING'}"
+                      th:action="@{/ui/orders/{id}/results/{rid}/sync(id=${o.hisOrderId},rid=${r.id})}">
+                    <button type="submit" class="btn">ponow wysylke wyniku</button>
+                </form>
+            </div>
+            <th:block th:if="${o.status.acceptsResults() or o.status.name() == 'COMPLETED'}">
+                <details th:each="i : ${o.items}">
+                    <summary th:text="'Wprowadz wynik: ' + ${i.testCode()}"></summary>
+                    <form method="post"
+                          th:action="@{/ui/orders/{id}/results/{code}(id=${o.hisOrderId},code=${i.testCode()})}">
+                        <label>Status
+                            <select name="status">
+                                <option th:each="s : ${resultStatuses}" th:value="${s.wire()}"
+                                        th:text="${s.wire()}" th:selected="${s.name() == 'FINAL'}"></option>
+                            </select>
+                        </label>
+                        <label th:each="a : ${i.analytes()}">
+                            <span th:text="${a.code()} + ' ' + ${a.name()} + ' [' + ${a.unit()} + ']'"></span>
+                            <span th:if="${a.low() != null or a.high() != null}"
+                                  th:text="'norma: ' + ${a.low()} + ' - ' + ${a.high()}"></span>
+                            <input type="text" th:name="'v_' + ${a.code()}" size="10">
+                            <select th:name="'f_' + ${a.code()}">
+                                <option value="">flaga: auto</option>
+                                <option th:each="f : ${flags}" th:value="${f}" th:text="${f}"></option>
+                            </select>
+                        </label>
+                        <label th:if="${i.analytes().empty}">
+                            <span th:text="${i.testCode()}"></span>
+                            <input type="text" th:name="'v_' + ${i.testCode()}" size="10">
+                            <select th:name="'f_' + ${i.testCode()}">
+                                <option value="">flaga: auto</option>
+                                <option th:each="f : ${flags}" th:value="${f}" th:text="${f}"></option>
+                            </select>
+                        </label>
+                        <label>Wykonawca <input type="text" name="performer"></label>
+                        <label>Komentarz <input type="text" name="comment"></label>
+                        <button type="submit" class="btn btn-primary">zapisz wynik</button>
+                    </form>
+                </details>
+            </th:block>
+        </td>
+    </tr>
+    </tbody>
+</table>
+</section>
+</body>
+</html>

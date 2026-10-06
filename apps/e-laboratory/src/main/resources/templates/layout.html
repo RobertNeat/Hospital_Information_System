@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="pl" xmlns:th="http://www.thymeleaf.org" th:fragment="layout(content)">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${brand} + ' - ' + ${subtitle}">e-service</title>
+    <link rel="icon" type="image/x-icon" th:href="@{'/images/' + ${#strings.replace(brand, '-', '_')} + '.ico'}">
+    <link rel="icon" type="image/png" th:href="@{'/images/' + ${#strings.replace(brand, '-', '_')} + '.png'}">
+    <link rel="stylesheet" th:href="@{/css/ui.css}">
+    <script th:src="@{/js/ui.js}" defer></script>
+</head>
+<body>
+<header class="navbar">
+    <a class="navbar__brand" th:href="@{${base}}" data-spa>
+        <strong th:text="${brand}"></strong>
+        <small th:text="${subtitle}"></small>
+    </a>
+    <ul class="navbar__tabs" id="nav-tabs">
+        <li th:classappend="${view == 'active'} ? 'active'"><a th:href="@{${base}}" data-spa>Aktywne</a></li>
+        <li th:classappend="${view == 'history'} ? 'active'">
+            <a th:href="@{${base}(view=history)}" data-spa>Historia</a>
+        </li>
+    </ul>
+</header>
+<main class="container" id="app" th:insert="${content}"></main>
+</body>
+</html>

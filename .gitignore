@@ -43,14 +43,15 @@ test-results/
 # Temporary files
 apps/video-service-hub/storage/
 *.tmp
+deploy_proxmox.md
 *.bak
 *.orig
 *.rej
 *~
 docs/TMP*
 docs/tmp*
-temp*/
-tmp*/
+**/temp/
+**/tmp/
 
 # Certificates
 .certs/

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="pl" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout(~{::section})}">
+<body>
+<section>
+<h1 th:text="${view == 'history'} ? 'Recepty - historia' : 'Recepty'"></h1>
+<div class="msg" th:if="${message}" th:text="${message}"></div>
+<div class="err" th:if="${error}" th:text="${error}"></div>
+<p class="lead" th:if="${receipts.empty}" th:text="${view == 'history'} ? 'Brak zakończonych recept.' : 'Brak recept. Pojawia sie po wystawieniu e-recepty w HIS.'"></p>
+<table class="table" th:unless="${receipts.empty}">
+    <thead>
+    <tr>
+        <th>Klucz eRxKey</th>
+        <th>Kod dostepu</th>
+        <th>Lek</th>
+        <th>Dawkowanie</th>
+        <th>Waznosc</th>
+        <th>Stan</th>
+        <th>Synchronizacja z HIS</th>
+        <th>Akcje</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="r : ${receipts}">
+        <td class="key" th:text="${r.erxKey}"></td>
+        <td th:text="${r.accessCode}"></td>
+        <td th:text="${r.medication}"></td>
+        <td>
+            <div th:each="d : ${r.dosages}" th:text="${d}"></div>
+        </td>
+        <td th:text="${r.validFrom} + ' - ' + ${r.validUntil}"></td>
+        <td><span class="badge" th:text="${r.status.wire()}"></span></td>
+        <td>
+            <span th:text="${r.syncState}"></span>
+            <div th:if="${r.syncMessage}" th:text="${r.syncMessage}"></div>
+        </td>
+        <td>
+            <th:block th:each="t : ${targets}" th:if="${r.status.canMoveTo(t)}">
+                <form method="post" th:action="@{/ui/prescriptions/{k}/status(k=${r.erxKey})}">
+                    <input type="hidden" name="status" th:value="${t.wire()}">
+                    <button type="submit" class="btn" th:classappend="${t.name() == 'CANCELLED' or t.name() == 'EXPIRED'} ? 'btn-danger'" th:text="${t.wire()}"></button>
+                </form>
+            </th:block>
+            <form method="post" th:if="${r.syncState.name() == 'PENDING'}"
+                  th:action="@{/ui/prescriptions/{k}/sync(k=${r.erxKey})}">
+                <button type="submit" class="btn">ponow wysylke do HIS</button>
+            </form>
+        </td>
+    </tr>
+    </tbody>
+</table>
+</section>
+</body>
+</html>
