@@ -14,7 +14,9 @@ name: hospital-information-system
 
 services:
   postgres:
-    image: postgres:17-alpine
+    # Pull-through przez ZOT (sync z registry-1.docker.io) zamiast Docker Hub
+    # bezpośrednio - patrz .github/pipeline_docs/overview.md.
+    image: 192.168.1.162:5000/library/postgres:17-alpine
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${HIS_DB_NAME:?HIS_DB_NAME is required in config.env}
@@ -236,7 +238,9 @@ services:
   # AccessDeniedException. Jednorazowy init na tym samym obrazie (bez sieci/internetu).
   snowstorm-lite-init:
     profiles: ["terminology"]
-    image: snomedinternational/snowstorm-lite:2.7.0
+    # Pull-through przez ZOT (sync z registry-1.docker.io) zamiast Docker Hub
+    # bezpośrednio - patrz .github/pipeline_docs/overview.md.
+    image: 192.168.1.162:5000/snomedinternational/snowstorm-lite:2.7.0
     user: "0:0"
     entrypoint: ["chown", "1000:1000", "/app/lucene-index"]
     restart: "no"
@@ -252,7 +256,9 @@ services:
   snowstorm-lite:
     profiles: ["terminology"]
     # Tag przypięty do wydania; obraz jest wieloarchitekturowy (amd64/arm64).
-    image: snomedinternational/snowstorm-lite:2.7.0
+    # Pull-through przez ZOT (sync z registry-1.docker.io) zamiast Docker Hub
+    # bezpośrednio - patrz .github/pipeline_docs/overview.md.
+    image: 192.168.1.162:5000/snomedinternational/snowstorm-lite:2.7.0
     restart: unless-stopped
     command: ["--index.path=lucene-index/data"]
     depends_on:

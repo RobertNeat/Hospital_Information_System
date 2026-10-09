@@ -1,18 +1,19 @@
 ARG RUNTIME_VERSION
-FROM maven:3.9-eclipse-temurin-${RUNTIME_VERSION} AS build
+FROM 192.168.1.162:5000/library/maven:3.9-eclipse-temurin-${RUNTIME_VERSION} AS build
 RUN apt-get update \
     && apt-get upgrade -y \
     && rm -rf /var/lib/apt/lists/*
 ARG PROJECT_PATH
 WORKDIR /source
+COPY .mvn/settings.xml /tmp/settings.xml
 COPY ${PROJECT_PATH}/pom.xml ./pom.xml
 RUN --mount=type=cache,id=maven-repo,target=/root/.m2/repository \
-    mvn --batch-mode dependency:go-offline
+    mvn --batch-mode -s /tmp/settings.xml dependency:go-offline
 COPY ${PROJECT_PATH}/src ./src
 RUN --mount=type=cache,id=maven-repo,target=/root/.m2/repository \
-    mvn --batch-mode package -DskipTests
+    mvn --batch-mode -s /tmp/settings.xml package -DskipTests
 
-FROM eclipse-temurin:${RUNTIME_VERSION}-jre
+FROM 192.168.1.162:5000/library/eclipse-temurin:${RUNTIME_VERSION}-jre
 RUN apt-get update \
     && apt-get upgrade -y \
     && apt-get install -y --no-install-recommends curl \

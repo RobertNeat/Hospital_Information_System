@@ -17,6 +17,9 @@ run_node() {
 }
 
 run_node node --version
+# corepack downloads the pinned package manager from registry.npmjs.org by default,
+# ignoring .npmrc; point it at the local registry too.
+export COREPACK_NPM_REGISTRY=http://192.168.1.163
 if ! run_node sh -c 'command -v corepack >/dev/null 2>&1'; then
   run_node npm install --global corepack
 fi

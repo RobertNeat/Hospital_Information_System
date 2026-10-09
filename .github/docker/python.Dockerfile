@@ -1,5 +1,5 @@
 ARG RUNTIME_VERSION
-FROM python:${RUNTIME_VERSION}-slim
+FROM 192.168.1.162:5000/library/python:${RUNTIME_VERSION}-slim
 RUN apt-get update \
     && apt-get upgrade -y \
     && rm -rf /var/lib/apt/lists/*

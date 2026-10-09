@@ -1,0 +1,11 @@
+<!-- Lokalny rejestr Maven (Reposilite), proxujący Maven Central — eliminuje
+     zależność od zewnętrznego rejestru w CI. -->
+<settings>
+  <mirrors>
+    <mirror>
+      <id>reposilite-mirror</id>
+      <mirrorOf>*</mirrorOf>
+      <url>http://192.168.1.164/releases</url>
+    </mirror>
+  </mirrors>
+</settings>

@@ -12,8 +12,10 @@ command -v semgrep >/dev/null
 case "$BUILD_TOOL" in
   maven)
     test -f "$PROJECT_PATH/pom.xml"
+    settings_file="$PWD/.mvn/settings.xml"
+    test -f "$settings_file"
     mise exec "java@temurin-${RUNTIME_VERSION}" -- java -version
-    (cd "$PROJECT_PATH" && mise exec "java@temurin-${RUNTIME_VERSION}" "maven@3.9" -- mvn --batch-mode verify)
+    (cd "$PROJECT_PATH" && mise exec "java@temurin-${RUNTIME_VERSION}" "maven@3.9" -- mvn --batch-mode -s "$settings_file" verify)
     ;;
   gradle)
     test -x "$PROJECT_PATH/gradlew"
