@@ -17,7 +17,8 @@ FROM 192.168.1.162:5000/library/eclipse-temurin:${RUNTIME_VERSION}-jre
 RUN apt-get update \
     && apt-get upgrade -y \
     && apt-get install -y --no-install-recommends curl \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -f /usr/bin/pebble
 ARG BUILD_OUTPUT
 ARG APP_PORT
 ARG START_COMMAND
