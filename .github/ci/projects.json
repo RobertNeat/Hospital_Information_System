@@ -35,7 +35,12 @@
       "dockerfile": ".github/docker/spring.Dockerfile",
       "image": "hospital-information-system/his-backend",
       "package_name": null,
-      "Trivy_exceptions": [],
+      "Trivy_exceptions": [
+        {
+          "name": "stdlib (pebble)",
+          "cause": "CVE-2026-78667/CVE-2026-97031 sa w Canonical Pebble (init procesu kontenera) wbudowanym w obraz bazowy eclipse-temurin:25-jre. Potwierdzone pull-through z Docker Hub (ten sam digest sha256:9aae267abe4a5297ca2c44fbd26e68cebb01784fddbe8ad42bcad6b9f5b5b774 po wyczyszczeniu cache ZOT) - to nie problem naszego mirrora. Pebble dziala jako PID 1 kontenera i nie jest uzywany ani eksponowany przez aplikacje; poprawka wymaga aktualizacji obrazu bazowego przez Canonical/Eclipse Adoptium."
+        }
+      ],
       "build_output": "target/*.jar",
       "server_config": null,
       "start_command": "java -jar /app/app.jar",
@@ -53,7 +58,12 @@
       "dockerfile": ".github/docker/spring.Dockerfile",
       "image": "hospital-information-system/e-receipt",
       "package_name": null,
-      "Trivy_exceptions": [],
+      "Trivy_exceptions": [
+        {
+          "name": "stdlib (pebble)",
+          "cause": "CVE-2026-78667/CVE-2026-97031 sa w Canonical Pebble (init procesu kontenera) wbudowanym w obraz bazowy eclipse-temurin:25-jre. Potwierdzone pull-through z Docker Hub (ten sam digest sha256:9aae267abe4a5297ca2c44fbd26e68cebb01784fddbe8ad42bcad6b9f5b5b774 po wyczyszczeniu cache ZOT) - to nie problem naszego mirrora. Pebble dziala jako PID 1 kontenera i nie jest uzywany ani eksponowany przez aplikacje; poprawka wymaga aktualizacji obrazu bazowego przez Canonical/Eclipse Adoptium."
+        }
+      ],
       "build_output": "target/*.jar",
       "server_config": null,
       "start_command": "java -jar /app/app.jar",
@@ -71,7 +81,12 @@
       "dockerfile": ".github/docker/spring.Dockerfile",
       "image": "hospital-information-system/e-laboratory",
       "package_name": null,
-      "Trivy_exceptions": [],
+      "Trivy_exceptions": [
+        {
+          "name": "stdlib (pebble)",
+          "cause": "CVE-2026-78667/CVE-2026-97031 sa w Canonical Pebble (init procesu kontenera) wbudowanym w obraz bazowy eclipse-temurin:25-jre. Potwierdzone pull-through z Docker Hub (ten sam digest sha256:9aae267abe4a5297ca2c44fbd26e68cebb01784fddbe8ad42bcad6b9f5b5b774 po wyczyszczeniu cache ZOT) - to nie problem naszego mirrora. Pebble dziala jako PID 1 kontenera i nie jest uzywany ani eksponowany przez aplikacje; poprawka wymaga aktualizacji obrazu bazowego przez Canonical/Eclipse Adoptium."
+        }
+      ],
       "build_output": "target/*.jar",
       "server_config": null,
       "start_command": "java -jar /app/app.jar",
@@ -89,7 +104,12 @@
       "dockerfile": ".github/docker/spring.Dockerfile",
       "image": "hospital-information-system/e-imaging",
       "package_name": null,
-      "Trivy_exceptions": [],
+      "Trivy_exceptions": [
+        {
+          "name": "stdlib (pebble)",
+          "cause": "CVE-2026-78667/CVE-2026-97031 sa w Canonical Pebble (init procesu kontenera) wbudowanym w obraz bazowy eclipse-temurin:25-jre. Potwierdzone pull-through z Docker Hub (ten sam digest sha256:9aae267abe4a5297ca2c44fbd26e68cebb01784fddbe8ad42bcad6b9f5b5b774 po wyczyszczeniu cache ZOT) - to nie problem naszego mirrora. Pebble dziala jako PID 1 kontenera i nie jest uzywany ani eksponowany przez aplikacje; poprawka wymaga aktualizacji obrazu bazowego przez Canonical/Eclipse Adoptium."
+        }
+      ],
       "build_output": "target/*.jar",
       "server_config": null,
       "start_command": "java -jar /app/app.jar",
