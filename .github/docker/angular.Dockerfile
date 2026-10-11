@@ -10,20 +10,17 @@ ENV COREPACK_NPM_REGISTRY=http://192.168.1.163
 RUN corepack enable
 ENV npm_config_store_dir=/pnpm/store
 COPY . .
-# pnpm 11 only reads auth/registry settings from .npmrc; minimum-release-age and the
-# fetch-retry settings below must be passed as CLI --config overrides instead (.npmrc
-# or ENV vars are silently ignored for them). --config.minimum-release-age=0 disables
+# fetch-timeout/fetch-retries live in .npmrc (root), not as --config CLI overrides:
+# pnpm 11.17.0 passes --config.fetch-timeout's value to AbortSignal.timeout() without
+# converting it from string to number, throwing "The 'delay' argument must be of type
+# number" on the first retry — a crash that doesn't reject the pending install, so the
+# build hangs indefinitely instead of failing. --config.minimum-release-age=0 disables
 # pnpm 11's default supply-chain age check for this install only: that check fetches
 # publish-time metadata for every lockfile entry, which is unreliable from inside a
 # Docker build; the real policy gate already runs on the runner in check_node.sh
-# (_job_check.yaml), a dependency of the image build. The fetch-retry overrides widen
-# tolerance for the registry's slow/flaky responses seen from Docker Desktop on Windows.
+# (_job_check.yaml), a dependency of the image build.
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
     pnpm --config.minimum-release-age=0 \
-         --config.fetch-timeout=300000 \
-         --config.fetch-retries=5 \
-         --config.fetch-retry-mintimeout=10000 \
-         --config.fetch-retry-maxtimeout=120000 \
          install --frozen-lockfile \
     && pnpm --filter "${PACKAGE_NAME}..." build
 
