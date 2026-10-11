@@ -37,7 +37,7 @@ jobs:
     name: Build / ${{ matrix.project.name }}
     needs: matrix
     runs-on: ${{ fromJSON(needs.matrix.outputs.runner_labels) }}
-    timeout-minutes: 15
+    timeout-minutes: 25
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.matrix.outputs.projects) }}
