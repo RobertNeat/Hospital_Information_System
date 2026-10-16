@@ -53,8 +53,9 @@ a `REGISTRY`/`IMAGE_TAG` domyślnie `local`/`dev`; zgodność defaultów z
 `docker compose config` działa także z `config.env` bez tych zmiennych.
 
 - Sieci: `his-internal` (`internal: true`) - postgres, backend, e-*, snowstorm-lite;
-  `default` - frontend i backend (backend publikuje port, frontend proxy'uje do niego).
-  Usługi `e-*` nie publikują portów na hoście (porty z `projects.json` to port FHIR z mTLS).
+  `default` - frontend, backend i e-* (backend i e-* publikują port na hoście, frontend proxy'uje do
+  backendu). Usługi `e-*` publikują na hoście tylko port UI (dashboard zarządzania, HTTP, bez
+  logowania) - porty z `projects.json` to port FHIR z mTLS i nie są publikowane.
 - Healthchecki: postgres `pg_isready`; backend i `e-*` `curl -fsS http://localhost:<port zarządzania>/actuator/health/readiness`
   (port zarządzania: HTTP bez TLS, nie publikowany; backend 10440, e-* 10441-10443; `curl` doinstalowany
   w runtime `spring.Dockerfile`); frontend `wget` (busybox w nginx:alpine).
@@ -101,7 +102,8 @@ FHIR między `his-backend` a `e-*` jest zabezpieczony wzajemnym TLS i **domyśln
 produkcji te same certyfikaty; środowisko wewnętrzne). Certyfikat klienta zaufany przez CA `HIS-CA` jest
 jedynym uwierzytelnieniem usług `e-*` na `/fhir/**` (plus lista dozwolonych CN `HIS_FHIR_ALLOWED_CLIENT_CNS`
 w `his-backend`). Porty: `his-backend` 10420 (API/`/ws`, HTTP), 10424 (FHIR, HTTPS+mTLS), 10440 (zarządzanie);
-`e-*` 10421-10423 (FHIR, HTTPS+mTLS), 10431-10433 (UI, HTTP, bez certyfikatu), 10441-10443 (zarządzanie).
+`e-*` 10421-10423 (FHIR, HTTPS+mTLS, nie publikowany na hoście), 10431-10433 (UI, HTTP, bez certyfikatu,
+publikowany na hoście - lokalnie i na produkcji), 10441-10443 (zarządzanie, nie publikowany).
 Szczegóły i zmienne: `docs/readme/services_pl.md`, `docs/readme/envVariables_pl.md`.
 
 **Generowanie** (CA `HIS-CA`, 4 aplikacje, SAN = nazwa usługi compose + `localhost` + `127.0.0.1`, EKU

@@ -129,8 +129,10 @@ services:
       retries: 10
       start_period: 60s
 
-  # Usługi e-* są niezależne i bez portów na hoście (porty z projects.json to port FHIR z mTLS);
-  # dostępne w sieci his-internal. UI (HTTP) i health (port zarządzania) mają osobne porty.
+  # Usługi e-* są niezależne; port FHIR (mTLS) nie jest publikowany na hoście (tylko sieć
+  # his-internal). Port UI (dashboard zarządzania, HTTP, bez logowania) jest publikowany na hoście
+  # (sieć default) - to samo, co lokalnie przez compose.dev.yml. Port zarządzania (health) nie jest
+  # publikowany.
   e-receipt:
     image: ${REGISTRY:-local}/${E_RECEIPT_IMAGE:-hospital-information-system/e-receipt}:${IMAGE_TAG:-dev}
     restart: unless-stopped
@@ -153,7 +155,10 @@ services:
     volumes:
       - ${HIS_CERTS_DIR:-../.certs}/e_receipt:/certs:ro
     networks:
+      - default
       - his-internal
+    ports:
+      - "${E_RECEIPT_UI_HOST_PORT:-10431}:${E_RECEIPT_UI_PORT:-10431}"
     healthcheck:
       test:
         [
@@ -187,7 +192,10 @@ services:
     volumes:
       - ${HIS_CERTS_DIR:-../.certs}/e_laboratory:/certs:ro
     networks:
+      - default
       - his-internal
+    ports:
+      - "${E_LABORATORY_UI_HOST_PORT:-10432}:${E_LABORATORY_UI_PORT:-10432}"
     healthcheck:
       test:
         [
@@ -221,7 +229,10 @@ services:
     volumes:
       - ${HIS_CERTS_DIR:-../.certs}/e_imaging:/certs:ro
     networks:
+      - default
       - his-internal
+    ports:
+      - "${E_IMAGING_UI_HOST_PORT:-10433}:${E_IMAGING_UI_PORT:-10433}"
     healthcheck:
       test:
         [

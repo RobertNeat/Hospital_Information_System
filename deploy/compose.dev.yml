@@ -51,7 +51,9 @@ services:
       - "127.0.0.1:${HIS_BACKEND_FHIR_HOST_PORT:-10424}:10424"
 
   # e-*: na loopback publikowane: port FHIR (HTTPS, mTLS) i UI (HTTP, bez certyfikatu, dla przeglądarki);
-  # port zarządzania (health) nie jest publikowany. Sieć default potrzebna do publikacji.
+  # port zarządzania (health) nie jest publikowany. Sieć default już w compose.yml (UI na hoście).
+  # !override, bo compose.yml publikuje UI na 0.0.0.0 - bez override lokalnie nasłuchiwałby i na
+  # loopback, i na wszystkich interfejsach.
   e-receipt:
     build:
       <<: *spring-build
@@ -59,9 +61,7 @@ services:
         <<: *spring-args
         PROJECT_PATH: apps/e-receipt
         APP_PORT: "10421"
-    networks:
-      - default
-    ports:
+    ports: !override
       - "127.0.0.1:${E_RECEIPT_HOST_PORT:-10421}:${E_RECEIPT_CONTAINER_PORT:-10421}"
       - "127.0.0.1:${E_RECEIPT_UI_HOST_PORT:-10431}:${E_RECEIPT_UI_PORT:-10431}"
 
@@ -72,9 +72,7 @@ services:
         <<: *spring-args
         PROJECT_PATH: apps/e-laboratory
         APP_PORT: "10422"
-    networks:
-      - default
-    ports:
+    ports: !override
       - "127.0.0.1:${E_LABORATORY_HOST_PORT:-10422}:${E_LABORATORY_CONTAINER_PORT:-10422}"
       - "127.0.0.1:${E_LABORATORY_UI_HOST_PORT:-10432}:${E_LABORATORY_UI_PORT:-10432}"
 
@@ -85,9 +83,7 @@ services:
         <<: *spring-args
         PROJECT_PATH: apps/e-imaging
         APP_PORT: "10423"
-    networks:
-      - default
-    ports:
+    ports: !override
       - "127.0.0.1:${E_IMAGING_HOST_PORT:-10423}:${E_IMAGING_CONTAINER_PORT:-10423}"
       - "127.0.0.1:${E_IMAGING_UI_HOST_PORT:-10433}:${E_IMAGING_UI_PORT:-10433}"
 
