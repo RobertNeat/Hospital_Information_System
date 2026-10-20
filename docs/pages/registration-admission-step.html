@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Krok: Przyjęcie - HIS</title>
+    <link rel="stylesheet" href="../assets/css/style.css" />
+  </head>
+  <body data-root=".." data-page="registration-admission-step.html">
+    <div class="layout">
+      <nav class="sidebar" id="sidebar"></nav>
+      <main class="main">
+        <div class="main__inner">
+          <p class="breadcrumb">
+            <a href="../index.html">Start</a>
+            <span class="sep">/</span>
+            <a href="dashboard.html">Panel główny</a>
+            <span class="sep">/</span>
+            <span>Rejestracja nowego pacjenta</span>
+            <span class="sep">/</span>
+            <span class="current">Krok: Przyjęcie</span>
+          </p>
+
+          <h1>
+            Krok: Przyjęcie
+            <span class="badge">app-registration-admission-step</span>
+          </h1>
+
+          <h2 class="section-title">Ścieżka</h2>
+          <div class="card">
+            <p>
+              To nie jest samodzielnie routowana strona, lecz czwarty krok
+              (zakładka) wieloetapowego kreatora rejestracji pacjenta (<code
+                >p-stepper</code
+              >
+              z <code>StepperModule</code> PrimeNG), osadzony w komponencie
+              <code>PatientRegistrationPage</code> jako
+              <code>AdmissionStep</code>, obok sąsiednich kroków
+              <code>IdentityStep</code>, <code>PersonalStep</code> i
+              <code>InsuranceStep</code>.
+            </p>
+            <p>
+              Kreator jest dostępny pod adresem
+              <code>/patients/register</code> przy rejestracji nowego pacjenta
+              (chronione przez <code>permissionGuard</code> z uprawnieniem
+              <code>PATIENT_WRITE</code>) oraz pod
+              <code>/patients/:patientId/edit</code> w trybie edycji
+              istniejącego pacjenta. W trybie edycji ten sam krok 4 w kreatorze
+              nie wyświetla formularza przyjęcia - zamiast niego pokazywane jest
+              tylko podsumowanie "Zmiany"
+              (<code>app-registration-summary</code>); formularz
+              <code>AdmissionStep</code> jest renderowany wyłącznie w trybie
+              tworzenia nowego pacjenta (<code>mode() === 'create'</code>).
+            </p>
+          </div>
+
+          <h2 class="section-title">Przeznaczenie</h2>
+          <div class="card">
+            <p>
+              Zbiera dane dotyczące przyjęcia nowego pacjenta: typ przyjęcia,
+              oddział, lokalizację (sala, łóżko), lekarza prowadzącego, poziom
+              triage, powód przyjęcia, numer skierowania oraz datę i godzinę
+              przyjęcia. Formularz jest reaktywny
+              (<code>ReactiveFormsModule</code>), przekazywany do komponentu
+              jako wymagany input <code>form</code> (typ
+              <code>AdmissionForm</code> z
+              <code>patient-registration.forms.ts</code>), razem z listami
+              oddziałów (<code>wards</code>) i lekarzy (<code>doctors</code>)
+              oraz flagą <code>ambulatoryOnly</code>.
+            </p>
+            <p>
+              Gdy wybrany typ przyjęcia to "ambulatoryjne"
+              (<code>outpatient</code>),
+              <code>ambulatoryOnly</code> jest ustawiane na <code>true</code> i
+              cała reszta formularza (oddział, sala, łóżko, lekarz, triage,
+              powód, skierowanie, data przyjęcia) jest ukrywana oraz
+              dezaktywowana w formularzu (<code>applyAdmissionType</code>) -
+              pola te są wtedy zbędne, bo przyjęcie ambulatoryjne nie wiąże się
+              z pobytem na oddziale.
+            </p>
+          </div>
+
+          <h2 class="section-title">Dane wejściowe</h2>
+          <div class="card">
+            <ul class="plain">
+              <li>
+                <strong>Typ przyjęcia</strong> (<code>admissionType</code>) -
+                przycisk wyboru (<code>p-selectbutton</code>), zawsze widoczny,
+                bez możliwości pustej wartości.
+              </li>
+              <li>
+                <strong>Oddział</strong> (<code>wardId</code>) - lista wyboru z
+                <code>wards</code>, wymagane pole (gdy nie ambulatoryjne).
+              </li>
+              <li>
+                <strong>Sala</strong> (<code>room</code>) i
+                <strong>Łóżko</strong> (<code>bed</code>) - pola tekstowe,
+                opcjonalne.
+              </li>
+              <li>
+                <strong>Lekarz prowadzący</strong>
+                (<code>attendingPhysicianId</code>) - lista wyboru z
+                <code>doctors</code> (po nazwisku), wymagane pole.
+              </li>
+              <li>
+                <strong>Poziom triage</strong> (<code>triageLevel</code>) -
+                lista wyboru z możliwością wyczyszczenia; wymagane tylko, gdy
+                typ przyjęcia to "nagłe" (<code>emergency</code>).
+              </li>
+              <li>
+                <strong>Powód przyjęcia</strong> (<code>reason</code>) - pole
+                tekstowe wieloliniowe (<code>textarea</code>), wymagane.
+              </li>
+              <li>
+                <strong>Nr skierowania</strong> (<code>referralNumber</code>) -
+                pole tekstowe, opcjonalne.
+              </li>
+              <li>
+                <strong>Data i godzina przyjęcia</strong>
+                (<code>admittedAt</code>) - wybór daty z czasem
+                (<code>p-datepicker</code>, format <code>dd.mm.yy</code>),
+                domyślnie bieżący moment.
+              </li>
+            </ul>
+          </div>
+
+          <h2 class="section-title">Akcje</h2>
+          <div class="card">
+            <ul class="plain">
+              <li>
+                Włączanie/wyłączanie i walidacja pól w zależności od typu
+                przyjęcia (<code>applyAdmissionType</code>): dla "ambulatoryjne"
+                pola oddziału, lekarza, powodu i triage są dezaktywowane i
+                zwalniane z walidacji; dla pozostałych typów są wymagane (triage
+                dodatkowo wymagany tylko dla "nagłe").
+              </li>
+              <li>
+                Przejście do kolejnego kroku (Podsumowanie) odbywa się po
+                walidacji w nadrzędnym komponencie kreatora
+                (<code>tryAdvanceStep4</code>) - przycisk "Dalej" w stopce
+                kreatora (<code>app-wizard-step-footer</code>), wspólnej dla
+                wszystkich kroków, z opcją powrotu do poprzedniego kroku lub
+                anulowania rejestracji.
+              </li>
+              <li>
+                Przy rejestracji nowego pacjenta dane z tego kroku są mapowane
+                (<code>buildAdmission</code>) do żądania przyjęcia: dla typu
+                "ambulatoryjne" wysyłany jest tylko typ przyjęcia i bieżący
+                czas; dla innych typów - typ, data przyjęcia, oddział, sala,
+                łóżko, lekarz prowadzący, poziom triage, powód i numer
+                skierowania. Przyjęcie jest wysyłane do API po utworzeniu
+                pacjenta (<code>admitPatient</code>).
+              </li>
+              <li>
+                W trybie edycji pacjenta formularz tego kroku jest wypełniany
+                danymi bieżącego przyjęcia pacjenta (<code>prefillForms</code>),
+                ale nie jest renderowany ani edytowalny - krok 4 w edycji
+                pokazuje jedynie podsumowanie zmian.
+              </li>
+            </ul>
+          </div>
+
+          <h2 class="section-title">Zrzut ekranu</h2>
+          <figure class="screenshot">
+            <img
+              src="../media/rejestracja_pacjenta_krok4.png"
+              alt="Krok Przyjęcie w rejestracji pacjenta"
+            />
+            <figcaption>
+              Czwarty krok kreatora rejestracji pacjenta - dane przyjęcia.
+            </figcaption>
+          </figure>
+
+          <footer class="page-footer">
+            Plik źródłowy komponentu:
+            <code
+              >apps/his_frontend/src/app/pages/patient-registration/admission-step/admission-step.ts</code
+            >
+          </footer>
+        </div>
+      </main>
+    </div>
+    <script src="../assets/js/nav.js"></script>
+  </body>
+</html>

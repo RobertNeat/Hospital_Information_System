@@ -39,6 +39,43 @@ szkielet IT nowoczesnego szpitala, nie prototyp, który tylko na niego wygląda.
   i oddziałami.
 - **Dashboardy zależne od roli** - każda rola widzi informacje i akcje odpowiednie do swojej pracy.
 
+## Główne integracje wspierane przez HIS
+
+HIS nie jest pojedynczą, zamkniętą aplikacją - zaprojektowano go tak, by pokazać, jak system szpitalny łączy
+się ze światem zewnętrznym. Każdy z poniższych przepływów jest podróżą tam i z powrotem między dwoma
+niezależnymi systemami: akcja lekarza w HIS tworzy zlecenie, które jest wysyłane do systemu zewnętrznego
+(apteki, zakładu radiologii lub laboratorium) przez bezpieczny, wzajemnie uwierzytelniony kanał (**mTLS**),
+w standardowym formacie danych klinicznych (**HL7 FHIR R4**). System zewnętrzny przetwarza zlecenie w swoim
+tempie i zgłasza każdą zmianę statusu oraz ostateczny wynik z powrotem do HIS tą samą bezpieczną drogą, dzięki
+czemu obie strony zawsze pokazują ten sam, zgodny status tego samego zlecenia.
+
+### Integracja z przepływem e-recepty
+
+Lekarz wystawia e-receptę w HIS. HIS wysyła ją jako rekord recepty w formacie FHIR do zewnętrznego systemu
+e-recepty reprezentującego aptekę, który zwraca kod odbioru umożliwiający pacjentowi wykupienie leku. W miarę
+jak apteka wydaje lek (w całości, częściowo lub wcale), zgłasza zaktualizowany status z powrotem do HIS, co
+jest widoczne na żywo w statusie recepty widzianym przez lekarza.
+
+![Integracja z przepływem e-recepty](../media/wystawianie_recepty_workflow.png)
+
+### Integracja z przepływem badania obrazowego (e-imaging)
+
+Lekarz zleca badanie obrazowe (np. RTG lub CT) w HIS. HIS wysyła zlecenie jako żądanie FHIR do zewnętrznego
+systemu e-imaging reprezentującego zakład radiologii. W miarę jak badanie jest planowane, wykonywane i
+opisywane, system radiologiczny przekazuje każdą zmianę statusu z powrotem do HIS, kończąc opisem radiologa -
+widocznym dla lekarza bezpośrednio w dokumentacji pacjenta.
+
+![Integracja z przepływem badania obrazowego](../media/badanie_obrazowe_workflow.png)
+
+### Integracja z przepływem zlecenia laboratoryjnego (e-lab)
+
+Lekarz zleca badanie laboratoryjne w HIS. HIS wysyła zlecenie jako żądanie FHIR do zewnętrznego systemu e-lab
+reprezentującego laboratorium. W miarę jak próbka jest pobierana, analizowana i powstają wyniki, system
+laboratoryjny zgłasza każdy etap z powrotem do HIS, który zapisuje ostateczne wyniki - oznaczając wartości
+odbiegające od normy do przeglądu przez lekarza.
+
+![Integracja z przepływem zlecenia laboratoryjnego](../media/zlecenie_laboratoryjne_workflow.png)
+
 Pełny zakres uprawnień poszczególnych ról: [userRoles_pl.md](userRoles_pl.md).
 
 ## Dokumentacja
@@ -51,6 +88,7 @@ Pełny zakres uprawnień poszczególnych ról: [userRoles_pl.md](userRoles_pl.md
 | [databaseSchema_pl.md](databaseSchema_pl.md) | Schemat encji, relacje, dane początkowe                               |
 | [services_pl.md](services_pl.md)             | Serwisy, komunikacja między nimi, dokumentacja API                    |
 | [basicWorkflows_pl.md](basicWorkflows_pl.md) | Główne przebiegi procesowe systemu                                    |
+| [Strona GitHub Pages](https://robertneat.github.io/Hospital_Information_System/) | Dokumentacja poszczególnych ekranów: ścieżka nawigacji, przeznaczenie, dane wejściowe, akcje |
 
 Dokumentacja wdrożenia produkcyjnego (CI/CD, serwer): `.github/pipeline_docs/production_deployment.md`.
 

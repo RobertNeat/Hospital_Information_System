@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Hospital Information System - dokumentacja</title>
+    <link rel="stylesheet" href="assets/css/style.css" />
+  </head>
+  <body data-root="." data-page="index.html">
+    <div class="layout">
+      <nav class="sidebar" id="sidebar"></nav>
+      <main class="main">
+        <div class="main__inner">
+          <section class="hero">
+            <h1>Hospital Information System (HIS)</h1>
+            <p>
+              HIS to platforma kliniczna klasy enterprise łącząca rejestrację
+              pacjentów, dokumentację medyczną, zlecenia laboratoryjne i
+              obrazowe oraz e-recepty w jeden spójny przepływ pracy, oparty na
+              standardach SNOMED CT, HL7 FHIR R4 i klasyfikacji leków ATC. Ta
+              strona dokumentuje poszczególne ekrany systemu: gdzie się znajdują
+              w nawigacji, do czego służą, jakie dane wejściowe przyjmują od
+              użytkownika i jakie akcje wykonują.
+            </p>
+            <p>
+              Pełny opis projektu, instrukcje wdrożenia i dokumentację
+              techniczną znajdziesz w repozytorium:
+              <a
+                href="https://github.com/RobertNeat/Hospital_Information_System"
+                >README.md</a
+              >
+              /
+              <a
+                href="https://github.com/RobertNeat/Hospital_Information_System/blob/main/docs/readme/README_pl.md"
+                >README_pl.md</a
+              >.
+            </p>
+          </section>
+
+          <h2 class="section-title">Główne integracje wspierane przez HIS</h2>
+          <p>
+            Każdy z poniższych przepływów jest podróżą tam i z powrotem między
+            dwoma niezależnymi systemami: akcja lekarza w HIS tworzy zlecenie,
+            które jest wysyłane do systemu zewnętrznego (apteki, zakładu
+            radiologii lub laboratorium) przez bezpieczny, wzajemnie
+            uwierzytelniony kanał (mTLS), w standardowym formacie danych
+            klinicznych (HL7 FHIR R4). System zewnętrzny przetwarza zlecenie w
+            swoim tempie i zgłasza każdą zmianę statusu oraz ostateczny wynik z
+            powrotem do HIS tą samą bezpieczną drogą.
+          </p>
+
+          <div class="workflow">
+            <h3>E-recepta</h3>
+            <p>
+              Lekarz wystawia e-receptę w HIS (<a
+                href="pages/prescription-wizard.html"
+                >kreator recepty</a
+              >). HIS wysyła ją jako rekord FHIR do zewnętrznego systemu
+              <a href="pages/e-receipt-external.html">e-receipt</a>, który
+              zwraca kod odbioru. W miarę wydawania leku przez aptekę status
+              recepty aktualizuje się u pacjenta w zakładce
+              <a href="pages/patient-prescriptions.html">leki i recepty</a>.
+            </p>
+          </div>
+
+          <div class="workflow">
+            <h3>E-badanie obrazowe</h3>
+            <p>
+              Lekarz zleca badanie obrazowe (<a
+                href="pages/imaging-order-wizard.html"
+                >kreator zlecenia</a
+              >). HIS wysyła zlecenie do zewnętrznego systemu
+              <a href="pages/e-imaging-external.html">e-imaging</a>, a wynik -
+              opis radiologa - trafia z powrotem do HIS i jest widoczny w
+              <a href="pages/imaging-report-view.html"
+                >opisie badania obrazowego</a
+              >.
+            </p>
+          </div>
+
+          <div class="workflow">
+            <h3>E-zlecenie laboratoryjne</h3>
+            <p>
+              Lekarz zleca badanie laboratoryjne (<a
+                href="pages/lab-order-wizard.html"
+                >kreator zlecenia</a
+              >). HIS wysyła zlecenie do zewnętrznego systemu
+              <a href="pages/e-laboratory-external.html">e-laboratory</a>, a
+              wyniki badań trafiają z powrotem do HIS i są widoczne w zakładce
+              <a href="pages/patient-results.html">wyniki badań</a>.
+            </p>
+          </div>
+
+          <h2 class="section-title">Mapa stron dokumentacji</h2>
+          <div class="grid-links">
+            <a href="pages/dashboard.html">Panel główny (dashboard)</a>
+            <a href="pages/register.html">Rejestracja konta</a>
+            <a href="pages/admin-staff.html">Administracja personelem</a>
+            <a href="pages/registration-admission-step.html"
+              >Rejestracja pacjenta - krok przyjęcia</a
+            >
+            <a href="pages/patient-history.html">Historia choroby pacjenta</a>
+            <a href="pages/patient-results.html">Wyniki badań pacjenta</a>
+            <a href="pages/lab-order-wizard.html"
+              >Kreator zlecenia laboratoryjnego</a
+            >
+            <a href="pages/e-laboratory-external.html"
+              >System zewnętrzny e-laboratory</a
+            >
+            <a href="pages/patient-prescriptions.html"
+              >Leki i recepty pacjenta</a
+            >
+            <a href="pages/prescription-wizard.html">Kreator recepty</a>
+            <a href="pages/e-receipt-external.html"
+              >System zewnętrzny e-receipt</a
+            >
+            <a href="pages/imaging-order-wizard.html"
+              >Kreator zlecenia obrazowego</a
+            >
+            <a href="pages/imaging-report-view.html">Opis badania obrazowego</a>
+            <a href="pages/e-imaging-external.html"
+              >System zewnętrzny e-imaging</a
+            >
+            <a href="pages/message-conversation.html"
+              >Konwersacja (wiadomości)</a
+            >
+          </div>
+
+          <footer class="page-footer">
+            Hospital Information System - dokumentacja GitHub Pages.
+          </footer>
+        </div>
+      </main>
+    </div>
+    <script src="assets/js/nav.js"></script>
+  </body>
+</html>

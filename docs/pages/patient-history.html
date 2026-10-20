@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Historia choroby - HIS</title>
+    <link rel="stylesheet" href="../assets/css/style.css" />
+  </head>
+  <body data-root=".." data-page="patient-history.html">
+    <div class="layout">
+      <nav class="sidebar" id="sidebar"></nav>
+      <main class="main">
+        <div class="main__inner">
+          <p class="breadcrumb">
+            <a href="../index.html">Start</a>
+            <span class="sep">/</span>
+            <a href="dashboard.html">Panel główny</a>
+            <span class="sep">/</span>
+            <span>Lista pacjentów</span>
+            <span class="sep">/</span>
+            <span>Karta pacjenta</span>
+            <span class="sep">/</span>
+            <span class="current">Historia choroby</span>
+          </p>
+
+          <h1>
+            Historia choroby <span class="badge">app-patient-history-page</span>
+          </h1>
+
+          <h2 class="section-title">Ścieżka</h2>
+          <div class="card">
+            <p>
+              Podstrona karty pacjenta, dostępna pod adresem
+              <code>/patients/:patientId/history</code>. Jest dzieckiem powłoki
+              karty pacjenta <code>/patients/:patientId</code> (komponent
+              <code>PatientChartPage</code>), która wcześniej wczytuje dane
+              pacjenta przez <code>patientResolver</code>. Dostęp chroniony jest
+              przez <code>permissionGuard</code> wymagający uprawnienia
+              <code>ehr:read</code> albo <code>ehr:read-limited</code> - zakres
+              widocznych zakładek zależy od tego, które z tych uprawnień posiada
+              rola.
+            </p>
+          </div>
+
+          <h2 class="section-title">Przeznaczenie</h2>
+          <div class="card">
+            <p>
+              Prezentuje pełną historię choroby pacjenta w formie zakładek
+              (<code>p-tabs</code>): Przegląd, Wizyty i epizody leczenia,
+              Notatki kliniczne, Rozpoznania, Leczenie / Terapia oraz Alergie i
+              przeciwwskazania. Aktywna zakładka jest zsynchronizowana z
+              parametrem zapytania <code>tab</code> w adresie URL.
+            </p>
+            <p>
+              Przy uprawnieniu <code>ehr:read</code> (pełny dostęp) widoczne są
+              wszystkie zakładki. Przy samym
+              <code>ehr:read-limited</code> zakładki Przegląd, Wizyty i epizody
+              leczenia oraz Notatki kliniczne są ukryte, a jeśli w adresie
+              żądano jednej z nich, strona przełącza się automatycznie na
+              zakładkę Rozpoznania.
+            </p>
+            <p>
+              Dane poszczególnych sekcji (podsumowanie, wizyty, epizody,
+              notatki, rozpoznania, leczenie, alergie, przeciwwskazania) są
+              pobierane równolegle (<code>forkJoin</code>). Błąd pojedynczej
+              sekcji (np. brak uprawnienia) nie blokuje pozostałych - zamiast
+              tego wyświetlany jest komunikat ostrzegawczy "Nie wszystkie sekcje
+              udało się wczytać.".
+            </p>
+          </div>
+
+          <h2 class="section-title">Dane wejściowe</h2>
+          <div class="card">
+            <ul class="plain">
+              <li>
+                Identyfikator pacjenta (<code>patientId</code>) z segmentu
+                trasy.
+              </li>
+              <li>
+                Zmiana zakładki (kliknięcie w <code>p-tab</code>) - uaktualnia
+                parametr <code>tab</code> w URL.
+              </li>
+              <li>
+                Filtr kategorii notatki klinicznej (lista rozwijana w zakładce
+                Notatki kliniczne).
+              </li>
+              <li>
+                Formularz w oknie dialogowym dodawania notatki klinicznej
+                (otwierane przyciskiem "Dodaj notatkę").
+              </li>
+              <li>
+                Formularz w oknie dialogowym dodawania rozpoznania (przycisk
+                "Dodaj rozpoznanie", widoczny tylko z uprawnieniem
+                <code>ehr:diagnosis:write</code> - lekarz).
+              </li>
+              <li>
+                Formularz w oknie dialogowym dodawania alergii (przycisk "Dodaj
+                alergię", widoczny tylko z uprawnieniem
+                <code>ehr:allergy:write</code> - lekarz, pielęgniarka).
+              </li>
+            </ul>
+          </div>
+
+          <h2 class="section-title">Akcje</h2>
+          <div class="card">
+            <ul class="plain">
+              <li>
+                Zakładka Przegląd: karty podsumowania EHR
+                (<code>app-ehr-summary-cards</code>) na podstawie danych
+                podsumowania i wizyt.
+              </li>
+              <li>
+                Zakładka Wizyty i epizody leczenia: grupuje wizyty (encounters)
+                według epizodu leczenia i prezentuje je jako osie czasu
+                (<code>p-timeline</code>) z typem, statusem, datą, oddziałem,
+                lekarzem oraz opisem lub powodem wizyty; wizyty bez epizodu
+                trafiają do grupy "Wizyty bez przypisanego epizodu".
+              </li>
+              <li>
+                Zakładka Notatki kliniczne: filtrowanie notatek po kategorii,
+                lista kart notatek (tytuł, treść, objawy, autor, data),
+                dodawanie nowej notatki klinicznej
+                (<code>EhrService.addNote()</code>) z odświeżeniem danych po
+                zapisie.
+              </li>
+              <li>
+                Zakładka Rozpoznania: tabela rozpoznań (kod ICD-10, jednostka
+                chorobowa, typ, status, data, lekarz) oraz dodawanie nowego
+                rozpoznania (<code>EhrService.addDiagnosis()</code>).
+              </li>
+              <li>
+                Zakładka Leczenie / Terapia: tabela terapii (nazwa, typ, status,
+                data rozpoczęcia, lekarz prowadzący).
+              </li>
+              <li>
+                Zakładka Alergie i przeciwwskazania: panel alergii i
+                przeciwwskazań (<code>app-history-allergies-panel</code>) z
+                wyróżnieniem alergii zagrażających życiu (aktywnych, o ciężkości
+                <code>life_threatening</code>) oraz dodawanie nowej alergii
+                (<code>EhrService.addAllergy()</code>).
+              </li>
+              <li>
+                Po każdym zapisie (notatka, rozpoznanie, alergia) wyświetlany
+                jest toast o sukcesie lub błędzie, a dane karty są ponownie
+                wczytywane.
+              </li>
+            </ul>
+          </div>
+
+          <h2 class="section-title">Zrzut ekranu</h2>
+          <figure class="screenshot">
+            <img
+              src="../media/pacjent_historia_choroby.png"
+              alt="Historia choroby pacjenta"
+            />
+            <figcaption>
+              Zakładki historii choroby w karcie pacjenta.
+            </figcaption>
+          </figure>
+
+          <footer class="page-footer">
+            Plik źródłowy komponentu:
+            <code
+              >apps/his_frontend/src/app/pages/patient-history/patient-history-page.ts</code
+            >
+          </footer>
+        </div>
+      </main>
+    </div>
+    <script src="../assets/js/nav.js"></script>
+  </body>
+</html>

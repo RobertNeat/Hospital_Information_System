@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Kreator zlecenia obrazowego - HIS</title>
+    <link rel="stylesheet" href="../assets/css/style.css" />
+  </head>
+  <body data-root=".." data-page="imaging-order-wizard.html">
+    <div class="layout">
+      <nav class="sidebar" id="sidebar"></nav>
+      <main class="main">
+        <div class="main__inner">
+          <p class="breadcrumb">
+            <a href="../index.html">Start</a>
+            <span class="sep">/</span>
+            <a href="dashboard.html">Panel główny</a>
+            <span class="sep">/</span>
+            <span>Karta pacjenta</span>
+            <span class="sep">/</span>
+            <span class="current">Kreator zlecenia obrazowego</span>
+          </p>
+
+          <h1>
+            Kreator zlecenia obrazowego
+            <span class="badge">app-imaging-order-wizard-page</span>
+          </h1>
+
+          <h2 class="section-title">Ścieżka</h2>
+          <div class="card">
+            <p>
+              Podstrona karty pacjenta:
+              <code>/patients/:patientId/orders/imaging/new</code>, osadzona w
+              powłoce karty pacjenta <code>/patients/:patientId</code>. Dostęp
+              chroniony przez
+              <code>permissionGuard(PERMISSIONS.IMAGING_ORDER_CREATE)</code> -
+              rola musi mieć uprawnienie do tworzenia zleceń obrazowych.
+              Opuszczenie strony z niezapisanymi zmianami w którymkolwiek z
+              kroków formularza jest przechwytywane przez
+              <code>canDeactivate: unsavedChangesGuard</code>
+              (potwierdzenie wyjścia). Istnieje też route na poziomie globalnym
+              <code>/orders/imaging/new</code>, który jest wyłącznie
+              przekierowaniem do wariantu przypisanego do konkretnego pacjenta -
+              nie ma samodzielnego widoku.
+            </p>
+          </div>
+
+          <h2 class="section-title">Przeznaczenie</h2>
+          <div class="card">
+            <p>
+              Wieloetapowy kreator (<code>p-stepper</code>, liniowy) do złożenia
+              nowego zlecenia badania obrazowego dla pacjenta. Prowadzi przez
+              pięć kroków: rodzaj badania, wskazania kliniczne, bezpieczeństwo
+              pacjenta, termin badania oraz podsumowanie z wysyłką zlecenia.
+              Każdy krok ma własny formularz reaktywny z walidacją blokującą
+              przejście dalej, a krok bezpieczeństwa dodatkowo blokuje
+              kontynuację, jeśli nie zweryfikowano przeciwwskazań.
+            </p>
+          </div>
+
+          <h2 class="section-title">Dane wejściowe</h2>
+          <div class="card">
+            <ul class="plain">
+              <li>
+                <strong>Krok 1 - Rodzaj badania:</strong> modalność (przyciski
+                wyboru, wymagane), badanie z listy odpowiadającej wybranej
+                modalności (wymagane), strona (lewa/prawa/obustronna) - pole
+                widoczne tylko, gdy badanie wymaga określenia strony, oraz
+                przełącznik „Z kontrastem” (aktywny tylko, gdy badanie dopuszcza
+                kontrast).
+              </li>
+              <li>
+                <strong>Krok 2 - Wskazania kliniczne:</strong> wskazania
+                kliniczne (tekst, wymagane, min. 20 znaków), pytanie kliniczne
+                (tekst, opcjonalne), rozpoznanie (autocomplete z wyszukiwaniem,
+                opcjonalne) oraz pilność (przyciski wyboru, wymagane) - wybór
+                pilności "stat" włącza w kroku 4 dodatkowe opcje terminowania.
+              </li>
+              <li>
+                <strong>Krok 3 - Bezpieczeństwo pacjenta:</strong> formularz
+                bezpieczeństwa (<code>app-imaging-safety-form</code>) z polami
+                warunkowymi: ciąża (gdy wymagana kontrola ciąży), rozrusznik
+                serca/implanty metalowe, metalowe odłamki w ciele i
+                klaustrofobia (tylko dla badań RM), uczulenie na środek
+                kontrastowy, potwierdzenie ryzyka przy niskim eGFR (gdy eGFR
+                &lt; 30 mL/min/1.73m² przy zleceniu z kontrastem) oraz wymagane
+                potwierdzenie weryfikacji bezpieczeństwa pacjenta.
+              </li>
+              <li>
+                <strong>Krok 4 - Termin badania:</strong> data badania
+                (kalendarz), wybór konkretnego terminu z listy wolnych slotów
+                (<code>app-slot-picker</code>) dla wybranej modalności i daty,
+                lub (tylko dla zleceń "stat") przycisk „Najbliższy wolny termin”
+                albo „Wykonaj natychmiast (bez terminu)”.
+              </li>
+              <li>
+                <strong>Krok 5 - Podsumowanie:</strong> brak dodatkowych pól -
+                wyświetla zestawienie wprowadzonych danych i wysyła zlecenie po
+                kliknięciu „Wyślij zlecenie”.
+              </li>
+            </ul>
+          </div>
+
+          <h2 class="section-title">Akcje</h2>
+          <div class="card">
+            <ul class="plain">
+              <li>
+                Wczytuje katalog badań obrazowych
+                (<code>ImagingOrderService.getCatalog()</code>) oraz dane
+                bezpieczeństwa pacjenta: uczulenie na kontrast, ostatni wynik
+                kreatyniny/eGFR i listę rozpoznań do autocomplete; brakujące
+                dane bezpieczeństwa są sygnalizowane komunikatem, a nie
+                ukrywane.
+              </li>
+              <li>
+                Po wybraniu modalności resetuje badanie, kontrast i stronę; po
+                wybraniu badania ustawia wymagalność pola „Strona” i wyłącza
+                kontrast, jeśli badanie go nie dopuszcza.
+              </li>
+              <li>
+                Automatycznie zaznacza „Uczulenie na środek kontrastowy” w kroku
+                3, jeśli dane pacjenta wskazują na znaną alergię na kontrast.
+              </li>
+              <li>
+                Blokuje przejście z kroku 3 dalej, jeśli bezpieczeństwo
+                kontrastu nie zostało zweryfikowane albo wykryto nierozwiązane
+                przeciwwskazanie bezpieczeństwa.
+              </li>
+              <li>
+                Dla zlecenia z pilnością "stat" umożliwia wyszukanie
+                najbliższego wolnego terminu (przeszukuje do 14 dni w przód)
+                albo oznaczenie badania jako wykonywanego natychmiast, bez
+                terminu.
+              </li>
+              <li>
+                Po wysłaniu zlecenia
+                (<code>ImagingOrderService.createOrder()</code>) przekierowuje
+                do karty pacjenta; błąd 409 (termin zajęty w międzyczasie)
+                czyści wybrany slot i odświeża listę terminów, a błędy walidacji
+                422 są mapowane na odpowiednie pola formularza i pokazywane w
+                powiadomieniu.
+              </li>
+              <li>
+                Przycisk „Anuluj” w każdym kroku przekierowuje do listy zleceń
+                pacjenta.
+              </li>
+            </ul>
+          </div>
+
+          <h2 class="section-title">Zrzut ekranu</h2>
+          <figure class="screenshot">
+            <img
+              src="../media/zlecenie_badania_obrazowego_krok2.png"
+              alt="Kreator zlecenia obrazowego - krok wskazań klinicznych"
+            />
+            <figcaption>
+              Kreator zlecenia badania obrazowego - krok 2 (wskazania
+              kliniczne).
+            </figcaption>
+          </figure>
+
+          <footer class="page-footer">
+            Plik źródłowy komponentu:
+            <code
+              >apps/his_frontend/src/app/pages/imaging-order-wizard/imaging-order-wizard-page.ts</code
+            >
+          </footer>
+        </div>
+      </main>
+    </div>
+    <script src="../assets/js/nav.js"></script>
+  </body>
+</html>

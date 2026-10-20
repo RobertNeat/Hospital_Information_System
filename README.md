@@ -39,6 +39,43 @@ like the backbone of a modern hospital's IT system.
 - **Team tasks & shift handoff** - coordinating work and patient handover between shifts and wards.
 - **Role-based dashboards** - every staff role sees the information and actions relevant to their job.
 
+## Main integrations that HIS supports
+
+HIS is not a single closed application - it is designed to show how a hospital system connects to the
+outside world. Each workflow below is a round trip across two independent systems: a doctor's action in
+HIS creates an order, which is sent to an external system (a pharmacy, a radiology department or a
+laboratory) over a secure, mutually-authenticated channel (**mTLS**) using the standard clinical data
+format (**HL7 FHIR R4**). The external system processes the request at its own pace and reports every
+status change and the final result back to HIS the same secure way, so both sides always show the current,
+matching status of the same order.
+
+### E-receipt workflow integration
+
+The doctor issues an e-prescription in HIS. HIS sends it as a FHIR prescription record to an external
+e-receipt system representing a pharmacy, which returns a redemption code the patient can use. As the
+pharmacy dispenses the medication (fully, partially, or not at all), it reports the updated status back to
+HIS, which is reflected live in the prescription's status for the doctor to see.
+
+![E-receipt workflow integration](docs/media/wystawianie_recepty_workflow.png)
+
+### E-imaging workflow integration
+
+The doctor orders an imaging exam (e.g. an X-ray or CT scan) in HIS. HIS sends the order as a FHIR request
+to an external e-imaging system representing a radiology department. As the exam is scheduled, performed
+and reported on, the radiology system pushes each status change back to HIS, finishing with the
+radiologist's findings - visible to the doctor directly in the patient's record.
+
+![E-imaging workflow integration](docs/media/badanie_obrazowe_workflow.png)
+
+### E-lab workflow integration
+
+The doctor orders a laboratory test in HIS. HIS sends the order as a FHIR request to an external e-lab
+system representing a laboratory. As the sample is collected, analyzed and the results are produced, the
+lab system reports each step back to HIS, which records the final results - flagging abnormal values for
+the doctor to review.
+
+![E-lab workflow integration](docs/media/zlecenie_laboratoryjne_workflow.png)
+
 See [docs/readme/userRoles_en.md](docs/readme/userRoles_en.md) for what each role can do.
 
 ## Documentation
@@ -51,6 +88,7 @@ See [docs/readme/userRoles_en.md](docs/readme/userRoles_en.md) for what each rol
 | [docs/readme/databaseSchema_en.md](docs/readme/databaseSchema_en.md) | Entity schema, relationships, initial data                         |
 | [docs/readme/services_en.md](docs/readme/services_en.md)             | Services, communication between them, API documentation            |
 | [docs/readme/basicWorkflows_en.md](docs/readme/basicWorkflows_en.md) | Main process flows across the system                               |
+| [GitHub Pages site](https://robertneat.github.io/Hospital_Information_System/) (PL) | Per-screen documentation: navigation path, purpose, inputs, actions |
 
 Production deployment documentation (CI/CD, server): `.github/pipeline_docs/production_deployment.md`.
 

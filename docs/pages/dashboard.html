@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Panel główny (dashboard) - HIS</title>
+    <link rel="stylesheet" href="../assets/css/style.css" />
+  </head>
+  <body data-root=".." data-page="dashboard.html">
+    <div class="layout">
+      <nav class="sidebar" id="sidebar"></nav>
+      <main class="main">
+        <div class="main__inner">
+          <p class="breadcrumb">
+            <a href="../index.html">Start</a>
+            <span class="sep">/</span>
+            <span class="current">Panel główny (dashboard)</span>
+          </p>
+
+          <h1>
+            Panel główny (dashboard)
+            <span class="badge">app-dashboard-page</span>
+          </h1>
+
+          <h2 class="section-title">Ścieżka</h2>
+          <div class="card">
+            <p>
+              Strona startowa po zalogowaniu:
+              <code>Logowanie → Panel główny</code>. Dostępna pod adresem
+              <code>/dashboard</code>, jest domyślnym przekierowaniem po wejściu
+              na <code>/</code>. Widoczna dla każdej zalogowanej osoby (wymaga
+              tylko <code>authGuard</code>, bez dodatkowego uprawnienia RBAC) -
+              zawartość poszczególnych kafelków zmienia się jednak w zależności
+              od uprawnień roli.
+            </p>
+          </div>
+
+          <h2 class="section-title">Przeznaczenie</h2>
+          <div class="card">
+            <p>
+              Ekran powitalny prezentujący skrócony przegląd sytuacji
+              klinicznej: statystyki szpitala, krytyczne alerty, zadania
+              przypisane do zalogowanej osoby, nieprawidłowe wyniki badań oraz
+              listę aktualnie przyjętych pacjentów. Udostępnia też skróty (quick
+              actions) do najczęstszych czynności oraz wyszukiwarkę pacjenta.
+            </p>
+            <p>
+              Każdy widget odpytuje swój własny endpoint równolegle
+              (<code>forkJoin</code>); jeśli rola nie ma uprawnień do danego
+              widgetu (np. farmaceuta nie ma dostępu do zadań zespołowych),
+              widget pokazuje pusty stan zamiast błędu - dashboard nigdy nie
+              "psuje się" całościowo z powodu jednego brakującego uprawnienia.
+            </p>
+          </div>
+
+          <h2 class="section-title">Dane wejściowe</h2>
+          <div class="card">
+            <ul class="plain">
+              <li>
+                Zapytanie w wyszukiwarce pacjenta (imię, nazwisko lub PESEL) -
+                komponent wyszukiwania.
+              </li>
+              <li>
+                Kliknięcie jednego ze skrótów akcji (quick actions): rejestracja
+                pacjenta, zlecenie laboratoryjne, zlecenie obrazowe, nowa
+                recepta, parametry życiowe, wiadomości - każdy skrót jest
+                widoczny tylko, gdy rola ma odpowiednie uprawnienie.
+              </li>
+              <li>
+                Kliknięcie kafelka statystyki (np. przyjęci pacjenci, wyniki,
+                alerty, zadania, zlecenia, parametry życiowe) lub wiersza listy
+                (pacjent, alert) - przechodzi do właściwej podstrony.
+              </li>
+            </ul>
+          </div>
+
+          <h2 class="section-title">Akcje</h2>
+          <div class="card">
+            <ul class="plain">
+              <li>
+                Pobiera i wyświetla statystyki szpitala
+                (<code>DashboardService.getStats()</code>).
+              </li>
+              <li>
+                Pobiera nieprzeczytane krytyczne alerty kliniczne i pozwala
+                przejść do ich źródła (wynik, zlecenie, pacjent).
+              </li>
+              <li>
+                Pobiera zadania przypisane do zalogowanego użytkownika o
+                statusie otwartym.
+              </li>
+              <li>
+                Pobiera ostatnie nieprawidłowe wyniki badań laboratoryjnych wraz
+                z danymi pacjenta (dociąga nazwisko pacjenta, jeśli nie jest
+                załączone w wyniku).
+              </li>
+              <li>
+                Pobiera listę aktualnie przyjętych pacjentów jako zapasowe
+                źródło danych.
+              </li>
+              <li>
+                Przekierowuje do odpowiedniej podstrony po wybraniu skrótu akcji
+                lub kliknięciu wiersza listy/kafelka.
+              </li>
+            </ul>
+          </div>
+
+          <h2 class="section-title">Zrzut ekranu</h2>
+          <figure class="screenshot">
+            <img src="../media/his_pulpit.png" alt="Panel główny HIS" />
+            <figcaption>
+              Panel główny (dashboard) widziany po zalogowaniu.
+            </figcaption>
+          </figure>
+
+          <footer class="page-footer">
+            Plik źródłowy komponentu:
+            <code
+              >apps/his_frontend/src/app/pages/dashboard/dashboard-page.ts</code
+            >
+          </footer>
+        </div>
+      </main>
+    </div>
+    <script src="../assets/js/nav.js"></script>
+  </body>
+</html>

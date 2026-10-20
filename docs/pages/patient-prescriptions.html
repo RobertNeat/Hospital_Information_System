@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Leki i recepty - HIS</title>
+    <link rel="stylesheet" href="../assets/css/style.css" />
+  </head>
+  <body data-root=".." data-page="patient-prescriptions.html">
+    <div class="layout">
+      <nav class="sidebar" id="sidebar"></nav>
+      <main class="main">
+        <div class="main__inner">
+          <p class="breadcrumb">
+            <a href="../index.html">Start</a>
+            <span class="sep">/</span>
+            <a href="dashboard.html">Panel główny</a>
+            <span class="sep">/</span>
+            <span class="current">Karta pacjenta</span>
+            <span class="sep">/</span>
+            <span class="current">Leki i recepty</span>
+          </p>
+
+          <h1>
+            Leki i recepty
+            <span class="badge">app-patient-prescriptions-page</span>
+          </h1>
+
+          <h2 class="section-title">Ścieżka</h2>
+          <div class="card">
+            <p>
+              Podstrona karty pacjenta:
+              <code>Karta pacjenta → Leki i recepty</code>. Dostępna pod adresem
+              <code>/patients/:patientId/prescriptions</code> jako dziecko
+              powłoki karty pacjenta <code>/patients/:patientId</code>.
+              Chroniona przez <code>permissionGuard</code> z uprawnieniem
+              <code>PRESCRIPTION_READ</code> - rola bez tego uprawnienia nie
+              może wejść na stronę.
+            </p>
+          </div>
+
+          <h2 class="section-title">Przeznaczenie</h2>
+          <div class="card">
+            <p>
+              Prezentuje aktualny schemat leczenia farmakologicznego pacjenta
+              (aktywne leki) oraz historię wystawionych recept. Pozwala przejść
+              do kreatora nowej recepty i anulować receptę, która jest jeszcze w
+              statusie umożliwiającym anulowanie.
+            </p>
+            <p>
+              Strona ładuje dwa źródła danych równolegle
+              (<code>forkJoin</code>): listę recept pacjenta oraz listę
+              aktywnych leków. Błąd ładowania (np. brak uprawnienia) jest
+              pokazywany jako osobny stan błędu w obu sekcjach, a nie maskowany
+              jako "brak danych".
+            </p>
+          </div>
+
+          <h2 class="section-title">Dane wejściowe</h2>
+          <div class="card">
+            <ul class="plain">
+              <li>
+                <code>patientId</code> z segmentu trasy - identyfikator
+                pacjenta, którego dane są wczytywane.
+              </li>
+              <li>
+                Kliknięcie przycisku "Nowa recepta" (widoczny tylko przy
+                uprawnieniu <code>PRESCRIPTION_CREATE</code>) - przechodzi do
+                kreatora recepty.
+              </li>
+              <li>
+                Rozwinięcie/zwinięcie wiersza recepty w tabeli "Wystawione
+                recepty" - pokazuje pozycje leków wchodzące w skład danej
+                recepty.
+              </li>
+              <li>
+                Kliknięcie ikony anulowania przy recepcie o statusie
+                "wystawiona" lub "częściowo wydana" - otwiera okno
+                potwierdzenia.
+              </li>
+            </ul>
+          </div>
+
+          <h2 class="section-title">Akcje</h2>
+          <div class="card">
+            <ul class="plain">
+              <li>
+                Pobiera listę recept pacjenta i listę aktywnych leków
+                (<code>PrescriptionService</code>).
+              </li>
+              <li>
+                Sekcja "Schemat leczenia (leki aktywne)" wyświetla tabelę: lek
+                (z siłą dawki), dawka, częstość, droga podania, pora dnia, data
+                zakończenia (wyliczona z daty recepty i liczby dni terapii).
+              </li>
+              <li>
+                Sekcja "Wystawione recepty" wyświetla tabelę: numer recepty,
+                data wystawienia, data ważności, status (znacznik), przycisk
+                anulowania. Rozwinięcie wiersza pokazuje pozycje recepty: lek,
+                dawka, częstość, czas terapii, ilość opakowań, sposób
+                refundacji.
+              </li>
+              <li>
+                Anulowanie recepty wymaga potwierdzenia w dialogu, wysyła
+                żądanie z numerem wersji recepty (optymistyczna blokada) i
+                odświeża listy po sukcesie lub konflikcie wersji (409).
+              </li>
+              <li>
+                Przycisk "Nowa recepta" przenosi do
+                <code>/patients/:patientId/prescriptions/new</code> (kreator
+                recepty).
+              </li>
+            </ul>
+          </div>
+
+          <h2 class="section-title">Zrzut ekranu</h2>
+          <figure class="screenshot">
+            <img
+              src="../media/leki_i_recepty.png"
+              alt="Leki i recepty pacjenta"
+            />
+            <figcaption>
+              Schemat leczenia i historia recept pacjenta.
+            </figcaption>
+          </figure>
+
+          <footer class="page-footer">
+            Plik źródłowy komponentu:
+            <code
+              >apps/his_frontend/src/app/pages/patient-prescriptions/patient-prescriptions-page.ts</code
+            >
+          </footer>
+        </div>
+      </main>
+    </div>
+    <script src="../assets/js/nav.js"></script>
+  </body>
+</html>

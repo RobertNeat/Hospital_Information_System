@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>System zewnętrzny: e-imaging - HIS</title>
+    <link rel="stylesheet" href="../assets/css/style.css" />
+  </head>
+  <body data-root=".." data-page="e-imaging-external.html">
+    <div class="layout">
+      <nav class="sidebar" id="sidebar"></nav>
+      <main class="main">
+        <div class="main__inner">
+          <p class="breadcrumb">
+            <a href="../index.html">Start</a>
+            <span class="sep">/</span>
+            <span class="current">System zewnętrzny: e-imaging</span>
+          </p>
+
+          <h1>
+            System zewnętrzny: e-imaging
+            <span class="badge">ImagingUiController</span>
+          </h1>
+
+          <h2 class="section-title">Ścieżka</h2>
+          <div class="card">
+            <p>
+              Ten ekran <strong>nie jest częścią</strong> frontendu Angular HIS.
+              Należy do osobnej, niezależnej aplikacji
+              <code>e-imaging</code> (Spring Boot + Thymeleaf), symulującej
+              zewnętrzny system pracowni radiologicznej obsługującej badania
+              obrazowe. Działa jako odrębny proces/kontener, na własnym porcie,
+              i nie jest osiągalny z poziomu nawigacji HIS.
+            </p>
+            <p>
+              Dostęp do niego jest wyłącznie pośredni: gdy lekarz w HIS zleci
+              badanie obrazowe, HIS wysyła zlecenie do e-imaging jako zasób FHIR
+              <code>ServiceRequest</code> przez kanał mTLS (wzajemne
+              uwierzytelnienie certyfikatami, port <code>10423</code>, endpoint
+              <code>/fhir/**</code>). Interfejs użytkownika opisany na tej
+              stronie (Thymeleaf, bez uwierzytelniania) służy personelowi
+              pracowni radiologicznej (technik/radiolog) do obsługi zlecenia
+              niezależnie od HIS - jest wystawiony na osobnym porcie HTTP
+              <code>10433</code> (zakres portów UI systemów zewnętrznych:
+              <code>10431-10433</code>), bez certyfikatu klienta. Po
+              wprowadzeniu wyniku e-imaging wysyła go z powrotem do HIS jako
+              zasób FHIR <code>DiagnosticReport</code>, również przez mTLS.
+              Jeśli integracja jest wyłączona (parametr
+              <code>eimaging.his.enabled</code> / zmienna środowiskowa
+              <code>E_IMAGING_HIS_ENABLED</code>, domyślnie wyłączona), zmiana
+              zostaje zapisana tylko lokalnie w e-imaging (stan synchronizacji
+              <code>DISABLED</code>).
+            </p>
+          </div>
+
+          <h2 class="section-title">Przeznaczenie</h2>
+          <div class="card">
+            <p>
+              Ekran <code>ImagingUiController</code> (<code>/ui/orders</code>)
+              prezentuje listę zleceń badań obrazowych odebranych z HIS i
+              pozwala personelowi pracowni radiologicznej: przeprowadzić
+              zlecenie przez kolejne stany (zaplanowane → w trakcie →
+              zakończone, lub anulować), oraz wprowadzić wynik badania (opis,
+              wnioski, flaga krytyczności, status wstępny/ostateczny), który
+              zostaje przekazany do HIS.
+            </p>
+            <p>
+              Widok ma dwie zakładki:
+              <strong>Aktywne</strong> (<code>?view=active</code>, domyślna) -
+              zlecenia w stanach nieterminalnych, oraz
+              <strong>Historia</strong> (<code>?view=history</code>) - zlecenia
+              zakończone (<code>completed</code>) lub anulowane
+              (<code>cancelled</code>). Każde zlecenie pokazuje też stan
+              synchronizacji z HIS (<code>SyncState</code>:
+              <code>SYNCED</code> - HIS potwierdził zmianę,
+              <code>PENDING</code> - HIS nie potwierdził (brak odpowiedzi/błąd),
+              <code>DISABLED</code> - integracja z HIS jest wyłączona i zmiana
+              jest tylko lokalna) - dla stanu <code>PENDING</code> UI udostępnia
+              przycisk ponowienia wysyłki. Wprowadzone wcześniej wyniki badania
+              (status, stan synchronizacji, znacznik "KRYTYCZNY", opis, wnioski,
+              radiolog) są wyświetlane w kolumnie "Wynik" nad formularzem nowego
+              wyniku.
+            </p>
+          </div>
+
+          <h2 class="section-title">Dane wejściowe</h2>
+          <div class="card">
+            <ul class="plain">
+              <li>
+                Zlecenia badań obrazowych odebrane z HIS przez FHIR
+                <code>ServiceRequest</code> (mTLS) - zawierają m.in.
+                identyfikator zlecenia w HIS, referencję pacjenta, kod i nazwę
+                badania, modalność, region ciała, stronność, flagę kontrastu,
+                pilność, termin (slot), wskazanie kliniczne i notatki; lista
+                jest pusta, dopóki HIS nie przekaże żadnego zlecenia.
+              </li>
+              <li>
+                Kliknięcie przycisku zmiany stanu zlecenia (formularz POST
+                <code>/ui/orders/{id}/status</code> z docelowym stanem) -
+                dostępne przyciski zależą od bieżącego stanu zlecenia
+                (<code>ImagingOrderStatus.canMoveTo</code>).
+              </li>
+              <li>
+                Formularz "Wprowadz wynik" (widoczny tylko dla zleceń w stanie
+                <code>scheduled</code> lub <code>in_progress</code>, dopóki
+                zlecenie nie ma już wyniku ostatecznego) - status wyniku
+                (<code>preliminary</code>/<code>final</code>, domyślnie
+                zaznaczony <code>final</code>), opis (findings, wymagany),
+                wnioski (conclusion, wymagane), checkbox "Wynik krytyczny",
+                radiolog (opcjonalny, domyślnie "e-imaging") - POST
+                <code>/ui/orders/{id}/result</code>.
+              </li>
+              <li>
+                Przycisk "ponow wysylke do HIS" / "ponow wysylke wyniku" dla
+                zlecenia lub wyniku o stanie synchronizacji
+                <code>PENDING</code> - POST
+                <code>/ui/orders/{id}/sync</code> lub
+                <code>/ui/orders/{id}/results/{resultId}/sync</code>.
+              </li>
+            </ul>
+          </div>
+
+          <h2 class="section-title">Akcje</h2>
+          <div class="card">
+            <ul class="plain">
+              <li>
+                Wyświetla listę zleceń przefiltrowaną wg zakładki
+                (aktywne/historia): aktywne to zlecenia, których stan nie jest
+                terminalny (<code>ImagingOrderStatus.isTerminal()</code> zwraca
+                <code>false</code>), historia - zlecenia
+                <code>completed</code> lub <code>cancelled</code>.
+              </li>
+              <li>
+                Zmienia stan zlecenia
+                (<code>ImagingOrderService.changeFromUi</code>) wg maszyny
+                stanów:
+                <code>ordered → scheduled / in_progress / cancelled</code>,
+                <code>scheduled → in_progress / completed / cancelled</code>,
+                <code>in_progress → completed / cancelled</code> (dopuszczalne
+                pominięcie etapu <code>in_progress</code>: ze
+                <code>scheduled</code> wprost do <code>completed</code>);
+                <code>completed</code> i <code>cancelled</code> są stanami
+                końcowymi bez dalszych przejść.
+              </li>
+              <li>
+                Zapisuje wynik badania
+                (<code>ImagingOrderService.recordResult</code>) tylko dla zleceń
+                w stanie <code>scheduled</code> lub
+                <code>in_progress</code> (<code>acceptsResults()</code>) i tylko
+                gdy zlecenie nie ma jeszcze wyniku ostatecznego; opis i wnioski
+                są wymagane. Wynik otrzymuje status
+                <code>preliminary</code> (wstępny) lub
+                <code>final</code> (ostateczny).
+              </li>
+              <li>
+                Po każdej zmianie stanu lub zapisaniu wyniku najpierw próbuje
+                przekazać dane do HIS jako FHIR (<code>ServiceRequest</code>
+                przy zmianie stanu, <code>DiagnosticReport</code> przy wyniku):
+                jeśli HIS jawnie odrzuci zmianę, operacja kończy się błędem i
+                nic nie jest zapisywane lokalnie; jeśli HIS jest niedostępny,
+                zmiana zostaje zapisana lokalnie ze stanem synchronizacji
+                <code>PENDING</code> (do ponowienia z UI); jeśli integracja jest
+                wyłączona, zmiana zostaje zapisana lokalnie ze stanem
+                <code>DISABLED</code>.
+              </li>
+              <li>
+                Zapisanie wyniku <code>final</code>, który zostanie
+                zsynchronizowany z HIS (albo gdy integracja jest wyłączona),
+                automatycznie przenosi zlecenie do stanu
+                <code>completed</code> - odzwierciedla to analogiczne
+                automatyczne zakończenie zlecenia po stronie HIS.
+              </li>
+              <li>
+                Udostępnia ręczne ponowienie synchronizacji zlecenia lub
+                pojedynczego wyniku z HIS (<code>orders.resync</code> /
+                <code>orders.resyncResult</code>).
+              </li>
+              <li>
+                Po każdej akcji przekierowuje z powrotem na listę zleceń
+                (<code>redirect:/ui/orders</code>) z komunikatem sukcesu lub
+                błędu (flash attributes).
+              </li>
+            </ul>
+          </div>
+
+          <h2 class="section-title">Zrzut ekranu</h2>
+          <figure class="screenshot">
+            <img src="../media/e_imaging.png" alt="Ekran zleceń e-imaging" />
+            <figcaption>
+              Lista aktywnych zleceń badań obrazowych w zewnętrznym systemie
+              e-imaging, z rozwiniętym formularzem wprowadzania wyniku.
+            </figcaption>
+          </figure>
+
+          <footer class="page-footer">
+            Plik źródłowy komponentu:
+            <code
+              >apps/e-imaging/src/main/java/robert_neat/eimaging/ui/ImagingUiController.java</code
+            >
+            (szablon:
+            <code>apps/e-imaging/src/main/resources/templates/orders.html</code
+            >)
+          </footer>
+        </div>
+      </main>
+    </div>
+    <script src="../assets/js/nav.js"></script>
+  </body>
+</html>

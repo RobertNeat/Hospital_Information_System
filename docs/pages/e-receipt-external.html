@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>System zewnętrzny: e-receipt - HIS</title>
+    <link rel="stylesheet" href="../assets/css/style.css" />
+  </head>
+  <body data-root=".." data-page="e-receipt-external.html">
+    <div class="layout">
+      <nav class="sidebar" id="sidebar"></nav>
+      <main class="main">
+        <div class="main__inner">
+          <p class="breadcrumb">
+            <a href="../index.html">Start</a>
+            <span class="sep">/</span>
+            <span class="current">System zewnętrzny: e-receipt</span>
+          </p>
+
+          <h1>
+            System zewnętrzny: e-receipt
+            <span class="badge">ReceiptUiController</span>
+          </h1>
+
+          <h2 class="section-title">Ścieżka</h2>
+          <div class="card">
+            <p>
+              Ten ekran <strong>nie jest częścią</strong> frontendu Angular HIS.
+              Należy do osobnej, niezależnej aplikacji
+              <code>apps/e-receipt</code> (Spring Boot + Thymeleaf), która
+              symuluje system apteczny e-recepty i działa jako samodzielny
+              serwis na własnym porcie (<code>ERECEIPT_UI_PORT</code>, domyślnie
+              <code>10431</code>, HTTP, bez logowania).
+            </p>
+            <p>
+              Dostęp do niego z HIS jest tylko pośredni: lekarz wystawia
+              e-receptę w HIS, która jest wysyłana do e-receipt jako zasób FHIR
+              <code>MedicationRequest</code> przez kanał mTLS (port
+              <code>10421</code>, wymagany certyfikat klienta - osobny od portu
+              UI). Farmaceuta (symulowana rola) obsługuje ten ekran niezależnie
+              od HIS, w osobnej karcie/aplikacji, aby zarejestrować wydanie
+              leku. Zmiana stanu recepty jest następnie odsyłana do HIS tym
+              samym kanałem FHIR/mTLS.
+            </p>
+          </div>
+
+          <h2 class="section-title">Przeznaczenie</h2>
+          <div class="card">
+            <p>
+              Lista e-recept otrzymanych od HIS wraz z akcjami do zmiany ich
+              stanu po stronie apteki. Kontroler
+              <code>ReceiptUiController</code> wystawia dwa widoki:
+              <code>Aktywne</code> (recepty w stanie "żywym" -
+              <code>issued</code>, <code>partially_dispensed</code>) oraz
+              <code>Historia</code> (recepty zamknięte - <code>dispensed</code>,
+              <code>cancelled</code>, <code>expired</code>), przełączane
+              zakładkami w nagłówku.
+            </p>
+            <p>
+              Dla każdej recepty widoczny jest: klucz <code>eRxKey</code>, kod
+              dostępu (<code>accessCode</code>), nazwa leku, dawkowania, okres
+              ważności (<code>validFrom</code> - <code>validUntil</code>),
+              aktualny stan (<code>ReceiptStatus</code>) oraz stan
+              synchronizacji z HIS (<code>SyncState</code>) wraz z ewentualnym
+              komunikatem błędu synchronizacji.
+            </p>
+          </div>
+
+          <h2 class="section-title">Dane wejściowe</h2>
+          <div class="card">
+            <ul class="plain">
+              <li>
+                Parametr <code>view</code> w adresie (<code>active</code> /
+                <code>history</code>) - wybór zakładki Aktywne / Historia.
+              </li>
+              <li>
+                Kliknięcie przycisku docelowego stanu recepty (np.
+                <code>dispensed</code>, <code>partially_dispensed</code>,
+                <code>cancelled</code>, <code>expired</code>) - tylko przyciski
+                dla stanów dozwolonych przez
+                <code>ReceiptStatus.canMoveTo()</code> są renderowane dla danej
+                recepty.
+              </li>
+              <li>
+                Kliknięcie przycisku "ponów wysyłkę do HIS" - widoczne tylko,
+                gdy <code>syncState == PENDING</code> (HIS nie potwierdził
+                wcześniejszej zmiany).
+              </li>
+            </ul>
+          </div>
+
+          <h2 class="section-title">Akcje</h2>
+          <div class="card">
+            <ul class="plain">
+              <li>
+                <code>GET /ui/prescriptions</code> - pobiera listę recept z
+                <code>ReceiptService</code> i filtruje je po stanie: aktywne to
+                recepty, dla których <code>status.isOpen()</code> jest prawdziwe
+                (<code>ISSUED</code>, <code>PARTIALLY_DISPENSED</code>),
+                historia to pozostałe.
+              </li>
+              <li>
+                <code>POST /ui/prescriptions/{erxKey}/status</code> - zmienia
+                stan recepty na wskazany
+                (<code>ReceiptService.changeFromUi()</code>); nieznany kod stanu
+                albo przejście niedozwolone zgłasza
+                <code>ReceiptException</code>, a błąd jest wyświetlany na
+                liście. Po powodzeniu stan jest wysyłany do HIS przez FHIR/mTLS;
+                jeśli HIS nie potwierdzi zmiany, recepta dostaje
+                <code>syncState = PENDING</code> i komunikat o możliwości
+                ponowienia.
+              </li>
+              <li>
+                <code>POST /ui/prescriptions/{erxKey}/sync</code> - ponawia
+                wysyłkę ostatniego stanu do HIS
+                (<code>ReceiptService.resync()</code>) i aktualizuje
+                <code>SyncState</code> (<code>DISABLED</code>,
+                <code>SYNCED</code> albo ponownie <code>PENDING</code>).
+              </li>
+              <li>
+                Po każdej akcji następuje przekierowanie z powrotem do
+                <code>/ui/prescriptions</code> z komunikatem flash (sukces lub
+                błąd).
+              </li>
+            </ul>
+          </div>
+
+          <h2 class="section-title">Zrzut ekranu</h2>
+          <figure class="screenshot">
+            <img
+              src="../media/e-receipt.png"
+              alt="Lista e-recept w systemie e-receipt"
+            />
+            <figcaption>
+              Lista e-recept w zewnętrznym systemie e-receipt, widok "Aktywne".
+            </figcaption>
+          </figure>
+
+          <footer class="page-footer">
+            Plik źródłowy komponentu:
+            <code
+              >apps/e-receipt/src/main/java/robert_neat/ereceipt/ui/ReceiptUiController.java</code
+            >
+          </footer>
+        </div>
+      </main>
+    </div>
+    <script src="../assets/js/nav.js"></script>
+  </body>
+</html>

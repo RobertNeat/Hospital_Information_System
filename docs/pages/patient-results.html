@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Wyniki badań - HIS</title>
+    <link rel="stylesheet" href="../assets/css/style.css" />
+  </head>
+  <body data-root=".." data-page="patient-results.html">
+    <div class="layout">
+      <nav class="sidebar" id="sidebar"></nav>
+      <main class="main">
+        <div class="main__inner">
+          <p class="breadcrumb">
+            <a href="../index.html">Start</a>
+            <span class="sep">/</span>
+            <a href="dashboard.html">Panel główny</a>
+            <span class="sep">/</span>
+            <span>Lista pacjentów</span>
+            <span class="sep">/</span>
+            <span>Karta pacjenta</span>
+            <span class="sep">/</span>
+            <span class="current">Wyniki badań</span>
+          </p>
+
+          <h1>
+            Wyniki badań <span class="badge">app-patient-results-page</span>
+          </h1>
+
+          <h2 class="section-title">Ścieżka</h2>
+          <div class="card">
+            <p>
+              Podstrona karty pacjenta:
+              <code>/patients/:patientId/results</code>, zagnieżdżona jako
+              dziecko powłoki karty pacjenta
+              <code>/patients/:patientId</code> (<code>PatientChartPage</code>,
+              dane pacjenta wczytuje <code>patientResolver</code>). Dostęp
+              chroniony przez
+              <code
+                >permissionGuard(PERMISSIONS.LAB_RESULT_READ,
+                PERMISSIONS.IMAGING_RESULT_READ)</code
+              >
+              - strona jest widoczna, gdy rola ma przynajmniej jedno z tych
+              uprawnień.
+            </p>
+          </div>
+
+          <h2 class="section-title">Przeznaczenie</h2>
+          <div class="card">
+            <p>
+              Prezentuje wyniki badań pacjenta w dwóch zakładkach:
+              <strong>Laboratoryjne</strong> i <strong>Obrazowe</strong>.
+              Aktywna zakładka jest odzwierciedlona w parametrze zapytania
+              <code>tab</code> adresu URL (domyślnie <code>lab</code>), dzięki
+              czemu link do konkretnej zakładki można zapisać lub przekazać
+              dalej.
+            </p>
+          </div>
+
+          <h2 class="section-title">Dane wejściowe</h2>
+          <div class="card">
+            <ul class="plain">
+              <li>
+                Identyfikator pacjenta (<code>patientId</code>) z adresu URL -
+                na jego podstawie wczytywane są wyniki laboratoryjne
+                (<code>LabResultService.getResults()</code>) i obrazowe
+                (<code>ImagingResultService.getResults()</code>).
+              </li>
+              <li>
+                Wybór zakładki: <em>Laboratoryjne</em> lub <em>Obrazowe</em>.
+              </li>
+              <li>
+                Kliknięcie przycisku w wierszu wyniku: podgląd szczegółów,
+                pobranie raportu, a dla wyników laboratoryjnych także porównanie
+                parametru w czasie.
+              </li>
+            </ul>
+          </div>
+
+          <h2 class="section-title">Akcje</h2>
+          <div class="card">
+            <ul class="plain">
+              <li>
+                <strong>Zakładka Laboratoryjne</strong> - tabela wyników z
+                kolumnami: data pobrania, badanie, kategoria, status
+                (<code>app-status-tag</code>, rodzaj <code>resultStatus</code>)
+                oraz liczba nieprawidłowych obserwacji (znacznik
+                <code>p-tag</code> z liczbą obserwacji o fladze innej niż
+                <code>N</code>, albo "0" gdy wszystkie w normie). Rozwinięcie
+                wiersza pokazuje szczegółowe obserwacje
+                (<code>app-lab-result-observations</code>). Gdy brak wyników,
+                wyświetlany jest stan pusty "Brak wyników laboratoryjnych".
+              </li>
+              <li>
+                Przyciski w wierszu laboratoryjnym: "Szczegóły" (przejście do
+                <code>/patients/:patientId/results/lab/:id</code>), "Pobierz
+                raport" (<code>ReportDownloadService.downloadLabReport()</code>
+                + toast "Raport pobrany") oraz "Porównaj w czasie" (otwiera
+                dialog porównania trendu z domyślnie wybranym pierwszym
+                dostępnym parametrem - parametr można potem zmienić w dialogu).
+              </li>
+              <li>
+                <strong>Zakładka Obrazowe</strong> - tabela wyników z kolumnami:
+                data wykonania, modalność, badanie, okolica ciała, status oraz
+                znacznik "Krytyczny" (gdy wynik oznaczony jako krytyczny) lub
+                "-" w przeciwnym razie. Gdy brak wyników, wyświetlany jest stan
+                pusty "Brak wyników obrazowych".
+              </li>
+              <li>
+                Przyciski w wierszu obrazowym: "Podgląd" (przejście do
+                <code>/patients/:patientId/results/imaging/:id</code>) oraz
+                "Pobierz raport" (<code
+                  >ReportDownloadService.downloadImagingReport()</code
+                >
+                z opisem, wnioskiem i datami badania + toast "Raport pobrany").
+              </li>
+              <li>
+                Przycisk "Porównaj w czasie" wczytuje listę parametrów
+                podlegających trendowaniu
+                (<code>LabResultService.getTrendableAnalytes()</code>) i otwiera
+                <code>app-result-compare-dialog</code> z pierwszym parametrem z
+                listy jako domyślnym; w razie błędu wczytywania wyświetla toast
+                błędu i nie otwiera dialogu.
+              </li>
+              <li>
+                Zmiana zakładki aktualizuje parametr <code>tab</code> w adresie
+                URL.
+              </li>
+            </ul>
+          </div>
+
+          <h2 class="section-title">Zrzut ekranu</h2>
+          <figure class="screenshot">
+            <img
+              src="../media/wyniki_badań_laboratoryjnych.png"
+              alt="Wyniki badań laboratoryjnych"
+            />
+            <figcaption>
+              Zakładka wyników laboratoryjnych w karcie pacjenta.
+            </figcaption>
+          </figure>
+
+          <footer class="page-footer">
+            Plik źródłowy komponentu:
+            <code
+              >apps/his_frontend/src/app/pages/patient-results/patient-results-page.ts</code
+            >
+          </footer>
+        </div>
+      </main>
+    </div>
+    <script src="../assets/js/nav.js"></script>
+  </body>
+</html>

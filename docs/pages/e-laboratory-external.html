@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>e-laboratory (system zewnętrzny) - HIS</title>
+    <link rel="stylesheet" href="../assets/css/style.css" />
+  </head>
+  <body data-root=".." data-page="e-laboratory-external.html">
+    <div class="layout">
+      <nav class="sidebar" id="sidebar"></nav>
+      <main class="main">
+        <div class="main__inner">
+          <p class="breadcrumb">
+            <a href="../index.html">Start</a>
+            <span class="sep">/</span>
+            <span class="current">System zewnętrzny: e-laboratory</span>
+          </p>
+
+          <h1>
+            e-laboratory (system zewnętrzny)
+            <span class="badge">LabUiController</span>
+          </h1>
+
+          <h2 class="section-title">Ścieżka</h2>
+          <div class="card">
+            <p>
+              Ten ekran <strong>nie jest częścią</strong> aplikacji HIS
+              (Angular) i nie jest osiągalny przez nawigację HIS. Należy do
+              zupełnie odrębnego systemu - mockowego laboratorium
+              <code>e-laboratory</code> (Spring Boot + Thymeleaf), działającego
+              jako osobna aplikacja na własnym porcie: interfejs UI tego
+              systemu jest wystawiony na porcie <code>10432</code>
+              (<code>mtls.http-port</code>, zmienna
+              <code>E_LABORATORY_UI_PORT</code>, profil <code>mtls</code>) - z
+              zakresu portów 10431-10433 wydzielonego dla paneli systemów
+              zewnętrznych. Osobny port (<code>10422</code>) obsługuje kanał
+              mTLS/FHIR do komunikacji z HIS. Sam adres <code>/ui/orders</code>
+              nie wymaga uwierzytelnienia - to mock do celów
+              demonstracyjnych/testowych.
+            </p>
+            <p>
+              Do e-laboratory nie prowadzi żaden link z HIS. Zlecenie trafia tam
+              wyłącznie w wyniku integracji backendowej: HIS wysyła je jako
+              zasób FHIR <code>ServiceRequest</code> po kanale mTLS,
+              e-laboratory zapisuje je u siebie
+              (<code>LabOrderStore</code>/<code>LabOrderService</code>). Od tego
+              momentu operator tego ekranu - symulowany technik laboratoryjny -
+              pracuje na zleceniu niezależnie od HIS, a wynik oraz zmiany stanu
+              są odsyłane do HIS również po mTLS jako
+              <code>DiagnosticReport</code>/aktualizacja
+              <code>ServiceRequest</code>.
+            </p>
+          </div>
+
+          <h2 class="section-title">Przeznaczenie</h2>
+          <div class="card">
+            <p>
+              Jedyny ekran mockowego systemu laboratoryjnego
+              (<code>LabUiController</code>, pakiet
+              <code>robert_neat.elaboratory.ui</code>, korzystający z usług
+              domenowych z pakietu
+              <code>robert_neat.elaboratory.order</code>: <code
+                >LabOrderStore</code
+              >/<code>LabOrderService</code>/<code>LabOrderStatus</code>):
+              lista zleceń wraz z możliwością zmiany ich stanu oraz
+              wprowadzenia wyników badań.
+              Symuluje pracę technika laboratoryjnego, który przeprowadza
+              zlecenie przez kolejne etapy (pobranie materiału, analiza, wynik)
+              tak, jak działoby się to w realnym systemie laboratoryjnym
+              podłączonym do HIS.
+            </p>
+            <p>
+              Widok ma dwie zakładki: <em>Aktywne</em> (zlecenia niezakończone)
+              i <em>Historia</em> (zlecenia <code>completed</code> lub
+              <code>cancelled</code>).
+            </p>
+          </div>
+
+          <h2 class="section-title">Dane wejściowe</h2>
+          <div class="card">
+            <ul class="plain">
+              <li>
+                Wybór zakładki <code>Aktywne</code>/<code>Historia</code>
+                (parametr <code>view</code>).
+              </li>
+              <li>
+                Wybór nowego stanu zlecenia z przycisków dozwolonych przejść
+                (zgodnie z <code>LabOrderStatus.canMoveTo</code>):
+                <code>ordered</code> → <code>scheduled</code> /
+                <code>specimen_collected</code> / <code>cancelled</code>;
+                <code>scheduled</code> → <code>specimen_collected</code> /
+                <code>cancelled</code>; <code>specimen_collected</code> →
+                <code>in_progress</code> / <code>completed</code> /
+                <code>cancelled</code>; <code>in_progress</code> →
+                <code>completed</code> / <code>cancelled</code>. Stany
+                <code>completed</code> i <code>cancelled</code> są
+                terminalne - brak dalszych przejść.
+              </li>
+              <li>
+                Formularz wyniku dla badania w zleceniu (widoczny, gdy stan to
+                <code>specimen_collected</code> lub <code>in_progress</code>,
+                a także w stanie <code>completed</code> - tam dozwolona jest
+                tylko korekta wyniku): status wyniku (lista
+                <code>ResultStatus</code>: wstępny/ostateczny/skorygowany,
+                domyślnie ostateczny), dla każdego analitu badania wartość
+                (<code>v_{kodAnalitu}</code> - liczba lub tekst, puste pole
+                pominięte) i flaga (<code>f_{kodAnalitu}</code>: N, L, H, LL,
+                HH, A lub "auto" - wyznaczana przez HIS), a także pola
+                wykonawcy (domyślnie "e-laboratory") i komentarza.
+              </li>
+              <li>
+                Przycisk "ponów wysyłkę do HIS"/"ponów wysyłkę wyniku" -
+                widoczny, gdy ostatnia zmiana stanu lub wynik nie zostały
+                potwierdzone przez HIS (<code>SyncState.PENDING</code>).
+              </li>
+            </ul>
+          </div>
+
+          <h2 class="section-title">Akcje</h2>
+          <div class="card">
+            <ul class="plain">
+              <li>
+                Wyświetla listę zleceń odebranych z HIS z identyfikatorem
+                zlecenia w HIS, referencją pacjenta, badaniami i ich
+                materiałem, informacją "na czczo", uwagami, bieżącym stanem,
+                stanem synchronizacji z HIS oraz już zapisanymi wynikami
+                (status, obserwacje z flagami, stan synchronizacji).
+              </li>
+              <li>
+                Zmienia stan zlecenia (<code>POST /ui/orders/{id}/status</code
+                >): najpierw przekazuje zmianę do HIS jako aktualizację FHIR
+                <code>ServiceRequest</code> (<code>PUT /ServiceRequest/{id}</code>
+                po mTLS); odrzucenie przez HIS blokuje zmianę lokalną, a
+                niedostępność HIS zapisuje zmianę lokalnie ze stanem
+                oczekującym na ponowienie.
+              </li>
+              <li>
+                Ponawia przekazanie bieżącego stanu zlecenia do HIS (<code
+                  >POST /ui/orders/{id}/sync</code
+                >).
+              </li>
+              <li>
+                Zapisuje wynik badania (<code
+                  >POST /ui/orders/{id}/results/{testCode}</code
+                >): buduje obserwacje z wprowadzonych wartości i flag, odrzuca
+                nieznaną flagę, a następnie przekazuje wynik do HIS jako
+                zasób FHIR <code>DiagnosticReport</code>
+                (<code>POST /DiagnosticReport</code> po mTLS, powiązany ze
+                zleceniem przez <code>ServiceRequest</code>); nieudana
+                synchronizacja pozwala na ponowienie. Gdy wszystkie pozycje
+                zlecenia mają zatwierdzony i przekazany wynik, zlecenie
+                przechodzi automatycznie do stanu <code>completed</code>.
+              </li>
+              <li>
+                Ponawia wysyłkę pojedynczego wyniku do HIS (<code
+                  >POST /ui/orders/{id}/results/{resultId}/sync</code
+                >); po powodzeniu również sprawdza, czy zlecenie można
+                automatycznie zamknąć jako <code>completed</code>.
+              </li>
+              <li>
+                Po każdej akcji wyświetla komunikat powodzenia lub błędu i
+                odświeża listę zleceń.
+              </li>
+            </ul>
+          </div>
+
+          <h2 class="section-title">Zrzut ekranu</h2>
+          <figure class="screenshot">
+            <img
+              src="../media/e_laboratory.png"
+              alt="Ekran listy zleceń w systemie e-laboratory"
+            />
+            <figcaption>
+              Lista zleceń w mockowym systemie laboratoryjnym e-laboratory.
+            </figcaption>
+          </figure>
+
+          <footer class="page-footer">
+            Plik źródłowy kontrolera:
+            <code
+              >apps/e-laboratory/src/main/java/robert_neat/elaboratory/ui/LabUiController.java</code
+            >
+          </footer>
+        </div>
+      </main>
+    </div>
+    <script src="../assets/js/nav.js"></script>
+  </body>
+</html>

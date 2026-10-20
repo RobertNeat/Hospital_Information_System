@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Opis badania obrazowego - HIS</title>
+    <link rel="stylesheet" href="../assets/css/style.css" />
+  </head>
+  <body data-root=".." data-page="imaging-report-view.html">
+    <div class="layout">
+      <nav class="sidebar" id="sidebar"></nav>
+      <main class="main">
+        <div class="main__inner">
+          <p class="breadcrumb">
+            <a href="../index.html">Start</a>
+            <span class="sep">/</span>
+            <a href="dashboard.html">Panel główny</a>
+            <span class="sep">/</span>
+            <span>Karta pacjenta</span>
+            <span class="sep">/</span>
+            <span>Wyniki badań</span>
+            <span class="sep">/</span>
+            <span class="current">Opis badania obrazowego</span>
+          </p>
+
+          <h1>
+            Opis badania obrazowego
+            <span class="badge">app-imaging-report-view</span>
+          </h1>
+
+          <h2 class="section-title">Ścieżka</h2>
+          <div class="card">
+            <p>
+              To nie jest samodzielna podstrona z własnym adresem - jest to
+              komponent (<code>app-imaging-report-view</code>) osadzony wewnątrz
+              strony szczegółów wyniku
+              <code>ResultDetailPage</code> pod adresem
+              <code>/patients/:patientId/results/imaging/:resultId</code>,
+              wyświetlany wyłącznie wtedy, gdy dane trasy wskazują
+              <code>{ kind: 'imaging' }</code> (wynik typu obrazowego).
+              Strona-rodzic jest chroniona przez
+              <code>permissionGuard(PERMISSIONS.IMAGING_RESULT_READ)</code>.
+            </p>
+          </div>
+
+          <h2 class="section-title">Przeznaczenie</h2>
+          <div class="card">
+            <p>
+              Prezentuje opis badania obrazowego sporządzony przez radiologa:
+              metadane wykonania badania oraz ustrukturyzowany raport podzielony
+              na sekcje „Technika”, „Opis” i „Wnioski”. Komponent jest wyłącznie
+              prezentacyjny (bez formularzy i akcji zapisu) - cała logika
+              pozyskania wyniku znajduje się w stronie-rodzicu
+              <code>ResultDetailPage</code>.
+            </p>
+          </div>
+
+          <h2 class="section-title">Dane wejściowe</h2>
+          <div class="card">
+            <ul class="plain">
+              <li>
+                Wymagany wejściowy sygnał <code>result</code> typu
+                <code>ImagingResult</code>, przekazywany przez stronę-rodzica po
+                wczytaniu wyniku badania.
+              </li>
+            </ul>
+          </div>
+
+          <h2 class="section-title">Akcje</h2>
+          <div class="card">
+            <p>
+              Komponent nie wykonuje zapytań ani akcji - jedynie renderuje pola
+              przekazanego wyniku:
+            </p>
+            <ul class="plain">
+              <li>
+                Pasek metadanych: data i godzina wykonania badania („Wykonano”),
+                data i godzina opisania („Opisano”), nazwisko radiologa oraz
+                liczba obrazów.
+              </li>
+              <li>
+                Sekcja „Technika” - wyświetlana tylko, gdy wynik zawiera opis
+                techniki badania.
+              </li>
+              <li>
+                Sekcja „Opis” - treść pola <code>findings</code> (opis
+                radiologiczny).
+              </li>
+              <li>
+                Sekcja „Wnioski” - treść pola <code>conclusion</code>; nagłówek
+                sekcji przyjmuje wariant „danger” (ostrzegawczy), jeśli wynik
+                jest oznaczony jako krytyczny (<code>result().critical</code>),
+                w przeciwnym razie wariant „navy”.
+              </li>
+            </ul>
+          </div>
+
+          <h2 class="section-title">Zrzut ekranu</h2>
+          <figure class="screenshot">
+            <img
+              src="../media/opis_badania_obrazowego.png"
+              alt="Opis badania obrazowego"
+            />
+            <figcaption>
+              Opis badania obrazowego osadzony w szczegółach wyniku pacjenta.
+            </figcaption>
+          </figure>
+
+          <footer class="page-footer">
+            Plik źródłowy komponentu:
+            <code
+              >apps/his_frontend/src/app/components/imaging-report-view/imaging-report-view.ts</code
+            >
+          </footer>
+        </div>
+      </main>
+    </div>
+    <script src="../assets/js/nav.js"></script>
+  </body>
+</html>

@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Administracja personelem - HIS</title>
+    <link rel="stylesheet" href="../assets/css/style.css" />
+  </head>
+  <body data-root=".." data-page="admin-staff.html">
+    <div class="layout">
+      <nav class="sidebar" id="sidebar"></nav>
+      <main class="main">
+        <div class="main__inner">
+          <p class="breadcrumb">
+            <a href="../index.html">Start</a>
+            <span class="sep">/</span>
+            <span class="current">Administracja personelem</span>
+          </p>
+
+          <h1>
+            Administracja personelem
+            <span class="badge">app-admin-staff-page</span>
+          </h1>
+
+          <h2 class="section-title">Ścieżka</h2>
+          <div class="card">
+            <p>
+              Podstrona panelu administracyjnego, dostępna pod adresem
+              <code>/admin/staff</code>, osadzona jako dziecko
+              <code>AppShell</code> (czyli wewnątrz układu z nawigacją boczną,
+              dla zalogowanej osoby). Dostęp chroniony przez
+              <code>permissionGuard(PERMISSIONS.ACCOUNT_MANAGE)</code> -
+              widoczna i osiągalna tylko dla roli posiadającej uprawnienie
+              zarządzania kontami (administrator).
+            </p>
+          </div>
+
+          <h2 class="section-title">Przeznaczenie</h2>
+          <div class="card">
+            <p>
+              Lista wszystkich pracowników systemu wraz z ich kontami, służąca
+              do aktywacji nowo zarejestrowanych kont oraz
+              blokowania/odblokowywania istniejących kont. Każde nowe konto
+              zarejestrowane przez <code>/register</code> trafia tu ze statusem
+              "oczekujące" i wymaga aktywacji przez administratora, zanim
+              pracownik będzie mógł się zalogować.
+            </p>
+            <p>
+              Przy wejściu na stronę lista pracowników jest zawsze odpytywana na
+              nowo (wymuszone odświeżenie cache), ponieważ mogła być wcześniej
+              częściowo wypełniona przy innej okazji (np. odpytanie nazwiska
+              przez <code>nameOf()</code>) albo mogą istnieć nowe konta, które
+              dotąd nie trafiły do lokalnego cache.
+            </p>
+          </div>
+
+          <h2 class="section-title">Dane wejściowe</h2>
+          <div class="card">
+            <ul class="plain">
+              <li>
+                Zapytanie w globalnym filtrze tabeli - przeszukuje nazwisko,
+                imię, identyfikator pracownika oraz e-mail.
+              </li>
+              <li>
+                Kliknięcie przycisku "Aktywuj konto" przy wierszu pracownika o
+                statusie "oczekujące" lub "zablokowane".
+              </li>
+              <li>
+                Kliknięcie przycisku "Zablokuj konto" przy wierszu pracownika o
+                statusie "aktywne" - przycisk jest niewidoczny dla wiersza
+                odpowiadającego zalogowanej osobie (backend i tak odrzuciłby
+                taką blokadę błędem 409).
+              </li>
+              <li>
+                Potwierdzenie lub odrzucenie okna dialogowego, które pojawia się
+                po kliknięciu aktywacji/blokady.
+              </li>
+            </ul>
+          </div>
+
+          <h2 class="section-title">Akcje</h2>
+          <div class="card">
+            <ul class="plain">
+              <li>
+                Pobiera listę pracowników z wymuszonym odświeżeniem
+                (<code>StaffService.load(true)</code>); w razie błędu pokazuje
+                komunikat toast "Nie udało się pobrać listy pracowników".
+              </li>
+              <li>
+                Wyświetla tabelę z kolumnami: nazwisko i imię, rola,
+                identyfikator, e-mail oraz status konta (jako znacznik/tag).
+              </li>
+              <li>
+                Po kliknięciu "Aktywuj konto" pokazuje okno potwierdzenia, a po
+                akceptacji wywołuje
+                <code>StaffService.activate(id)</code> (backend:
+                <code>POST /staff/{id}/activate</code>) - aktywacja odblokowuje
+                też zablokowane konto. Sukces: toast "Konto aktywowane". Błąd:
+                toast z komunikatem z odpowiedzi API.
+              </li>
+              <li>
+                Po kliknięciu "Zablokuj konto" pokazuje okno potwierdzenia, a po
+                akceptacji wywołuje <code>StaffService.lock(id)</code> (backend:
+                <code>POST /staff/{id}/lock</code>). Sukces: toast "Konto
+                zablokowane". Błąd: toast z komunikatem z odpowiedzi API.
+              </li>
+            </ul>
+          </div>
+
+          <h2 class="section-title">Zrzut ekranu</h2>
+          <figure class="screenshot">
+            <img
+              src="../media/zarządzanie_pracownikami.png"
+              alt="Administracja personelem HIS"
+            />
+            <figcaption>
+              Lista pracowników z akcjami aktywacji i blokady konta.
+            </figcaption>
+          </figure>
+
+          <footer class="page-footer">
+            Plik źródłowy komponentu:
+            <code
+              >apps/his_frontend/src/app/pages/admin-staff/admin-staff-page.ts</code
+            >
+          </footer>
+        </div>
+      </main>
+    </div>
+    <script src="../assets/js/nav.js"></script>
+  </body>
+</html>

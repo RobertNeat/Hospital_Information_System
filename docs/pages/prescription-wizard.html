@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Kreator recepty - HIS</title>
+    <link rel="stylesheet" href="../assets/css/style.css" />
+  </head>
+  <body data-root=".." data-page="prescription-wizard.html">
+    <div class="layout">
+      <nav class="sidebar" id="sidebar"></nav>
+      <main class="main">
+        <div class="main__inner">
+          <p class="breadcrumb">
+            <a href="../index.html">Start</a>
+            <span class="sep">/</span>
+            <a href="dashboard.html">Panel główny</a>
+            <span class="sep">/</span>
+            <span class="current">Karta pacjenta</span>
+            <span class="sep">/</span>
+            <span class="current">Leki i recepty</span>
+            <span class="sep">/</span>
+            <span class="current">Kreator recepty</span>
+          </p>
+
+          <h1>
+            Kreator recepty
+            <span class="badge">app-prescription-wizard-page</span>
+          </h1>
+
+          <h2 class="section-title">Ścieżka</h2>
+          <div class="card">
+            <p>
+              Podstrona karty pacjenta:
+              <code>Karta pacjenta → Leki i recepty → Kreator recepty</code>.
+              Dostępna pod adresem
+              <code>/patients/:patientId/prescriptions/new</code> jako dziecko
+              powłoki karty pacjenta <code>/patients/:patientId</code>.
+              Chroniona przez <code>permissionGuard</code> z uprawnieniem
+              <code>PRESCRIPTION_CREATE</code>. Dodatkowo zabezpieczona
+              <code>canDeactivate: unsavedChangesGuard</code> - opuszczenie
+              strony z niezapisanymi danymi (dodany lek, zmieniony formularz
+              dawkowania/ilości lub wybrany, ale jeszcze nie dodany lek) wymaga
+              potwierdzenia, o ile recepta nie została już wystawiona.
+            </p>
+            <p>
+              Istnieje też globalna trasa <code>/prescriptions/new</code>, która
+              jest jedynie przekierowaniem do tej, przypisanej do konkretnego
+              pacjenta, wersji kreatora.
+            </p>
+          </div>
+
+          <h2 class="section-title">Przeznaczenie</h2>
+          <div class="card">
+            <p>
+              Czterokrokowy kreator (<code>p-stepper</code>, liniowy) do
+              wystawienia elektronicznej recepty (e-recepty) dla pacjenta: wybór
+              leku i sprawdzenie bezpieczeństwa, dawkowanie, ilość i czas
+              terapii, podsumowanie i wystawienie.
+            </p>
+          </div>
+
+          <h2 class="section-title">Dane wejściowe</h2>
+          <div class="card">
+            <ul class="plain">
+              <li>
+                <strong>Krok 1 - Wybór leku:</strong> wyszukanie i wybór leku
+                (<code>app-drug-picker</code>). Po wybraniu leku automatycznie
+                uruchamiane jest sprawdzenie bezpieczeństwa (interakcje,
+                alergie) względem leków już dodanych do recepty. Jeśli wykryto
+                ostrzeżenie o alergii o nasileniu "danger", przejście dalej jest
+                zablokowane, dopóki użytkownik nie zaznaczy przełącznika
+                "Świadomie przepisuję mimo ostrzeżenia" i nie wpisze
+                uzasadnienia (pole wymagane).
+              </li>
+              <li>
+                <strong>Krok 2 - Dawkowanie:</strong> formularz dawkowania
+                (<code>app-dosage-editor</code>): dawka, jednostka dawki, droga
+                podania, częstość, pory dnia, przełącznik "w razie potrzeby" (z
+                maksymalną dawką dobową), uwagi/instrukcje.
+              </li>
+              <li>
+                <strong>Krok 3 - Ilość i czas terapii:</strong> liczba dni
+                terapii (1-365, z podpowiedzią sugerowanej liczby opakowań po
+                zmianie dawkowania lub czasu terapii, o ile użytkownik nie
+                zmienił ilości ręcznie), liczba opakowań, sposób refundacji
+                (ograniczony do opcji dostępnych dla wybranego leku),
+                przełącznik "Zamiennik dozwolony", przełącznik "Leczenie
+                przewlekłe" oraz data "Ważna od" dla całej recepty. Można dodać
+                lek do listy i wybrać kolejny (maksymalnie 5 leków na recepcie)
+                lub przejść do podsumowania.
+              </li>
+              <li>
+                <strong>Krok 4 - Podsumowanie:</strong> przycisk "Wystaw
+                e-receptę" uruchamiający zapis.
+              </li>
+            </ul>
+          </div>
+
+          <h2 class="section-title">Akcje</h2>
+          <div class="card">
+            <ul class="plain">
+              <li>
+                Sprawdza bezpieczeństwo wybranego leku
+                (<code>DrugService.checkSafety</code>) względem całej roboczej
+                recepty (dodane leki + aktualnie wybrany) i pokazuje ostrzeżenia
+                o interakcjach i alergiach; niepowodzenie sprawdzenia (np. brak
+                uprawnień) jest sygnalizowane komunikatem, a nie wyciszane.
+              </li>
+              <li>
+                Wylicza sugerowaną liczbę opakowań na podstawie dawki, częstości
+                i liczby dni terapii.
+              </li>
+              <li>
+                Wylicza datę ważności recepty: 30 dni standardowo lub 365 dni
+                dla leczenia przewlekłego (przewlekłe, gdy czas terapii
+                przekracza 90 dni lub włączono przełącznik "Leczenie
+                przewlekłe").
+              </li>
+              <li>
+                Dodaje pozycję leku do roboczej listy recepty (do 5 pozycji);
+                jeśli przy dodawaniu aktywne jest potwierdzone ostrzeżenie o
+                alergii, dopisuje uzasadnienie do notatek całej recepty (w
+                modelu pozycji recepty nie ma dedykowanego pola na
+                uzasadnienie).
+              </li>
+              <li>Pozwala usunąć dodaną pozycję z listy przed wystawieniem.</li>
+              <li>
+                Wystawia e-receptę
+                (<code>PrescriptionService.issuePrescription</code>) z
+                pacjentem, datami ważności, pozycjami leków i notatkami; po
+                sukcesie pokazuje dialog e-recepty
+                (<code>app-e-prescription-dialog</code>) i komunikat
+                potwierdzający.
+              </li>
+              <li>
+                Po zamknięciu dialogu lub anulowaniu kreatora przechodzi do
+                <code>/patients/:patientId/prescriptions</code>.
+              </li>
+              <li>
+                Wyświetla informację o integracji FHIR
+                (<code>app-fhir-integration-note</code>, zasób
+                <code>MedicationRequest</code>) w kroku podsumowania.
+              </li>
+            </ul>
+          </div>
+
+          <h2 class="section-title">Zrzut ekranu</h2>
+          <figure class="screenshot">
+            <img
+              src="../media/nowa_recepta_krok3.png"
+              alt="Kreator recepty - krok 3"
+            />
+            <figcaption>
+              Krok 3 kreatora recepty: ilość i czas terapii.
+            </figcaption>
+          </figure>
+
+          <footer class="page-footer">
+            Plik źródłowy komponentu:
+            <code
+              >apps/his_frontend/src/app/pages/prescription-wizard/prescription-wizard-page.ts</code
+            >
+          </footer>
+        </div>
+      </main>
+    </div>
+    <script src="../assets/js/nav.js"></script>
+  </body>
+</html>

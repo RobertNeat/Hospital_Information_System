@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Kreator zlecenia laboratoryjnego - HIS</title>
+    <link rel="stylesheet" href="../assets/css/style.css" />
+  </head>
+  <body data-root=".." data-page="lab-order-wizard.html">
+    <div class="layout">
+      <nav class="sidebar" id="sidebar"></nav>
+      <main class="main">
+        <div class="main__inner">
+          <p class="breadcrumb">
+            <a href="../index.html">Start</a>
+            <span class="sep">/</span>
+            <a href="dashboard.html">Panel główny</a>
+            <span class="sep">/</span>
+            <span>Karta pacjenta</span>
+            <span class="sep">/</span>
+            <span class="current">Kreator zlecenia laboratoryjnego</span>
+          </p>
+
+          <h1>
+            Kreator zlecenia laboratoryjnego
+            <span class="badge">app-lab-order-wizard-page</span>
+          </h1>
+
+          <h2 class="section-title">Ścieżka</h2>
+          <div class="card">
+            <p>
+              Podstrona karty pacjenta, dostępna pod adresem
+              <code>/patients/:patientId/orders/lab/new</code> jako dziecko
+              powłoki karty pacjenta <code>/patients/:patientId</code>. Wejście
+              chronione jest przez
+              <code>permissionGuard(PERMISSIONS.LAB_ORDER_CREATE)</code> - rola
+              musi mieć uprawnienie do tworzenia zleceń laboratoryjnych.
+              Opuszczenie strony z niezapisanymi zmianami w formularzu jest
+              przechwytywane przez
+              <code>canDeactivate: [unsavedChangesGuard]</code> (potwierdzenie
+              wyjścia). Istnieje też górny, niekontekstowy adres
+              <code>/orders/lab/new</code>, który jest jedynie przekierowaniem
+              (<code>patientScopedRedirect</code>): jeśli w kontekście
+              aplikacji jest już wybrany pacjent, przekierowuje bezpośrednio na
+              tę stronę w jego kontekście; w przeciwnym razie prowadzi na ekran
+              wyboru pacjenta (<code>/select-patient</code>) z parametrem
+              umożliwiającym dokończenie przejścia po wybraniu pacjenta. Nie
+              jest samodzielnym widokiem.
+            </p>
+          </div>
+
+          <h2 class="section-title">Przeznaczenie</h2>
+          <div class="card">
+            <p>
+              Czterokrokowy kreator (<code>p-stepper</code>, liniowy) do
+              złożenia nowego zlecenia badań laboratoryjnych dla pacjenta: wybór
+              badań z katalogu, określenie materiału i pilności, uzupełnienie
+              informacji klinicznych oraz podsumowanie przed wysłaniem. Po
+              zapisaniu zlecenie trafia do zewnętrznego systemu laboratoryjnego
+              (e-laboratory) jako zasób FHIR
+              <code>ServiceRequest</code>.
+            </p>
+          </div>
+
+          <h2 class="section-title">Dane wejściowe</h2>
+          <div class="card">
+            <ul class="plain">
+              <li>
+                <strong>Krok 1 - Wybór badań:</strong> zaznaczenie co najmniej
+                jednego badania z katalogu (<code>app-catalog-picker</code>),
+                zbudowanego z listy badań i paneli (<code>getCatalog()</code>,
+                <code>getPanels()</code>). Pole wymagane - bez wyboru krok nie
+                pozwala przejść dalej.
+              </li>
+              <li>
+                <strong>Krok 2 - Materiał i pilność:</strong> dla każdego
+                wybranego badania wybór typu materiału (domyślnie
+                <code>defaultSpecimen</code> badania, np. krew), wybór pilności
+                (Rutynowe/Pilne/Natychmiastowe - CITO, pole wymagane),
+                przełącznik "Na czczo" (blokowany/wymuszony, jeśli którekolwiek
+                wybrane badanie wymaga bycia na czczo) oraz planowany termin
+                pobrania (data i godzina, wymagane, nie wcześniej niż teraz;
+                przy wyborze pilności Natychmiastowe (CITO) termin jest
+                automatycznie ustawiany na "teraz").
+              </li>
+              <li>
+                <strong>Krok 3 - Informacje kliniczne:</strong> opcjonalne
+                rozpoznanie wybierane z podpowiedzi (rozpoznania pacjenta z EHR
+                i sugestie SNOMED CT), wymagane informacje kliniczne (tekst,
+                min. 10 znaków) oraz opcjonalne uwagi dla laboratorium.
+              </li>
+              <li>
+                <strong>Krok 4 - Podsumowanie:</strong> brak nowych danych
+                wejściowych - tylko przegląd wprowadzonych informacji i
+                potwierdzenie wysyłki.
+              </li>
+            </ul>
+          </div>
+
+          <h2 class="section-title">Akcje</h2>
+          <div class="card">
+            <ul class="plain">
+              <li>
+                Równolegle wczytuje katalog badań laboratoryjnych i listę paneli
+                (<code>LabOrderService.getCatalog()</code>,
+                <code>getPanels()</code>); błąd pokazuje toast i nie blokuje
+                reszty kreatora (pusty katalog).
+              </li>
+              <li>
+                Wczytuje rozpoznania pacjenta
+                (<code>EhrService.getDiagnoses()</code>) oraz podpowiedzi SNOMED
+                CT (<code>getSnomedSuggestions('diagnosis')</code>) do pola
+                rozpoznania w kroku 3; brak rozpoznań lub niedostępność serwisu
+                terminologicznego nie blokuje zlecenia.
+              </li>
+              <li>
+                Przy zmianie zestawu wybranych badań synchronizuje formularz
+                materiałów - dodaje/usuwa kontrolki typu materiału dla każdego
+                badania (<code>FormRecord</code>).
+              </li>
+              <li>
+                Wymusza ustawienie "Na czczo" na tak, jeśli którekolwiek wybrane
+                badanie tego wymaga.
+              </li>
+              <li>
+                Przy wyborze pilności Natychmiastowe (CITO) ustawia planowany
+                termin pobrania na bieżący moment.
+              </li>
+              <li>
+                Blokuje przejście do następnego kroku, jeśli bieżący formularz
+                jest niepoprawny (<code>tryAdvance</code>).
+              </li>
+              <li>
+                Po kliknięciu "Wyślij zlecenie" wywołuje
+                <code>LabOrderService.createOrder()</code> z identyfikatorem
+                pacjenta, listą badań (kod, nazwa, typ materiału), pilnością,
+                flagą "na czczo", planowanym terminem pobrania, kodem
+                rozpoznania, informacjami klinicznymi i uwagami.
+              </li>
+              <li>
+                Po powodzeniu pokazuje toast potwierdzający (z osobnym
+                komunikatem dla zleceń CITO) i przechodzi do listy zleceń
+                pacjenta przefiltrowanej do zleceń laboratoryjnych
+                (<code>/patients/:patientId/orders?type=lab</code>); błędy
+                walidacji z serwera (422) nanosi na odpowiadające pola
+                formularza, resztę zgłasza w toaście.
+              </li>
+              <li>
+                Przycisk "Anuluj" na każdym kroku wraca do listy zleceń pacjenta
+                (<code>/patients/:patientId/orders</code>) bez zapisu.
+              </li>
+            </ul>
+          </div>
+
+          <h2 class="section-title">Zrzut ekranu</h2>
+          <figure class="screenshot">
+            <img
+              src="../media/nowe_zlecenie_laboratoryjne_krok4.png"
+              alt="Kreator zlecenia laboratoryjnego - krok 4, podsumowanie"
+            />
+            <figcaption>
+              Krok 4 kreatora - podsumowanie zlecenia laboratoryjnego przed
+              wysłaniem.
+            </figcaption>
+          </figure>
+
+          <footer class="page-footer">
+            Plik źródłowy komponentu:
+            <code
+              >apps/his_frontend/src/app/pages/lab-order-wizard/lab-order-wizard-page.ts</code
+            >
+          </footer>
+        </div>
+      </main>
+    </div>
+    <script src="../assets/js/nav.js"></script>
+  </body>
+</html>

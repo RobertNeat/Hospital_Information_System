@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Konwersacja (wiadomości) - HIS</title>
+    <link rel="stylesheet" href="../assets/css/style.css" />
+  </head>
+  <body data-root=".." data-page="message-conversation.html">
+    <div class="layout">
+      <nav class="sidebar" id="sidebar"></nav>
+      <main class="main">
+        <div class="main__inner">
+          <p class="breadcrumb">
+            <a href="../index.html">Start</a>
+            <span class="sep">/</span>
+            <a href="dashboard.html">Panel główny</a>
+            <span class="sep">/</span>
+            <span>Wiadomości</span>
+            <span class="sep">/</span>
+            <span class="current">Konwersacja</span>
+          </p>
+
+          <h1>
+            Konwersacja <span class="badge">app-message-conversation</span>
+          </h1>
+
+          <h2 class="section-title">Ścieżka</h2>
+          <div class="card">
+            <p>
+              To nie jest samodzielna trasa routingu, lecz komponent wbudowany w
+              prawy panel zakładki "Wiadomości" strony
+              <code>/messages</code> (<code>MessagesPage</code>, dziecko
+              <code>AppShell</code>). Znajduje się w szablonie
+              <code
+                >apps/his_frontend/src/app/pages/messages/messages-page.html</code
+              >
+              i jest renderowany, gdy na liście wątków po lewej stronie wybrano
+              konkretny wątek; gdy żaden wątek nie jest wybrany, w tym miejscu
+              widoczny jest stan pusty "Brak wątku" / "Wybierz wątek z listy po
+              lewej.". Trasa <code>/messages</code> nie ma dodatkowego strażnika
+              uprawnień (RBAC) poza ogólnym <code>authGuard</code> powłoki
+              aplikacji - odczyt/wysyłka wiadomości (<code>message:read</code> /
+              <code>message:write</code>) są przyznane każdej roli; dopiero
+              zakładki "Zadania", "Przekazanie dyżuru" i "Alerty" na tej samej
+              stronie wymagają odpowiednio uprawnień <code>task:read</code> i
+              <code>alert:read</code>.
+            </p>
+          </div>
+
+          <h2 class="section-title">Przeznaczenie</h2>
+          <div class="card">
+            <p>
+              Prawy panel widoku wiadomości: wyświetla temat wątku,
+              chronologiczną listę wiadomości (bąbelki czatu) oraz formularz do
+              napisania i wysłania nowej wiadomości w tym wątku.
+            </p>
+          </div>
+
+          <h2 class="section-title">Dane wejściowe</h2>
+          <div class="card">
+            <ul class="plain">
+              <li>
+                Treść wiadomości wpisana w polu tekstowym (textarea) composera.
+              </li>
+              <li>
+                Wybór priorytetu nowej wiadomości z listy rozwijanej (opcje:
+                "Normalny", "Wysoki", "Krytyczny" - domyślnie "Normalny").
+              </li>
+              <li>
+                Kliknięcie przycisku "Wyślij" albo kombinacja klawiszy
+                <code>Ctrl+Enter</code> / <code>Cmd+Enter</code> w polu
+                tekstowym.
+              </li>
+            </ul>
+          </div>
+
+          <h2 class="section-title">Akcje</h2>
+          <div class="card">
+            <ul class="plain">
+              <li>
+                Wyświetla temat wątku (jeśli przekazany) oraz wiadomości
+                posortowane chronologicznie po dacie wysłania.
+              </li>
+              <li>
+                Każda wiadomość pokazuje nadawcę (etykieta z funkcji
+                <code>senderLabel</code>), znacznik priorytetu
+                (<code>app-status-tag</code>, rodzaj <code>priority</code>) gdy
+                priorytet jest inny niż "Normalny", treść wiadomości oraz
+                datę/godzinę wysłania. Bąbelek jest wizualnie oznaczony jako
+                wychodzący, gdy nadawcą jest zalogowany użytkownik, albo jako
+                przychodzący w przeciwnym razie.
+              </li>
+              <li>
+                Gdy w wątku nie ma żadnych wiadomości, wyświetla komunikat "Brak
+                wiadomości w tym wątku.".
+              </li>
+              <li>
+                Przycisk "Wyślij" jest nieaktywny, gdy treść jest pusta (po
+                przycięciu białych znaków) albo trwa wysyłanie
+                (<code>sending</code>).
+              </li>
+              <li>
+                Po wysłaniu emituje zdarzenie <code>send</code> z treścią i
+                wybranym priorytetem, a następnie czyści pole tekstowe i
+                przywraca priorytet "Normalny". Samo zapisanie wiadomości
+                (wywołanie API) obsługuje rodzic - strona Wiadomości.
+              </li>
+            </ul>
+          </div>
+
+          <h2 class="section-title">Zrzut ekranu</h2>
+          <figure class="screenshot">
+            <img
+              src="../media/komunikacja_zespołowa_wiadomości.png"
+              alt="Konwersacja w module Wiadomości"
+            />
+            <figcaption>Panel konwersacji w zakładce "Wiadomości".</figcaption>
+          </figure>
+
+          <footer class="page-footer">
+            Plik źródłowy komponentu:
+            <code
+              >apps/his_frontend/src/app/components/message-conversation/message-conversation.ts</code
+            >
+          </footer>
+        </div>
+      </main>
+    </div>
+    <script src="../assets/js/nav.js"></script>
+  </body>
+</html>

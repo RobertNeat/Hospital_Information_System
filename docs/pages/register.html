@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Rejestracja konta - HIS</title>
+    <link rel="stylesheet" href="../assets/css/style.css" />
+  </head>
+  <body data-root=".." data-page="register.html">
+    <div class="layout">
+      <nav class="sidebar" id="sidebar"></nav>
+      <main class="main">
+        <div class="main__inner">
+          <p class="breadcrumb">
+            <a href="../index.html">Start</a>
+            <span class="sep">/</span>
+            <span class="current">Rejestracja konta</span>
+          </p>
+
+          <h1>
+            Rejestracja konta <span class="badge">app-register-page</span>
+          </h1>
+
+          <h2 class="section-title">Ścieżka</h2>
+          <div class="card">
+            <p>
+              Strona najwyższego poziomu (nie jest dzieckiem
+              <code>AppShell</code>), dostępna pod adresem
+              <code>/register</code>. Chroniona przez <code>guestGuard</code>,
+              co znaczy odwrotność <code>authGuard</code> - ekran jest osiągalny
+              tylko dla osoby NIEzalogowanej; zalogowany użytkownik zostanie
+              przekierowany, zanim zobaczy tę stronę. Jest to więc ekran
+              poprzedzający logowanie, analogiczny do ekranu logowania, a nie
+              podstrona panelu.
+            </p>
+          </div>
+
+          <h2 class="section-title">Przeznaczenie</h2>
+          <div class="card">
+            <p>
+              Formularz wniosku o konto pracownika medycznego. Złożenie wniosku
+              nie daje od razu dostępu do systemu - konto trafia ze statusem
+              "oczekujące" i wymaga aktywacji przez administratora na stronie
+              "Administracja personelem", zanim możliwe będzie zalogowanie.
+            </p>
+          </div>
+
+          <h2 class="section-title">Dane wejściowe</h2>
+          <div class="card">
+            <p>Formularz (reaktywny, <code>FormBuilder</code>) z polami:</p>
+            <ul class="plain">
+              <li>Imię i nazwisko - wymagane.</li>
+              <li>Rola - wymagana, lista wyboru (domyślnie "lekarz").</li>
+              <li>Stopień / tytuł zawodowy - wymagany, lista wyboru.</li>
+              <li>
+                Dziedzina / specjalizacja - wymagana, lista wyboru z
+                filtrowaniem.
+              </li>
+              <li>
+                Numer PWZ - wymagany, walidowany dedykowanym walidatorem (7
+                cyfr).
+              </li>
+              <li>
+                Oddział macierzysty - wymagany, lista wyboru zasilana ze
+                słownika oddziałów
+                (<code>AuthService.getRegisterWards()</code>); w razie błędu
+                pobierania lista jest pusta i pod polem pojawia się komunikat
+                "Nie udało się pobrać listy oddziałów. Spróbuj ponownie
+                później."
+              </li>
+              <li>
+                Telefon służbowy - opcjonalny, walidowany dedykowanym
+                walidatorem formatu telefonu.
+              </li>
+              <li>
+                Identyfikator pracownika - wymagany, walidowany dedykowanym
+                walidatorem; będzie służył do logowania.
+              </li>
+              <li>Hasło - wymagane, minimum 8 znaków.</li>
+              <li>
+                Powtórzenie hasła - wymagane; formularz ma walidator zgodności
+                obu pól hasła (komunikat "Hasła muszą być takie same." przy
+                niezgodności i dotknięciu pola).
+              </li>
+              <li>
+                Zaznaczenie zgody z regulaminem i zasadami ochrony danych
+                medycznych - wymagane (checkbox).
+              </li>
+            </ul>
+          </div>
+
+          <h2 class="section-title">Akcje</h2>
+          <div class="card">
+            <ul class="plain">
+              <li>
+                Przy inicjalizacji pobiera słownik oddziałów do listy wyboru
+                "Oddział macierzysty".
+              </li>
+              <li>
+                Po kliknięciu "Wyślij wniosek": jeśli formularz jest
+                niepoprawny, oznacza wszystkie pola jako dotknięte (co ujawnia
+                komunikaty walidacji) i przerywa wysyłkę.
+              </li>
+              <li>
+                Jeśli formularz jest poprawny, wywołuje
+                <code>AuthService.register(...)</code> z danymi zmapowanymi do
+                żądania API (<code>register.mappers.ts</code>); przycisk w
+                trakcie wysyłki zmienia etykietę na "Wysyłanie…" i jest
+                zablokowany.
+              </li>
+              <li>
+                Po sukcesie pokazuje toast "Wniosek wysłany" z informacją, że
+                konto czeka na aktywację, i przekierowuje na stronę logowania
+                (<code>/login</code>).
+              </li>
+              <li>
+                Po błędzie (np. 422) pokazuje komunikat błędu nad przyciskiem
+                oraz, jeśli odpowiedź zawiera błędy konkretnych pól, ustawia je
+                pod odpowiadającymi polami formularza.
+              </li>
+              <li>
+                Link "Zaloguj się" w stopce przenosi na stronę logowania dla
+                osób, które już mają konto.
+              </li>
+            </ul>
+          </div>
+
+          <h2 class="section-title">Zrzut ekranu</h2>
+          <figure class="screenshot">
+            <img
+              src="../media/register_filled.png"
+              alt="Formularz rejestracji konta HIS"
+            />
+            <figcaption>
+              Wypełniony formularz rejestracji konta pracownika.
+            </figcaption>
+          </figure>
+
+          <footer class="page-footer">
+            Plik źródłowy komponentu:
+            <code
+              >apps/his_frontend/src/app/pages/register/register-page.ts</code
+            >
+          </footer>
+        </div>
+      </main>
+    </div>
+    <script src="../assets/js/nav.js"></script>
+  </body>
+</html>
