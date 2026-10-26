@@ -7,11 +7,11 @@
 
 <p align="center">
   <a href="https://robertneat.github.io/Hospital_Information_System/">
-    <img src="https://img.shields.io/badge/Documentation-1d5fa8?style=for-the-badge" alt="Documentation">
+    <img src="https://img.shields.io/badge/Dokumentacja-1d5fa8?style=for-the-badge" alt="Dokumentacja">
   </a>
   <br>
   <a href="https://github.com/RobertNeat/Hospital_Information_System/blob/main/docs/readme/../../README.md">
-    <img src="https://img.shields.io/badge/Polska_wersja_dokumentu-1d5fa8?style=for-the-badge" alt="Polska wersja">
+    <img src="https://img.shields.io/badge/Angielska_wersja_dokumentu-1d5fa8?style=for-the-badge" alt="Angielska wersja">
   </a>
 </p>
 
