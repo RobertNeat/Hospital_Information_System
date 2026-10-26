@@ -4,6 +4,8 @@
 
 <h1 align="center">Hospital Information System (HIS)</h1>
 
+[![Documentation](https://img.shields.io/badge/📖_Documentation-1d5fa8?style=for-the-badge&logoColor=white)](https://robertneat.github.io/Hospital_Information_System/)
+
 _Wersja polska: [docs/readme/README_pl.md](docs/readme/README_pl.md)_
 
 Hospital Information System (HIS) is an enterprise-grade clinical platform built around medical-grade
@@ -88,7 +90,6 @@ See [docs/readme/userRoles_en.md](docs/readme/userRoles_en.md) for what each rol
 | [docs/readme/databaseSchema_en.md](docs/readme/databaseSchema_en.md) | Entity schema, relationships, initial data                         |
 | [docs/readme/services_en.md](docs/readme/services_en.md)             | Services, communication between them, API documentation            |
 | [docs/readme/basicWorkflows_en.md](docs/readme/basicWorkflows_en.md) | Main process flows across the system                               |
-| [GitHub Pages site](https://robertneat.github.io/Hospital_Information_System/) (PL) | Per-screen documentation: navigation path, purpose, inputs, actions |
 
 Production deployment documentation (CI/CD, server): `.github/pipeline_docs/production_deployment.md`.
 
