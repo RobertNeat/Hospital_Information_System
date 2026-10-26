@@ -4,7 +4,16 @@
 
 <h1 align="center">Hospital Information System (HIS)</h1>
 
-_English version: [../../README.md](../../README.md)_
+
+<p align="center">
+  <a href="https://robertneat.github.io/Hospital_Information_System/">
+    <img src="https://img.shields.io/badge/Documentation-1d5fa8?style=for-the-badge" alt="Documentation">
+  </a>
+  <br>
+  <a href="https://github.com/RobertNeat/Hospital_Information_System/blob/main/docs/readme/../../README.md">
+    <img src="https://img.shields.io/badge/Polska_wersja_dokumentu-1d5fa8?style=for-the-badge" alt="Polska wersja">
+  </a>
+</p>
 
 Hospital Information System (HIS) jest platformą kliniczną klasy enterprise, zbudowaną od podstaw wokół
 standardów informacji medycznej. Łączy opiekę nad pacjentem, diagnostykę i przepisywanie leków w jeden
