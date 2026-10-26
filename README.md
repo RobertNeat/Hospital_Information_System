@@ -5,11 +5,13 @@
 <h1 align="center">Hospital Information System (HIS)</h1>
 
 <p align="center">
-  <a href="https://robertneat.github.io/Hospital_Information_System/">
+  <a href="https://robertneat.github.io/Enterprise_Banking_Platform/">
     <img src="https://img.shields.io/badge/📖_Documentation-1d5fa8?style=for-the-badge" alt="Documentation">
   </a>
-  <br><br>
-  <em>Wersja polska: <a href="docs/readme/README_pl.md">docs/readme/README_pl.md</a></em>
+  <br>
+  <a href="https://github.com/RobertNeat/Enterprise_Banking_Platform/blob/main/docs/readme/README_pl.md">
+    <img src="https://img.shields.io/badge/Polska_wersja_dokumentu-1d5fa8?style=for-the-badge" alt="Polska wersja">
+  </a>
 </p>
 
 Hospital Information System (HIS) is an enterprise-grade clinical platform built around medical-grade
