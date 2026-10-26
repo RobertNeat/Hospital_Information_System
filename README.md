@@ -6,8 +6,11 @@
 
 
 <p align="center">
+  
   [![Documentation](https://img.shields.io/badge/📖_Documentation-1d5fa8?style=for-the-badge&logoColor=white)](https://robertneat.github.io/Hospital_Information_System/)
+  
   _Wersja polska: [docs/readme/README_pl.md](docs/readme/README_pl.md)_
+  
 </p>
 
 Hospital Information System (HIS) is an enterprise-grade clinical platform built around medical-grade
